@@ -168,9 +168,11 @@ uint8_t* cl_identify_ncch(const char *path)
    if (!stream)
       return NULL;
 
-   /* The NCCH header seems to always start 0x1000 bytes into the ROM.       */
-   /* If this isn't true we could instead search for the "NCCH" magic string */
-   /* and seek backwards 0x0100.                                             */
+   /* 
+      The NCCH header seems to always start 0x1000 bytes into the ROM.
+      If this isn't true we could instead search for the "NCCH" magic string
+      and seek backwards 0x0100.
+   */
    intfstream_seek(stream, 0x1000, SEEK_SET);
    read_bytes = intfstream_read(stream, data, 0x200);
    intfstream_close(stream);
@@ -233,7 +235,7 @@ bool cl_identify_cue(char *path, char *extension)
             filename_length = end - beginning - 1;
             strncpy(final, beginning, filename_length);
             strncpy(path_temp, path, PATH_MAX_LENGTH - 1);
-            fill_pathname_resolve_relative(path, path_temp, final, PATH_MAX_LENGTH);
+            fill_pathname_resolve_relative(path, path_temp, final, sizeof(path_temp));
 
             /* Would extension lengths other than 3 ever be used? */
             snprintf(extension, 3, "%s", path_get_extension(path));

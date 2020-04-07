@@ -1,6 +1,8 @@
 #ifndef CLE_MEMORY_INSPECTOR_CPP
 #define CLE_MEMORY_INSPECTOR_CPP
 
+#include <QMessageBox>
+
 #include "cle_memory_inspector.h"
 
 CleMemoryInspector::CleMemoryInspector(cl_memory_t *memory)
@@ -386,6 +388,12 @@ void CleMemoryInspector::onClickResultAddMemoryNote(void)
 {
    if (m_ClickedResult < 0)
       return;
+   else if (!session.game_id)
+   {
+      QMessageBox::warning(this, "Live Editor", 
+         "The currently played game was not recognized by the server, so you cannot submit memory notes."
+      );
+   }
    else
    {
       cl_memnote_t new_note;
