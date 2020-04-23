@@ -7,7 +7,7 @@
 #include "cl_network.h"
 
 static char generic_post_data[CL_POST_DATA_SIZE];
-static char session_id[4];
+static char session_id[CL_SESSION_ID_LENGTH];
 
 bool cl_update_generic_post_data()
 {

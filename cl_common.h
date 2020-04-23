@@ -42,7 +42,7 @@
 #define CL_INTEGRATION_VERSION 1
 #define CL_PRESENCE_INTERVAL   30
 #define CL_RADIX               16
-#define CL_SESSION_ID_LENGTH   4
+#define CL_SESSION_ID_LENGTH   8
 #define CL_SETTINGS_LOGIN_INFO arrays.cheevos_password
 #define CL_SETTINGS_USERNAME   arrays.cheevos_username
 #define CL_SHOW_ERRORS         true

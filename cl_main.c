@@ -1,8 +1,6 @@
 #ifndef CL_MAIN_C
 #define CL_MAIN_C
 
-#include <stdio.h>
-
 #define CL_HAVE_EDITOR true
 
 #include "cl_common.h"
@@ -67,14 +65,13 @@ static void cl_cb_login(struct retro_task *task, void *task_data, void *user_dat
    char        msg[256];
    char       *server_data;
    const char *server_data_iterator;
+   bool        success = false;
    http_transfer_data_t *response = (http_transfer_data_t*)task_data;
    
    if (error || !response->data)
       cl_log("CL: %s", error);
    else
    {
-      bool success;
-
       if (!cl_json_get(&success, response->data, "success", CL_JSON_BOOLEAN, 0))
          cl_log("Malformed JSON output on login.\n");
       else if (!success)
@@ -87,7 +84,7 @@ static void cl_cb_login(struct retro_task *task, void *task_data, void *user_dat
             cl_error("Unknown error with login.");
       }
       else
-         cl_init_session(response->data);
+         success = cl_init_session(response->data);
    }
 }
 
