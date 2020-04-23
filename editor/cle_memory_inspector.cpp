@@ -183,7 +183,7 @@ inline uint32_t stringToValue(QString string, bool *ok)
       else
          base = 10; // TODO: Config option for default base?
 
-      return negative ? (uint32_t)string.toInt(ok, base) : 
+      return negative ? 0 - (uint32_t)string.toInt(ok, base) : 
          string.toUInt(ok, base);
    }
 }

@@ -1,12 +1,7 @@
 #ifndef CL_TYPES_H
 #define CL_TYPES_H
 
-#include <stdint.h>
-
-#define CL_ENDIAN_LITTLE     0
-#define CL_ENDIAN_BIG        1
-
-#define CL_SESSION_ID_LENGTH 4
+#include "cl_common.h"
 
 /* ============================================================================
    Miscellaneous info about the console being emulated, which may make 
