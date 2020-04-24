@@ -2,6 +2,7 @@
 #define CL_ACTION_H
 
 #include "cl_common.h"
+#include "cl_memory.h"
 
 #define CL_ACTTYPE_NO_PROCESS         '0'
 #define CL_ACTTYPE_BITS               'b'
@@ -39,7 +40,7 @@ bool cl_init_action    (cl_action_t *action);
 
 /* Run the function and return whether it succeeded. We assume the pointer is not NULL. */
 /* TODO: Do we need any safety checks here? */
-bool cl_process_action (cl_action_t *action);
+bool cl_process_action (cl_action_t *action, cl_memory_t *memory);
 
 /* Private (documentation for processing a cl_action_t)
 

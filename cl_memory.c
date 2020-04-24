@@ -55,6 +55,32 @@ bool cl_get_memnote_float(float *value, uint32_t memnote_id, uint8_t type)
    return false;
 }
 
+bool cl_get_memnote_value(uint32_t *value, cl_memory_t *memory, 
+   uint32_t memnote_id, uint8_t type)
+{
+   if (!memory || memnote_id >= memory->note_count)
+      return false;
+   else
+   {
+      switch (type)
+      {
+      case CL_SRCTYPE_CURRENT_RAM:
+         *value = memory->notes[memnote_id].value_current;
+         break;
+      case CL_SRCTYPE_PREVIOUS_RAM:
+         *value = memory->notes[memnote_id].value_previous;
+         break;
+      case CL_SRCTYPE_LAST_UNIQUE_RAM:
+         *value = memory->notes[memnote_id].value_last_unique;
+         break;
+      default:
+         return false;
+      }
+   }
+   
+   return true;
+}
+
 void cl_sort_membanks(cl_membank_t *banks, uint8_t count)
 {
    uint8_t i, j;

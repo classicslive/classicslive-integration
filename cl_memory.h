@@ -108,7 +108,8 @@ void cl_free_memnote(cl_memnote_t *memnote);
 
 bool cl_get_memnote_flag(uint32_t note_flags, uint8_t flag);
 bool cl_get_memnote_float(float *value, uint32_t memnote_id, uint8_t type);
-bool cl_get_memnote_value(uint32_t *value, uint32_t memnote_id, uint8_t type);
+bool cl_get_memnote_value(uint32_t *value, cl_memory_t *memory, 
+   uint32_t memnote_id, uint8_t type);
 
 /* Populate a memory holder with values returned by the web API */
 bool cl_init_memory(const char **pos, cl_memory_t *memory);
