@@ -17,8 +17,7 @@ void cle_init();
 void cle_run();
 #endif
 
-static cl_memory_t  memory;
-static cl_script_t  script;
+static cl_script_t script;
 cl_session_t session;
 
 bool cl_init_session(const char* json)
@@ -42,7 +41,7 @@ bool cl_init_session(const char* json)
    /* Memory-related */
    iterator = &memory_str[0];
    if (cl_json_get(memory_str, json, "memory_notes", CL_JSON_STRING, sizeof(memory_str)))
-      cl_init_memory(&iterator, &memory);
+      cl_init_memory(&iterator);
    else
       return false;
    cl_json_get(&memory.endianness,   json, "endianness",   CL_JSON_NUMBER, sizeof(memory.endianness));
@@ -138,8 +137,8 @@ bool cl_run()
 {
    if (true)//session.ready) TODO: temp
    {
-      cl_update_memory(&memory);
-      cl_update_script(&script, &memory);
+      cl_update_memory();
+      cl_update_script(&script);
 #ifdef CL_HAVE_EDITOR
       cle_run();
 #endif
@@ -152,7 +151,7 @@ bool cl_run()
 
 void cl_free()
 {
-   cl_free_memory(&memory);
+   cl_free_memory();
    cl_free_script(&script);
 }
 

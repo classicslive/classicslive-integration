@@ -1,25 +1,25 @@
 #ifndef CL_MEMORY_C
 #define CL_MEMORY_C
 
-#include <stdio.h>
-
 #include "cl_common.h"
 #include "cl_memory.h"
 
-cl_membank_t* cl_find_membank(cl_memory_t *memory, uint32_t address)
+cl_memory_t memory;
+
+cl_membank_t* cl_find_membank(uint32_t address)
 {
-   if (!memory->bank_count)
+   if (!memory.bank_count)
       return NULL;
-   else if (memory->bank_count == 1)
-      return &memory->banks[0];
+   else if (memory.bank_count == 1)
+      return &memory.banks[0];
    else
    {
       uint8_t i;
 
-      for (i = 0; i < memory->bank_count; i++)
+      for (i = 0; i < memory.bank_count; i++)
       {
-         if (memory->banks[i].start <= address && address < memory->banks[i].start + memory->banks[i].size)
-            return &memory->banks[i];
+         if (memory.banks[i].start <= address && address < memory.banks[i].start + memory.banks[i].size)
+            return &memory.banks[i];
       }
    }
 
@@ -33,15 +33,15 @@ void cl_free_memnote(cl_memnote_t *memnote)
    memnote->pointer_offsets = NULL;
 }
 
-void cl_free_memory(cl_memory_t *memory)
+void cl_free_memory()
 {
    uint32_t i;
 
-   free(&memory->banks);
-   for (i = 0; i < memory->note_count; i++)
-      cl_free_memnote(&memory->notes[i]);
-   memory->banks = NULL;
-   memory->notes = NULL;
+   free(memory.banks);
+   for (i = 0; i < memory.note_count; i++)
+      cl_free_memnote(&memory.notes[i]);
+   memory.banks = NULL;
+   memory.notes = NULL;
 }
 
 bool cl_get_memnote_flag(uint32_t note_flags, uint8_t flag)
@@ -55,23 +55,22 @@ bool cl_get_memnote_float(float *value, uint32_t memnote_id, uint8_t type)
    return false;
 }
 
-bool cl_get_memnote_value(uint32_t *value, cl_memory_t *memory, 
-   uint32_t memnote_id, uint8_t type)
+bool cl_get_memnote_value(uint32_t *value, uint32_t memnote_id, uint8_t type)
 {
-   if (!memory || memnote_id >= memory->note_count)
+   if (memnote_id >= memory.note_count)
       return false;
    else
    {
       switch (type)
       {
       case CL_SRCTYPE_CURRENT_RAM:
-         *value = memory->notes[memnote_id].value_current;
+         *value = memory.notes[memnote_id].value_current;
          break;
       case CL_SRCTYPE_PREVIOUS_RAM:
-         *value = memory->notes[memnote_id].value_previous;
+         *value = memory.notes[memnote_id].value_previous;
          break;
       case CL_SRCTYPE_LAST_UNIQUE_RAM:
-         *value = memory->notes[memnote_id].value_last_unique;
+         *value = memory.notes[memnote_id].value_last_unique;
          break;
       default:
          return false;
@@ -100,15 +99,15 @@ void cl_sort_membanks(cl_membank_t *banks, uint8_t count)
    }
 }
 
-bool cl_init_membanks(cl_memory_t *memory)
+bool cl_init_membanks()
 {
    rarch_system_info_t* sys_info = runloop_get_system_info();
    uint8_t i;
 
-   memory->bank_count = sys_info->mmaps.num_descriptors;
+   memory.bank_count = sys_info->mmaps.num_descriptors;
 
    /* No mmaps; we use retro_get_memory_data instead */
-   if (memory->bank_count == 0)
+   if (memory.bank_count == 0)
    {
       retro_ctx_memory_info_t mem_info;
 
@@ -119,47 +118,47 @@ bool cl_init_membanks(cl_memory_t *memory)
       if (!mem_info.data)
          return false;
 
-      memory->banks = (cl_membank_t*)malloc(sizeof(cl_membank_t));
-      memory->banks[0].data = (uint8_t*)mem_info.data;
-      memory->banks[0].size = mem_info.size;
-      memory->banks[0].start = 0;
-      memory->bank_count = 1;
-      cl_log("Using retro_get_memory_data | %p - %08X bytes\n", memory->banks[0].data, memory->banks[0].size);
+      memory.banks = (cl_membank_t*)malloc(sizeof(cl_membank_t));
+      memory.banks[0].data = (uint8_t*)mem_info.data;
+      memory.banks[0].size = mem_info.size;
+      memory.banks[0].start = 0;
+      memory.bank_count = 1;
+      cl_log("Using retro_get_memory_data | %p - %08X bytes\n", memory.banks[0].data, memory.banks[0].size);
 
       return true;
    }
    else
    {
-      memory->banks = (cl_membank_t*)calloc(memory->bank_count, sizeof(cl_membank_t));
-      for (i = 0; i < memory->bank_count; i++)
+      memory.banks = (cl_membank_t*)calloc(memory.bank_count, sizeof(cl_membank_t));
+      for (i = 0; i < memory.bank_count; i++)
       {
-         memory->banks[i].data = (uint8_t*)sys_info->mmaps.descriptors[i].core.ptr;
-         memory->banks[i].size = sys_info->mmaps.descriptors[i].core.len;
-         memory->banks[i].start = sys_info->mmaps.descriptors[i].core.start;
+         memory.banks[i].data = (uint8_t*)sys_info->mmaps.descriptors[i].core.ptr;
+         memory.banks[i].size = sys_info->mmaps.descriptors[i].core.len;
+         memory.banks[i].start = sys_info->mmaps.descriptors[i].core.start;
       }
 
-      cl_sort_membanks(memory->banks, memory->bank_count);
-      for (i = 0; i < memory->bank_count; i++)
-         cl_log("Bank %02X: 0x%08X | %08X bytes | %p\n", i, memory->banks[i].start, memory->banks[i].size, memory->banks[i].data);
+      cl_sort_membanks(memory.banks, memory.bank_count);
+      for (i = 0; i < memory.bank_count; i++)
+         cl_log("Bank %02X: 0x%08X | %08X bytes | %p\n", i, memory.banks[i].start, memory.banks[i].size, memory.banks[i].data);
 
       return true;
    }
 }
 
-bool cl_init_memory(const char **pos, cl_memory_t *memory)
+bool cl_init_memory(const char **pos)
 {
    cl_memnote_t *new_memnote;
    uint32_t      i;
    
-   if (!cl_strto(pos, &memory->note_count, sizeof(memory->note_count), false))
+   if (!cl_strto(pos, &memory.note_count, sizeof(memory.note_count), false))
       return false;
-   memory->notes = (cl_memnote_t*)calloc(memory->note_count, sizeof(cl_memnote_t));
+   memory.notes = (cl_memnote_t*)calloc(memory.note_count, sizeof(cl_memnote_t));
 
-   cl_log("Memory notes: %u\n", memory->note_count);
+   cl_log("Memory notes: %u\n", memory.note_count);
 
-   for (i = 0; i < memory->note_count; i++)
+   for (i = 0; i < memory.note_count; i++)
    {
-      new_memnote = &memory->notes[i];
+      new_memnote = &memory.notes[i];
 
       if (!(cl_strto(pos, &new_memnote->address,        4, false) &&
             cl_strto(pos, &new_memnote->type,           1, false) &&
@@ -190,26 +189,26 @@ bool cl_init_memory(const char **pos, cl_memory_t *memory)
    cl_log("End of memory.\n");
 
    /* This will be overwritten, set it to something valid. */
-   memory->endianness   = CL_ENDIAN_LITTLE;
-   memory->pointer_size = 4;
+   memory.endianness   = CL_ENDIAN_LITTLE;
+   memory.pointer_size = 4;
 
-   return memory->note_count != 0;
+   return memory.note_count != 0;
 }
 
-bool cl_read_memory(uint32_t *value, cl_memory_t *memory, cl_membank_t *bank, uint32_t address, uint8_t size)
+bool cl_read_memory(uint32_t *value, cl_membank_t *bank, uint32_t address, uint8_t size)
 {
    uint8_t i;
 
    if (!bank)
    {
-      bank = cl_find_membank(memory, address);
+      bank = cl_find_membank(address);
       if (!bank)
          return false;
       else
          address -= bank->start;
    }
    if (bank->data && address < bank->size)
-      return cl_read(value, bank->data, address, size, memory->endianness);
+      return cl_read(value, bank->data, address, size, memory.endianness);
    
    return false;
 }
@@ -246,7 +245,7 @@ uint8_t cl_sizeof_memtype(const uint8_t memtype)
    return 0;
 }
 
-void cl_update_memory(cl_memory_t *memory)
+void cl_update_memory()
 {
    uint32_t      address;
    bool          error;
@@ -255,12 +254,12 @@ void cl_update_memory(cl_memory_t *memory)
    uint32_t      i;
    uint8_t       j;
 
-   if (memory->bank_count == 0)
-      cl_init_membanks(memory);
+   if (memory.bank_count == 0)
+      cl_init_membanks();
 
-   for (i = 0; i < memory->note_count; i++)
+   for (i = 0; i < memory.note_count; i++)
    {
-      note    = &memory->notes[i];
+      note    = &memory.notes[i];
       address = note->address;
       error   = false;
       value   = 0;
@@ -271,7 +270,7 @@ void cl_update_memory(cl_memory_t *memory)
       /* Handle values that require pointer follows */
       for (j = 0; j < note->pointer_passes; j++)
       {
-         if (!cl_read_memory(&value, memory, NULL, address, memory->pointer_size))
+         if (!cl_read_memory(&value, NULL, address, memory.pointer_size))
          {
             /* Pointer leads to an invalid location */
             error = true;
@@ -284,7 +283,7 @@ void cl_update_memory(cl_memory_t *memory)
          continue;
 
       /* Update memnote values based on their reported size */
-      if (cl_read_memory(&value, memory, NULL, address, cl_sizeof_memtype(note->type)))
+      if (cl_read_memory(&value, NULL, address, cl_sizeof_memtype(note->type)))
          note->value_current = value;
 
       /* Logic for "last unique" values; the previous value will persist */
@@ -293,14 +292,14 @@ void cl_update_memory(cl_memory_t *memory)
    }
 }
 
-bool cl_write_memory(cl_memory_t *memory, cl_membank_t *bank,
-   uint32_t address, uint8_t size, const void *value)
+bool cl_write_memory(cl_membank_t *bank, uint32_t address, uint8_t size, 
+   const void *value)
 {
    uint8_t i;
 
    if (!bank)
    {
-      bank = cl_find_membank(memory, address);
+      bank = cl_find_membank(address);
       if (!bank)
          return false;
       else
@@ -308,7 +307,7 @@ bool cl_write_memory(cl_memory_t *memory, cl_membank_t *bank,
    }
    if (bank->data)
    /* TODO: The address should be masked */
-      return cl_write(bank->data, value, address, size, memory->endianness);
+      return cl_write(bank->data, value, address, size, memory.endianness);
    
    return false;
 }

@@ -39,7 +39,7 @@ uint32_t* cl_get_counter       (uint8_t counter_number);
 bool      cl_get_counter_value (uint32_t *buffer, uint8_t counter_num);
 */
 bool      cl_init_script       (const char **pos, cl_script_t *script);
-bool      cl_update_script     (cl_script_t *script, cl_memory_t *memory);
+bool      cl_update_script     (cl_script_t *script);
 
 /* Private
 bool     cl_is_if_statement       (uint8_t type);

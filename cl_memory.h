@@ -98,35 +98,36 @@ typedef struct cl_memory_t
    cl_membank_t *banks;
    uint8_t       bank_count;
 
-   /* Metadata about the emulated console that tells us how to read its values */
+   /* Metadata about the core that tells us how to read its values */
    uint8_t       endianness;
    uint8_t       pointer_size;
 } cl_memory_t;
 
-void cl_free_memory(cl_memory_t *memory);
+void cl_free_memory();
 void cl_free_memnote(cl_memnote_t *memnote);
 
 bool cl_get_memnote_flag(uint32_t note_flags, uint8_t flag);
 bool cl_get_memnote_float(float *value, uint32_t memnote_id, uint8_t type);
-bool cl_get_memnote_value(uint32_t *value, cl_memory_t *memory, 
-   uint32_t memnote_id, uint8_t type);
+bool cl_get_memnote_value(uint32_t *value, uint32_t memnote_id, uint8_t type);
 
 /* Populate a memory holder with values returned by the web API */
-bool cl_init_memory(const char **pos, cl_memory_t *memory);
+bool cl_init_memory(const char **pos);
 
 /* Read a value from a virtual memory address, return true on success */
 /* A pointer to a memory bank can be specified. If this is NULL the 
    exact address will be inferred from the memory info. */
-bool cl_read_memory(uint32_t *value, cl_memory_t *memory, cl_membank_t *bank, 
-   uint32_t address, uint8_t size);
+bool cl_read_memory(uint32_t *value, cl_membank_t *bank, uint32_t address, 
+   uint8_t size);
 
 /* Returns size (in bytes) of a given memory type ID */
 uint8_t cl_sizeof_memtype(const uint8_t memtype);
 
 /* Step through all memnotes and update their values, called once per frame */
-void cl_update_memory(cl_memory_t *memory);
+void cl_update_memory();
 
-bool cl_write_memory(cl_memory_t *memory, cl_membank_t *bank,
-   uint32_t address, uint8_t size, const void *value);
+bool cl_write_memory(cl_membank_t *bank, uint32_t address, uint8_t size, 
+   const void *value);
+
+extern cl_memory_t memory;
 
 #endif

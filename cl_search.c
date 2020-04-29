@@ -46,9 +46,9 @@ bool cl_search_free(cl_search_t *search)
    }
 }
 
-bool cl_search_init(cl_search_t *search, cl_memory_t *memory)
+bool cl_search_init(cl_search_t *search)
 {
-   if (!memory)
+   if (!memory.bank_count)
       return false;
    else
    {
@@ -56,15 +56,14 @@ bool cl_search_init(cl_search_t *search, cl_memory_t *memory)
 
       cl_log("Initializing a new search...\n");
       search->matches          = 0;
-      search->memory           = memory;
-      search->searchbank_count = memory->bank_count;
+      search->searchbank_count = memory.bank_count;
       search->searchbanks      = (cl_searchbank_t*)calloc(search->searchbank_count, sizeof(cl_searchbank_t));
       for (i = 0; i < search->searchbank_count; i++)
       {
          search->searchbanks[i].any_valid = true;
-         search->searchbanks[i].bank   = &memory->banks[i];
-         search->searchbanks[i].backup = (uint8_t*)malloc(memory->banks[i].size);
-         search->searchbanks[i].valid  = (uint8_t*)malloc(memory->banks[i].size);
+         search->searchbanks[i].bank   = &memory.banks[i];
+         search->searchbanks[i].backup = (uint8_t*)malloc(memory.banks[i].size);
+         search->searchbanks[i].valid  = (uint8_t*)malloc(memory.banks[i].size);
       }
 
       return true;
@@ -75,18 +74,18 @@ bool cl_read_search(uint32_t *value, cl_search_t *search, cl_searchbank_t *sbank
 {
    if (!sbank)
    {
-      if (search->memory->bank_count == 0)
+      if (memory.bank_count == 0)
          return false;
-      else if (search->memory->bank_count == 1)
+      else if (memory.bank_count == 1)
          sbank = &search->searchbanks[0];
       else
       {
          uint8_t i;
 
-         for (i = 0; i < search->memory->bank_count; i++)
+         for (i = 0; i < memory.bank_count; i++)
          {
-            if ((address >= search->memory->banks[i].start) && 
-                (address <  search->memory->banks[i].start + search->memory->banks[i].size))
+            if ((address >= memory.banks[i].start) && 
+                (address <  memory.banks[i].start + memory.banks[i].size))
             {
                sbank = &search->searchbanks[i];
                address -= sbank->bank->start;
@@ -95,7 +94,7 @@ bool cl_read_search(uint32_t *value, cl_search_t *search, cl_searchbank_t *sbank
       }
    }
    if (sbank->backup)
-      return cl_read(value, sbank->backup, address, size, search->memory->endianness);
+      return cl_read(value, sbank->backup, address, size, memory.endianness);
 
    return false;
 }
@@ -314,7 +313,7 @@ uint32_t cl_search_step(cl_search_t *search, void *value, uint8_t size,
                continue;
 
             cl_read_search(&left, search, sbank, j, size);
-            cl_read_memory(&right, search->memory, sbank->bank, j, size);
+            cl_read_memory(&right, sbank->bank, j, size);
 
             if (!value)
             {
@@ -377,11 +376,11 @@ bool cl_pointersearch_free(cl_pointersearch_t *search)
    }
 }
 
-bool cl_pointersearch_init(cl_pointersearch_t *search, cl_memory_t *memory, 
+bool cl_pointersearch_init(cl_pointersearch_t *search, 
    uint32_t address, uint8_t size, uint8_t passes, uint32_t range, 
    uint32_t max_results)
 {
-   if (!search || !memory || address == 0 || passes == 0)
+   if (!search || address == 0 || passes == 0)
       return false;
    else
    {
@@ -392,19 +391,18 @@ bool cl_pointersearch_init(cl_pointersearch_t *search, cl_memory_t *memory,
       uint32_t i, j;
 
       /* Is the address we're looking for valid? */
-      if (!cl_read_memory(&prev_value, memory, NULL, address, size))
+      if (!cl_read_memory(&prev_value, NULL, address, size))
       {
          cl_log("Address %08X is invalid for a pointer search.\n", address);
          return false;
       }
 
-      search->memory = memory;
       search->passes = passes;
       search->range  = range;
       search->size   = size;
 
       /* Only one memory bank; all pointed addresses are probably relative */
-      if (memory->bank_count == 1)
+      if (memory.bank_count == 1)
          exact_only = false;
 
       /* We create a temporary array of max size and trim it down after */
@@ -412,18 +410,18 @@ bool cl_pointersearch_init(cl_pointersearch_t *search, cl_memory_t *memory,
       matches = 0;
 
       /* Do a quick scan to see how many results we start with */
-      for (i = 0; i < memory->bank_count; i++)
+      for (i = 0; i < memory.bank_count; i++)
       {
          uint32_t target = exact_only ? bank->start + address : address;
 
-         bank = &memory->banks[i];
+         bank = &memory.banks[i];
 
-         if (bank->size < memory->pointer_size)
+         if (bank->size < memory.pointer_size)
             continue;
 
-         for (j = 0; j < bank->size; j += memory->pointer_size)
+         for (j = 0; j < bank->size; j += memory.pointer_size)
          {
-            cl_read_memory(&value, memory, bank, j, memory->pointer_size);
+            cl_read_memory(&value, bank, j, memory.pointer_size);
 
             if (value <= target && value >= target - range)
             {
@@ -474,9 +472,9 @@ uint32_t cl_pointersearch_step(cl_pointersearch_t *search, uint32_t *value,
          address = result->address_initial;
 
          for (j = 0; j < search->passes; j++)
-            cl_read_memory(&address, search->memory, NULL, address + result->offsets[j], search->memory->pointer_size);
+            cl_read_memory(&address, NULL, address + result->offsets[j], memory.pointer_size);
 
-         if (!cl_read_memory(&final_value, search->memory, NULL, address, search->size))
+         if (!cl_read_memory(&final_value, NULL, address, search->size))
             continue;
          else
          {

@@ -110,7 +110,7 @@ bool cl_is_if_statement(uint8_t type)
    return type > 0x60;
 }
 
-uint32_t cl_process_if_statements(cl_page_t *page, cl_memory_t *memory, uint32_t pos)
+uint32_t cl_process_if_statements(cl_page_t *page, uint32_t pos)
 {
    uint8_t  current_indent = page->actions[pos].indentation;
    bool     evaluation     = true;
@@ -120,7 +120,7 @@ uint32_t cl_process_if_statements(cl_page_t *page, cl_memory_t *memory, uint32_t
    {
       /* Make sure all if statements on the current indentation level are true */
       if (cl_is_if_statement(page->actions[i].type) && page->actions[i].indentation == current_indent)
-         evaluation &= cl_process_action(&page->actions[i], memory);
+         evaluation &= cl_process_action(&page->actions[i]);
       else if (current_indent < page->actions[i].indentation)
       {
          /* Indentation went one level deeper, should we follow it? */
@@ -143,7 +143,7 @@ uint32_t cl_process_if_statements(cl_page_t *page, cl_memory_t *memory, uint32_t
    return page->action_count - 1;
 }
 
-bool cl_process_actions(cl_page_t *page, cl_memory_t *memory)
+bool cl_process_actions(cl_page_t *page)
 {
    bool     success = true;
    uint32_t i       = 0;
@@ -151,11 +151,11 @@ bool cl_process_actions(cl_page_t *page, cl_memory_t *memory)
    while (i < page->action_count)
    {
       if (cl_is_if_statement(page->actions[i].type))
-         i = cl_process_if_statements(page, memory, i);
+         i = cl_process_if_statements(page, i);
       else
       {
          /* TODO: Error handling if a direct command returns false? */
-         success &= cl_process_action(&page->actions[i], memory);
+         success &= cl_process_action(&page->actions[i]);
          i++;
       }
    }
@@ -163,7 +163,7 @@ bool cl_process_actions(cl_page_t *page, cl_memory_t *memory)
    return success;
 }
 
-bool cl_update_script(cl_script_t *script, cl_memory_t *memory)
+bool cl_update_script(cl_script_t *script)
 {
    bool     success = true;
    uint32_t i;
@@ -171,7 +171,7 @@ bool cl_update_script(cl_script_t *script, cl_memory_t *memory)
    for (i = 0; i < script->page_count; i++)
    {
       script->current_page = &script->pages[i];
-      success &= cl_process_actions(script->current_page, memory);
+      success &= cl_process_actions(script->current_page);
    }
 
    return success;
