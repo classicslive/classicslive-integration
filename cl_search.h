@@ -2,7 +2,6 @@
 #define CL_SEARCH_H
 
 #include "cl_types.h"
-#include "cl_memory.h"
 
 typedef struct cl_searchbank_t
 {

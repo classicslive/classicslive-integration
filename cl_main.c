@@ -111,7 +111,7 @@ bool cl_init(struct retro_game_info *info)
    settings_t *settings = config_get_ptr();
 
 #ifdef CL_HAVE_EDITOR
-   cle_init(&memory);
+   cle_init();
 #endif
 
    cl_log("Init CL\n");

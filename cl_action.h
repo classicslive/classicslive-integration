@@ -2,7 +2,6 @@
 #define CL_ACTION_H
 
 #include "cl_common.h"
-#include "cl_memory.h"
 
 #define CL_ACTTYPE_NO_PROCESS         '0'
 #define CL_ACTTYPE_BITS               'b'

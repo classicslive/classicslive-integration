@@ -9,7 +9,6 @@
 #define CL_COUNTERS_SIZE       16
 
 #include "cl_action.h"
-#include "cl_memory.h"
 
 typedef struct cl_page_t
 {

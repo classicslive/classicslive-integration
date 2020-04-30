@@ -11,7 +11,7 @@ static int app_argc = 1;
 static char app_name[] = "retroarch";
 static char *app_argv[] = { app_name, NULL };
 
-extern "C" void cle_init(cl_memory_t *memory)
+extern "C" void cle_init()
 {
    m_Application = new QApplication(app_argc, app_argv);
 
@@ -35,7 +35,7 @@ extern "C" void cle_init(cl_memory_t *memory)
    m_Application->setPalette(darkPalette);
    m_Application->setStyleSheet("QToolTip { color: #ffffff; background-color: #2a82da; border: 1px solid white; }");
 
-   m_MemoryInspector = new CleMemoryInspector(memory);
+   m_MemoryInspector = new CleMemoryInspector();
    m_MemoryInspector->show();
 }
 

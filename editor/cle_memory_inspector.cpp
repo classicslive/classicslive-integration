@@ -5,7 +5,7 @@
 
 #include "cle_memory_inspector.h"
 
-CleMemoryInspector::CleMemoryInspector(cl_memory_t *memory)
+CleMemoryInspector::CleMemoryInspector()
 {
    QGridLayout *Layout = new QGridLayout;
 
@@ -112,7 +112,6 @@ CleMemoryInspector::CleMemoryInspector(cl_memory_t *memory)
    memset(m_SearchTypes, CLE_SEARCHTYPE_NORMAL, sizeof(m_SearchTypes));
 
    /* Initialize other variables */
-   m_Memory = memory;
    m_AddressOffset = 0;
    m_ClickedResult = -1;
    m_CurrentEditedRow = -1;
@@ -241,12 +240,12 @@ void CleMemoryInspector::onChangeTab()
 
 void CleMemoryInspector::onClickNew()
 {
-   if (!m_Memory || m_Memory->bank_count == 0)
+   if (!memory.bank_count)
       return;
    else
    {  
       cl_search_free(&m_Searches[m_CurrentTab]);
-      cl_search_init(&m_Searches[m_CurrentTab], m_Memory);
+      cl_search_init(&m_Searches[m_CurrentTab]);
       cl_search_reset(&m_Searches[m_CurrentTab]);
       m_ResultTable->setRowCount(0);
    }
@@ -254,7 +253,7 @@ void CleMemoryInspector::onClickNew()
 
 void CleMemoryInspector::onClickSearch()
 {
-   if (!m_Memory || m_Memory->bank_count == 0)
+   if (memory.bank_count == 0)
       return;
    else
    {
@@ -303,25 +302,25 @@ void CleMemoryInspector::onHexWidgetOffsetEdited(int32_t delta)
 
    /* Don't underflow, don't scroll into invalid data */
    if ((new_address > m_AddressOffset && delta < 0) || 
-       new_address + 256 > m_Memory->banks[0].size)
+       new_address + 256 > memory.banks[0].size)
       return;
    else
    {
       m_AddressOffset = new_address;
-      memcpy(m_BufferPrevious, &m_Memory->banks[0].data[new_address], 256);
+      memcpy(m_BufferPrevious, &memory.banks[0].data[new_address], 256);
       m_HexWidget->setOffset(new_address);
    }
 }
 
 void CleMemoryInspector::onHexWidgetValueEdited(uint32_t address, uint8_t value)
 {
-   cl_write_memory(m_Memory, NULL, address, 1, &value);
+   cl_write_memory(NULL, address, 1, &value);
 }
 
 void CleMemoryInspector::onResultClicked()
 {
    m_AddressOffset = getClickedResultAddress() & ~0xF;
-   memcpy(m_BufferPrevious, &m_Memory->banks[0].data[m_AddressOffset], 256);
+   memcpy(m_BufferPrevious, &memory.banks[0].data[m_AddressOffset], 256);
    m_HexWidget->setOffset(m_AddressOffset);
 }
 
@@ -364,7 +363,7 @@ void CleMemoryInspector::onResultEdited(QTableWidgetItem *result)
             value = new uint32_t(stringToValue(new_value_text, &ok));
 
          if (ok)
-            cl_write_memory(m_Memory, NULL, address, size, value);
+            cl_write_memory(NULL, address, size, value);
          free(value);
       }
       m_CurrentEditedRow = -1;
@@ -418,8 +417,7 @@ void CleMemoryInspector::onClickResultPointerSearch(void)
    else
    {
       cl_pointersearch_init(
-         &m_PointerSearch[m_TabCount], 
-         m_Memory, 
+         &m_PointerSearch[m_TabCount],
          getClickedResultAddress(),
          cl_sizeof_memtype(getCurrentSizeType()),
          1,
@@ -557,12 +555,12 @@ void CleMemoryInspector::rebuildRowsNormal()
    memtype = getCurrentSizeType();
    size = cl_sizeof_memtype(getCurrentSizeType());
 
-   for (i = 0; i < m_Memory->bank_count; i++)
+   for (i = 0; i < memory.bank_count; i++)
    {
       if (!m_Searches[m_CurrentTab].searchbanks[i].any_valid)
          continue;
 
-      for (j = 0; j < m_Memory->banks[i].size; j += size)
+      for (j = 0; j < memory.banks[i].size; j += size)
       {
          /* This value was filtered out */
          if (!m_Searches[m_CurrentTab].searchbanks[i].valid[j])
@@ -571,14 +569,14 @@ void CleMemoryInspector::rebuildRowsNormal()
          /* This value is still valid; add a new row */
          m_ResultTable->insertRow(current_row);
          /* Address */
-         snprintf(temp_string, 256, "%08X", j + m_Memory->banks[i].start);
+         snprintf(temp_string, 256, "%08X", j + memory.banks[i].start);
          m_ResultTable->setItem(current_row, 0, new QTableWidgetItem(QString(temp_string)));
          /* Previous value */
          cl_read_search(&temp_value, &m_Searches[m_CurrentTab], &m_Searches[m_CurrentTab].searchbanks[i], j, size);
          resultValueToString(temp_string, sizeof(temp_string), temp_value, memtype);
          m_ResultTable->setItem(current_row, 1, new QTableWidgetItem(QString(temp_string)));
          /* Current value */
-         cl_read_memory(&temp_value, m_Memory, &m_Memory->banks[i], j, size);
+         cl_read_memory(&temp_value, &memory.banks[i], j, size);
          resultValueToString(temp_string, sizeof(temp_string), temp_value, memtype);
          m_ResultTable->setItem(current_row, 2, new QTableWidgetItem(QString(temp_string)));
          current_row++;
@@ -671,7 +669,7 @@ void CleMemoryInspector::updateNormal()
          Only a few results should be redrawn at any time anyway */
       address = m_ResultTable->item(i, 0)->text().split(" ")[0].toULong(NULL, 16);
 
-      if (!cl_read_memory(&curr_value, m_Memory, NULL, address, size) ||
+      if (!cl_read_memory(&curr_value, NULL, address, size) ||
           !cl_read_search(&prev_value, &m_Searches[m_CurrentTab], NULL, address, size))
          break;
 
@@ -696,10 +694,10 @@ void CleMemoryInspector::updateNormal()
          item->setTextColor(Qt::white);
    }
 
-   if (m_AddressOffset > m_Memory->banks[0].start + m_Memory->banks[0].size)
+   if (m_AddressOffset > memory.banks[0].start + memory.banks[0].size)
       return;
 
-   memcpy(m_BufferCurrent, &m_Memory->banks[0].data[m_AddressOffset], 256);
+   memcpy(m_BufferCurrent, &memory.banks[0].data[m_AddressOffset], 256);
    m_HexWidget->refresh(m_BufferCurrent, m_BufferPrevious);
    memcpy(m_BufferPrevious, m_BufferCurrent, 256);
 }
@@ -738,12 +736,12 @@ void CleMemoryInspector::updatePointer()
 
       for (j = 1; j <= search->passes; j++)
       {
-         if (!cl_read_memory(&address, m_Memory, NULL, address, 4))
+         if (!cl_read_memory(&address, NULL, address, 4))
             break;
          address += m_ResultTable->item(i, j)->text().toULong(NULL, 16);
       }
 
-      if (!cl_read_memory(&curr_value, m_Memory, NULL, address, size))// ||
+      if (!cl_read_memory(&curr_value, NULL, address, size))// ||
           //!cl_read_search(&prev_value, &m_Searches[m_CurrentTab], NULL, address, size))
          continue;
 
@@ -768,10 +766,10 @@ void CleMemoryInspector::updatePointer()
          item->setTextColor(Qt::white);
    }
 
-   if (m_AddressOffset > m_Memory->banks[0].start + m_Memory->banks[0].size)
+   if (m_AddressOffset > memory.banks[0].start + memory.banks[0].size)
       return;
 
-   memcpy(m_BufferCurrent, &m_Memory->banks[0].data[m_AddressOffset], 256);
+   memcpy(m_BufferCurrent, &memory.banks[0].data[m_AddressOffset], 256);
    m_HexWidget->refresh(m_BufferCurrent, m_BufferPrevious);
    memcpy(m_BufferPrevious, m_BufferCurrent, 256);
 }

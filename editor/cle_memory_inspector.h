@@ -35,13 +35,12 @@ class CleMemoryInspector : public QWidget
    Q_OBJECT
 
 public:
-   CleMemoryInspector(cl_memory_t *memory);
+   CleMemoryInspector();
 
 public slots:
    void update();
 
 private:
-   cl_memory_t       *m_Memory;
    uint8_t            m_SearchTypes  [8];
    cl_search_t        m_Searches     [8];
    cl_pointersearch_t m_PointerSearch[8];

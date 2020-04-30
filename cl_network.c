@@ -17,7 +17,7 @@ bool cl_update_generic_post_data()
 
    snprintf(generic_post_data, sizeof(generic_post_data), "session_id=%s", 
     session_id);
-   for (i = 0; i < cl_get_memnote_count(); i++)
+   for (i = 0; i < memory.note_count; i++)
    {
       if (cl_get_memnote_flag(i, CL_MEMFLAG_RICH))
       {
