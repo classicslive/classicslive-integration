@@ -19,8 +19,7 @@ bool cl_free_action(cl_action_t *action)
    return false;
 }
 
-bool cl_get_compare_value(uint32_t *buffer, 
-   uint32_t source, uint32_t offset)
+bool cl_get_compare_value(uint32_t *buffer, uint32_t source, uint32_t offset)
 {
    if (!buffer)
       return false;

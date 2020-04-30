@@ -3,6 +3,7 @@
 
 #include <string.h>
 #include "cl_common.h"
+#include "cl_memory.h"
 #include "cl_search.h"
 
 cl_searchbank_t* cl_searchbank_from_address(cl_search_t *search, 

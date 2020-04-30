@@ -595,7 +595,7 @@ void CleMemoryInspector::rebuildRowsPointer()
 {
    cl_pointersearch_t *search;
    char     temp_string[32];
-   uint8_t  memtype, size;
+   uint8_t  memtype;
    uint32_t current_row, matches, temp_value, i, j;
 
    search  = &m_PointerSearch[m_CurrentTab];
@@ -605,7 +605,6 @@ void CleMemoryInspector::rebuildRowsPointer()
    m_ResultTable->setRowCount(matches);
 
    memtype = getCurrentSizeType();
-   size = cl_sizeof_memtype(getCurrentSizeType());
 
    for (i = 0; i < matches; i++)
    {

@@ -44,9 +44,12 @@ void cl_free_memory()
    memory.notes = NULL;
 }
 
-bool cl_get_memnote_flag(uint32_t note_flags, uint8_t flag)
+bool cl_get_memnote_flag(uint32_t index, uint8_t flag)
 {
-   return (note_flags & (1 << flag)) != 0;
+   if (index >= memory.note_count)
+      return false;
+   else
+      return (memory.notes[index].flags & (1 << flag)) != 0;
 }
 
 bool cl_get_memnote_float(float *value, uint32_t memnote_id, uint8_t type)
