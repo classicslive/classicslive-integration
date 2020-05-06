@@ -8,6 +8,10 @@
 
 #include "cl_identify.h"
 
+#define CL_DOLPHIN_SIZE 0x002C
+#define CL_ISO9660_SIZE 0x0800
+#define CL_NCCH_SIZE    0x0200
+
 void cl_task_md5(retro_task_t *task)
 {
    cl_md5_ctx_t *state = NULL;
@@ -61,13 +65,13 @@ void cl_task_gcwii(retro_task_t *task)
       {
          uint8_t *buffer;
 
-         buffer = (uint8_t*)malloc(0x002C);
-         memcpy(buffer, mem_info.data, 0x002C);
+         buffer = (uint8_t*)malloc(CL_DOLPHIN_SIZE);
+         memcpy(buffer, mem_info.data, CL_DOLPHIN_SIZE);
          cl_log("(GC/Wii) Game to be identified: %.8s\n", buffer);
          state = (cl_md5_ctx_t*)task->state;
 
          state->data = buffer;
-         state->size = 0x002C;
+         state->size = CL_DOLPHIN_SIZE;
 
          task->handler = cl_task_md5;
       }
@@ -107,11 +111,11 @@ void cl_push_gcwii_task(char *checksum, retro_task_callback_t callback)
 
 /* 
    Hash the ISO9660 filesystem. Used for PS1, Saturn, Dreamcast, PS2, PSP, 
-      and possibly other CD-based software.
+   and possibly other CD-based software.
 
    Concerns: 
-      -  For performance reasons we assume the CD001 identifer will be aligned
-         in 8 bit chunks, would there ever be a reason where we need to scan 
+      -  For performance reasons we assume the CD001 identifer will be 
+         word-aligned. Would there ever be a reason where we need to scan 
          byte-by-byte?
 
       -  Would we ever look at anything besides a primary volume descriptor? 
@@ -127,7 +131,7 @@ uint8_t* cl_identify_iso9660(intfstream_t *stream)
       uint32_t  size;
       uint32_t  i;
 
-      buffer = (uint8_t*)malloc(0x800);
+      buffer = (uint8_t*)malloc(CL_ISO9660_SIZE);
       size = intfstream_get_size(stream);
 
       /* Seek to the identifier "CD001" */
@@ -139,7 +143,7 @@ uint8_t* cl_identify_iso9660(intfstream_t *stream)
              buffer[4] == '0'  && buffer[5] == '1')
          {
             cl_log("CD001 identifier found at 0x%08X\n", i);
-            intfstream_read(stream, &buffer[8], 0x7F8);
+            intfstream_read(stream, &buffer[8], CL_ISO9660_SIZE - 8);
             intfstream_close(stream);
 
             return buffer;
@@ -154,6 +158,7 @@ uint8_t* cl_identify_iso9660(intfstream_t *stream)
 }
 
 /* Hash the Nintendo Content Container Header. Used for 3DS. */
+/* TODO: See below and do this instead to support CIA */
 uint8_t* cl_identify_ncch(const char *path)
 {
    intfstream_t *stream;
@@ -174,8 +179,8 @@ uint8_t* cl_identify_ncch(const char *path)
       and seek backwards 0x0100.
    */
    intfstream_seek(stream, 0x1000, SEEK_SET);
-   data = (uint8_t*)malloc(0x200);
-   read_bytes = intfstream_read(stream, data, 0x200);
+   data = (uint8_t*)malloc(CL_NCCH_SIZE);
+   read_bytes = intfstream_read(stream, data, CL_NCCH_SIZE);
    intfstream_close(stream);
 
    if (!read_bytes)
@@ -302,8 +307,10 @@ bool cl_identify(struct retro_game_info *info, char *checksum,
    strcpy(extension, string_to_upper(extension));
    core_get_system_info(&system_info);
 
-   /* Hashing GC / Wii discs uses a background task that waits until the */
-   /* game has booted. Channels and homebrew can be hashed as normal.    */
+   /* 
+      Hashing GC / Wii discs uses a background task that waits until the
+      game has booted. Channels and homebrew can be hashed as normal.    
+   */
    if (strstr(system_info.library_name, "dolphin") ||
        strstr(system_info.library_name, "ishiiruka"))
    {
@@ -318,8 +325,10 @@ bool cl_identify(struct retro_game_info *info, char *checksum,
       }
    }
 
-   /* Get the name of the file we actually need to verify. */
-   /* An M3U might point to a CUE, so we check both.       */
+   /* 
+      Get the name of the file we actually need to verify.
+      An M3U might point to a CUE, so we check both.
+   */
    if (string_is_equal(extension, "M3U"))
       cl_identify_m3u(path, extension);
    if (string_is_equal(extension, "CUE"))
@@ -339,31 +348,36 @@ bool cl_identify(struct retro_game_info *info, char *checksum,
        RETRO_VFS_FILE_ACCESS_HINT_NONE);
 
       data = cl_identify_iso9660(stream);
-      size = 0x800;
+      size = CL_ISO9660_SIZE;
    }
    else if (string_is_equal(extension, "CHD"))
    {
       data = cl_identify_chd(path);
-      size = 0x800;
+      size = CL_ISO9660_SIZE;
    }
    else if (strstr(system_info.library_name, "Citra"))
    {
       data = cl_identify_ncch(path);
-      size = 0x200;
+      size = CL_NCCH_SIZE;
    }
 
    /* None of the quirks apply */
    if (!data)
    {
-      /* File type wasn't recognized, we use the ROM already in memory */
-      /* if possible (most common case) */
+      /* 
+         File type wasn't recognized, we use the ROM already in memory
+         if possible (most common case)
+      */
       if (info->data && info->size > 0)
       {
          data = (uint8_t*)malloc(info->size);
          size = info->size;
          memcpy(data, info->data, size);
       }
-      /* Last case: file was unrecognizable and not already in memory */
+      /* 
+         Last case: File was unrecognizable and not already in memory.
+         Re-open the file using the path from retro_game_info and hash it.
+      */
       else if (!cl_read_from_file(path, &data, &size))
          return false;
    }
