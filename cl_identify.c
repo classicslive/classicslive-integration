@@ -106,7 +106,7 @@ void cl_push_gcwii_task(char *checksum, retro_task_callback_t callback)
 }
 
 /* 
-   Hash the ISO9660 filesystem. Used for PS1, Saturn, Dreamcast, PS2 games, 
+   Hash the ISO9660 filesystem. Used for PS1, Saturn, Dreamcast, PS2, PSP, 
       and possibly other CD-based software.
 
    Concerns: 
@@ -157,8 +157,8 @@ uint8_t* cl_identify_iso9660(intfstream_t *stream)
 uint8_t* cl_identify_ncch(const char *path)
 {
    intfstream_t *stream;
-   uint8_t *data = (uint8_t*)malloc(0x200);
-   int64_t read_bytes;
+   uint8_t      *data;
+   int64_t       read_bytes;
 
    stream = intfstream_open_file(
     path, 
@@ -174,6 +174,7 @@ uint8_t* cl_identify_ncch(const char *path)
       and seek backwards 0x0100.
    */
    intfstream_seek(stream, 0x1000, SEEK_SET);
+   data = (uint8_t*)malloc(0x200);
    read_bytes = intfstream_read(stream, data, 0x200);
    intfstream_close(stream);
 
