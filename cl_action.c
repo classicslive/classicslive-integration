@@ -62,7 +62,7 @@ static bool cl_act_post_achievement(cl_action_t *action)
       char     data[CL_POST_DATA_SIZE];
 
       achievement_id = action->arguments[0];
-      snprintf(data, CL_POST_DATA_SIZE, "id=%u", achievement_id);
+      snprintf(data, CL_POST_DATA_SIZE, "achievement_id=%u", achievement_id);
       cl_network_post(CL_REQUEST_POST_ACHIEVEMENT, data, NULL, NULL);
 
       /* Clear this action so we don't re-submit the achievement */

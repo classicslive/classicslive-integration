@@ -79,6 +79,8 @@ bool cl_get_memnote_value(uint32_t *value, uint32_t memnote_id, uint8_t type)
          return false;
       }
    }
+   if (memory.notes[memnote_id].type == CL_MEMTYPE_FLOAT)
+      *value = *((float*)value);
    
    return true;
 }
