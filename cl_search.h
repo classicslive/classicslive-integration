@@ -3,6 +3,8 @@
 
 #include "cl_types.h"
 
+#define CL_POINTER_MAX_PASSES 4
+
 typedef struct cl_searchbank_t
 {
    cl_membank_t *bank;
@@ -25,7 +27,7 @@ typedef struct cl_pointerresult_t
    uint32_t  address_final;
    uint32_t  value_current;
    uint32_t  value_previous;
-   int32_t  *offsets;
+   int32_t   offsets[CL_POINTER_MAX_PASSES];
 } cl_pointerresult_t;
 
 typedef struct cl_pointersearch_t

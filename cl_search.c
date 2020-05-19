@@ -367,12 +367,7 @@ bool cl_pointersearch_free(cl_pointersearch_t *search)
       return false;
    else
    {
-      uint32_t i;
-
-      for (i = 0; i < search->result_count; i++)
-         free(search->results[i].offsets);
       free(search->results);
-
       return true;
    }
 }
@@ -413,7 +408,7 @@ bool cl_pointersearch_init(cl_pointersearch_t *search,
       /* Do a quick scan to see how many results we start with */
       for (i = 0; i < memory.bank_count; i++)
       {
-         uint32_t target = exact_only ? bank->start + address : address;
+         uint32_t target = exact_only ? bank->start + address : 0x80000000 + address; //TODO: REMOVE ASAP
 
          bank = &memory.banks[i];
 
@@ -428,7 +423,6 @@ bool cl_pointersearch_init(cl_pointersearch_t *search,
             {
                result = &search->results[matches];
 
-               result->offsets = (int32_t*)calloc(passes, sizeof(int32_t));
                result->offsets[0]      = address - value;
                result->address_initial = bank->start + j;
                result->address_final   = address;
@@ -446,9 +440,9 @@ bool cl_pointersearch_init(cl_pointersearch_t *search,
       }
       /* Clear the unneeded memory */
       search->result_count = matches;
-      //search->results = realloc(search->results, matches * sizeof(cl_pointerresult_t));
+      search->results = (cl_pointerresult_t*)realloc(search->results, matches * sizeof(cl_pointerresult_t));
 
-      cl_log("Ptrsearch for %08X returned %u results.\n", address, matches);
+      cl_log("Pointer search for %08X returned %u results.\n", address, matches);
 
       return true;
    }
@@ -462,23 +456,31 @@ uint32_t cl_pointersearch_step(cl_pointersearch_t *search, uint32_t *value,
    else
    {
       cl_pointerresult_t *result;
-      uint32_t address, matches, final_value;
+      uint32_t address, matches, final_value, valid_pointers;
       bool compare_result;
       uint32_t i, j;
 
       matches = 0;
+      valid_pointers = 0;
+      cl_log("Result count at start: %u\n", search->result_count);
       for (i = 0; i < search->result_count; i++)
       {
          result  = &search->results[i];
          address = result->address_initial;
 
          for (j = 0; j < search->passes; j++)
-            cl_read_memory(&address, NULL, address + result->offsets[j], memory.pointer_size);
+         {
+            address &= 0x01FFFFFF;
+            cl_read_memory(&address, NULL, address, memory.pointer_size);
+            address += result->offsets[j];
+            address &= 0x01FFFFFF;
+         }
 
          if (!cl_read_memory(&final_value, NULL, address, search->size))
             continue;
          else
          {
+            result->value_current = final_value;
             if (!value)
                compare_result = compare_to_nothing(result->value_previous, result->value_current, type);
             else
@@ -489,11 +491,14 @@ uint32_t cl_pointersearch_step(cl_pointersearch_t *search, uint32_t *value,
                memcpy(&search->results[matches], result, sizeof(cl_pointerresult_t));
                matches++;
             }
+            result->value_previous = result->value_current;
+            valid_pointers++;
          }
       }
       /* All of the still valid results are grouped together, the rest of memory can be cleared */
       search->result_count = matches;
-      search->results = (cl_pointerresult_t*)realloc(search->results, matches);
+      //search->results = (cl_pointerresult_t*)realloc(search->results, matches * sizeof(cl_pointerresult_t));
+      cl_log("Pointer search now has %u matches across %u valid pointers.\n", matches, valid_pointers);
 
       return matches;
    }

@@ -278,12 +278,26 @@ void CleMemoryInspector::onClickSearch()
       if (ok || no_input)
       {
          /* Run the C code for doing the actual search */
-         cl_search_step(
-          &m_Searches[m_CurrentTab], 
-          no_input ? NULL : compare_value, 
-          compare_size, 
-          compare_type,
-          is_float);
+         switch (m_SearchTypes[m_CurrentTab])
+         {
+         case CLE_SEARCHTYPE_NORMAL:
+            cl_search_step(
+               &m_Searches[m_CurrentTab],
+               no_input ? NULL : compare_value, 
+               compare_size, 
+               compare_type,
+               is_float);
+            break;
+         case CLE_SEARCHTYPE_POINTER:
+            cl_pointersearch_step(
+               &m_PointerSearch[m_CurrentTab],
+               no_input ? NULL : (uint32_t*)compare_value,
+               compare_size,
+               compare_type);
+            break;
+         default:
+            cl_log("Search %u is of invalid type %u", m_CurrentTab, m_SearchTypes[m_CurrentTab]);
+         }
       }
       else if (m_TextEntry->text().front() == '"' && m_TextEntry->text().back() == '"')
          cl_search_ascii(&m_Searches[m_CurrentTab], m_TextEntry->text().mid(1, m_TextEntry->text().length() - 2).toStdString().c_str(), m_TextEntry->text().length() - 2);
@@ -421,8 +435,8 @@ void CleMemoryInspector::onClickResultPointerSearch(void)
          getClickedResultAddress(),
          cl_sizeof_memtype(getCurrentSizeType()),
          1,
-         0x10000,
-         1000);
+         0x100000,
+         10000);
 
       m_Tabs->setCurrentIndex(m_TabCount);
       m_Tabs->setTabText(m_Tabs->currentIndex(), tr("Pointers"));
@@ -602,12 +616,12 @@ void CleMemoryInspector::rebuildRowsPointer()
    matches = search->result_count;
 
    m_ResultTable->setColumnCount(3 + search->passes);
-   m_ResultTable->setRowCount(matches);
-
    memtype = getCurrentSizeType();
 
    for (i = 0; i < matches; i++)
    {
+      m_ResultTable->insertRow(i);
+
       snprintf(temp_string, 256, "%08X", search->results[i].address_initial);
       m_ResultTable->setItem(i, 0, new QTableWidgetItem(QString(temp_string)));
 
@@ -620,6 +634,7 @@ void CleMemoryInspector::rebuildRowsPointer()
       resultValueToString(temp_string, sizeof(temp_string), search->results[i].value_current, memtype);
       m_ResultTable->setItem(i, 3, new QTableWidgetItem(QString(temp_string)));
    }
+   m_ResultTable->setRowCount(matches);
 }
 
 void CleMemoryInspector::update()
@@ -707,14 +722,13 @@ void CleMemoryInspector::updatePointer()
    cl_pointersearch_t *search = &m_PointerSearch[m_CurrentTab];
    char     temp_string[32];
    uint8_t  memtype, size;
-   uint32_t address, curr_value, prev_value, i, j;
+   uint32_t address, curr_value, i, j;
 
    if (!search)
       return;
 
    memtype = getCurrentSizeType();
    size = cl_sizeof_memtype(getCurrentSizeType());
-   prev_value = 0;
 
    for (i = 0; i < search->result_count; i++)
    {
@@ -740,14 +754,13 @@ void CleMemoryInspector::updatePointer()
          address += m_ResultTable->item(i, j)->text().toULong(NULL, 16);
       }
 
-      if (!cl_read_memory(&curr_value, NULL, address, size))// ||
-          //!cl_read_search(&prev_value, &m_Searches[m_CurrentTab], NULL, address, size))
+      if (!cl_read_memory(&curr_value, NULL, address, size))
          continue;
 
       /* Update columns (besides the address) */
       /* Previous value column */
       item = m_ResultTable->item(i, j);
-      resultValueToString(temp_string, sizeof(temp_string), prev_value, memtype);
+      resultValueToString(temp_string, sizeof(temp_string), search->results[i].value_previous, memtype);
       item->setText(temp_string);
 
       /* Current value column */
@@ -759,11 +772,12 @@ void CleMemoryInspector::updatePointer()
       }
 
       /* Display changed values in red */
-      if (prev_value != curr_value)
+      if (search->results[i].value_previous != curr_value)
          item->setTextColor(Qt::red);
       else
          item->setTextColor(Qt::white);
    }
+   m_ResultTable->setRowCount(search->result_count);
 
    if (m_AddressOffset > memory.banks[0].start + memory.banks[0].size)
       return;
