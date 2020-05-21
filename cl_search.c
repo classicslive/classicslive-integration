@@ -243,6 +243,25 @@ bool compare_to_value_float(uint32_t previous, uint32_t current, uint8_t type,
    return false;
 }
 
+bool resolve_pointerresult(uint32_t *final_address, const cl_pointerresult_t *result, 
+   const uint8_t passes)
+{
+   uint32_t address = result->address_initial;
+   uint8_t i;
+
+   for (i = 0; i < passes; i++)
+   {
+      address &= 0x01FFFFFF;
+      if (!cl_read_memory(&address, NULL, address, memory.pointer_size))
+         return false;
+      address += result->offsets[i];
+      address &= 0x01FFFFFF;
+   }
+   *final_address = address;
+
+   return true;
+}
+
 uint32_t cl_search_ascii(cl_search_t *search, const char *needle, uint8_t length)
 {
    if (!search || search->searchbank_count == 0)
@@ -466,17 +485,10 @@ uint32_t cl_pointersearch_step(cl_pointersearch_t *search, uint32_t *value,
       for (i = 0; i < search->result_count; i++)
       {
          result  = &search->results[i];
-         address = result->address_initial;
-
-         for (j = 0; j < search->passes; j++)
-         {
-            address &= 0x01FFFFFF;
-            cl_read_memory(&address, NULL, address, memory.pointer_size);
-            address += result->offsets[j];
-            address &= 0x01FFFFFF;
-         }
-
-         if (!cl_read_memory(&final_value, NULL, address, search->size))
+         
+         if (!resolve_pointerresult(&address, result, search->passes))
+            continue;
+         else if (!cl_read_memory(&final_value, NULL, address, search->size))
             continue;
          else
          {
@@ -497,10 +509,31 @@ uint32_t cl_pointersearch_step(cl_pointersearch_t *search, uint32_t *value,
       }
       /* All of the still valid results are grouped together, the rest of memory can be cleared */
       search->result_count = matches;
-      //search->results = (cl_pointerresult_t*)realloc(search->results, matches * sizeof(cl_pointerresult_t));
+      search->results = (cl_pointerresult_t*)realloc(search->results, matches * sizeof(cl_pointerresult_t));
       cl_log("Pointer search now has %u matches across %u valid pointers.\n", matches, valid_pointers);
 
       return matches;
+   }
+}
+
+void cl_pointersearch_update(cl_pointersearch_t *search)
+{
+   if (!search)
+      return;
+   else
+   {
+      cl_pointerresult_t *result;
+      uint32_t i;
+
+      for (i = 0; i < search->result_count; i++)
+      {
+         result = &search->results[i];
+
+         if (!resolve_pointerresult(&result->address_final, result, search->passes))
+            continue;
+         else
+            cl_read_memory(&result->value_current, NULL, result->address_final, search->size);
+      }
    }
 }
 

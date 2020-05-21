@@ -443,6 +443,8 @@ void CleMemoryInspector::onClickResultPointerSearch(void)
       m_Tabs->setTabTextColor(m_Tabs->currentIndex(), Qt::yellow);
       m_SearchTypes[m_Tabs->currentIndex()] = CLE_SEARCHTYPE_POINTER;
 
+      rebuildRows();
+
       m_ClickedResult = -1;
    }
 }
@@ -722,7 +724,7 @@ void CleMemoryInspector::updatePointer()
    cl_pointersearch_t *search = &m_PointerSearch[m_CurrentTab];
    char     temp_string[32];
    uint8_t  memtype, size;
-   uint32_t address, curr_value, i, j;
+   uint32_t address, value_curr, value_prev, i, j;
 
    if (!search)
       return;
@@ -730,11 +732,17 @@ void CleMemoryInspector::updatePointer()
    memtype = getCurrentSizeType();
    size = cl_sizeof_memtype(getCurrentSizeType());
 
+   /* The C code updates all of the pointer results */
+   cl_pointersearch_update(search);
+
    for (i = 0; i < search->result_count; i++)
    {
       item = m_ResultTable->item(i, 0);
       if (!item)
          return;
+
+      value_curr = search->results[i].value_current;
+      value_prev = search->results[i].value_previous;
 
       /* Don't visually update search results that are out of view */
       if (i < m_ResultTable->verticalScrollBar()->value())
@@ -743,36 +751,24 @@ void CleMemoryInspector::updatePointer()
           + m_ResultTable->size().height() / 16)
          break;
 
-      /* Kind of gross, but should save some memory 
-         Only a few results should be redrawn at any time anyway */
-      address = m_ResultTable->item(i, 0)->text().split(" ")[0].toULong(NULL, 16);
-
-      for (j = 1; j <= search->passes; j++)
-      {
-         if (!cl_read_memory(&address, NULL, address, 4))
-            break;
-         address += m_ResultTable->item(i, j)->text().toULong(NULL, 16);
-      }
-
-      if (!cl_read_memory(&curr_value, NULL, address, size))
-         continue;
+      j = search->passes + 1;
 
       /* Update columns (besides the address) */
       /* Previous value column */
       item = m_ResultTable->item(i, j);
-      resultValueToString(temp_string, sizeof(temp_string), search->results[i].value_previous, memtype);
+      resultValueToString(temp_string, sizeof(temp_string), value_prev, memtype);
       item->setText(temp_string);
 
       /* Current value column */
       item = m_ResultTable->item(i, j + 1);
       if (m_CurrentEditedRow != i)
       {
-         resultValueToString(temp_string, sizeof(temp_string), curr_value, memtype);
+         resultValueToString(temp_string, sizeof(temp_string), value_curr, memtype);
          item->setText(temp_string);
       }
 
       /* Display changed values in red */
-      if (search->results[i].value_previous != curr_value)
+      if (value_prev != value_curr)
          item->setTextColor(Qt::red);
       else
          item->setTextColor(Qt::white);

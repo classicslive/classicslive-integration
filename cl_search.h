@@ -56,4 +56,9 @@ bool cl_pointersearch_init    (cl_pointersearch_t *search,
 uint32_t cl_pointersearch_step(cl_pointersearch_t *search, uint32_t *value,
    uint8_t size, uint8_t type);
 
+/*
+   Updates the "value_current" variable in every result in a pointersearch.
+*/
+void cl_pointersearch_update(cl_pointersearch_t *search);
+
 #endif
