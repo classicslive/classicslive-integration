@@ -89,6 +89,7 @@ CleMemoryInspector::CleMemoryInspector()
       this, SLOT(onHexWidgetOffsetEdited(int32_t)));
    connect(m_HexWidget, SIGNAL(valueEdited(uint32_t, uint8_t)), 
       this, SLOT(onHexWidgetValueEdited(uint32_t, uint8_t)));
+   m_HexWidget->setByteSwapEnabled(memory.endianness);
 
    /* Initialize timer for updating search rows */
    m_UpdateTimer = new QTimer(this);
@@ -234,8 +235,7 @@ void CleMemoryInspector::onChangeTab()
       m_Tabs->addTab(tr("+"));
       m_TabCount++;
    }
-   else
-      rebuildRows();
+   rebuildRows();
 }
 
 void CleMemoryInspector::onClickNew()

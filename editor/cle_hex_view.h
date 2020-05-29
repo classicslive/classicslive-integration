@@ -50,6 +50,7 @@ private:
    char     m_AddrTexts[16][16];
 
    QFont    m_Font;
+   QPainter *m_Painter;
    QPixmap  m_Pixmap;
 
    bool     m_AllDirty;

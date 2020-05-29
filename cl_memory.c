@@ -197,7 +197,7 @@ bool cl_init_memory(const char **pos)
    memory.endianness   = CL_ENDIAN_LITTLE;
    memory.pointer_size = 4;
 
-   return memory.note_count != 0;
+   return true;
 }
 
 bool cl_read_memory(uint32_t *value, cl_membank_t *bank, uint32_t address, uint8_t size)

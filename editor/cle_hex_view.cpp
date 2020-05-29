@@ -36,6 +36,9 @@ CleHexWidget::CleHexWidget(QWidget *parent, uint8_t size) : QWidget(parent)
    m_Font.setPixelSize(12);
    m_Font.setStyleHint(QFont::TypeWriter);
 
+   m_Painter = new QPainter(&m_Pixmap);
+   m_Painter->setFont(m_Font);
+
    setBackgroundRole(QPalette::Base);
    setFocusPolicy(Qt::ClickFocus);
 
@@ -160,60 +163,52 @@ void CleHexWidget::paintEvent(QPaintEvent *event)
 
 void CleHexWidget::repaintAll()
 {
-   QPainter painter(&m_Pixmap);
    uint32_t i;
 
-   painter.setFont(m_Font);
-
    /* Draw the navigation bar on the left */
-   painter.setBrush(Qt::NoBrush);
-   painter.setPen(QColor("grey"));
+   m_Painter->setBrush(Qt::NoBrush);
+   m_Painter->setPen(QColor("grey"));
    for (i = 0; i < 16; i++)
-      painter.drawText(m_AddrRects[i], Qt::AlignRight | Qt::AlignVCenter, m_AddrTexts[i]);
+      m_Painter->drawText(m_AddrRects[i], Qt::AlignRight | Qt::AlignVCenter, m_AddrTexts[i]);
 
    /* Draw the hex value view on the right */
    for (i = 0; i < 256 / m_Size; i++)
    {
       /* Draw rects */
-      painter.setBrush(m_RectColors[i]);
-      painter.setPen(Qt::NoPen);
-      painter.drawRect(m_Rects[i]);
+      m_Painter->setBrush(m_RectColors[i]);
+      m_Painter->setPen(Qt::NoPen);
+      m_Painter->drawRect(m_Rects[i]);
 
       /* Draw text */
-      painter.setPen(QColor("white"));
-      painter.drawText(m_Rects[i], Qt::AlignCenter, m_Texts[i]);
+      m_Painter->setPen(QColor("white"));
+      m_Painter->drawText(m_Rects[i], Qt::AlignCenter, m_Texts[i]);
    }
 
    /* Draw the ASCII display */
-   painter.setPen(QColor("grey"));
+   m_Painter->setPen(QColor("grey"));
    for (i = 0; i < 256; i++)
-      painter.drawText(m_AsciiRects[i], Qt::AlignCenter, QString(m_AsciiText[i]));
+      m_Painter->drawText(m_AsciiRects[i], Qt::AlignCenter, QString(m_AsciiText[i]));
 
-   painter.drawRect(m_Cursor);
+   m_Painter->drawRect(m_Cursor);
 }
 
 void CleHexWidget::repaintAscii(char new_char, uint8_t index)
 {
-   QPainter painter(&m_Pixmap);
-
    m_AsciiText[index] = new_char < 0x20 ? '.' : new_char;
 
    /* Clear area */
-   painter.setBrush(palette().color(backgroundRole()));
-   painter.setPen(Qt::NoPen);
-   painter.drawRect(m_AsciiRects[index]);
+   m_Painter->setBrush(palette().color(backgroundRole()));
+   m_Painter->setPen(Qt::NoPen);
+   m_Painter->drawRect(m_AsciiRects[index]);
 
    /* Draw char */
-   painter.setFont(m_Font);
-   painter.setPen(QColor("grey"));
-   painter.drawText(m_AsciiRects[index], Qt::AlignCenter, QString(m_AsciiText[index]));
+   m_Painter->setFont(m_Font);
+   m_Painter->setPen(QColor("grey"));
+   m_Painter->drawText(m_AsciiRects[index], Qt::AlignCenter, QString(m_AsciiText[index]));
 }
 
 void CleHexWidget::repaintRect(const void *buffer, uint8_t index)
 {
-   QPainter painter(&m_Pixmap);
-   painter.setFont(m_Font);
-
    /* Update the hex value drawn over the given rect */
    if (buffer)
    {
@@ -242,13 +237,13 @@ void CleHexWidget::repaintRect(const void *buffer, uint8_t index)
    }
 
    /* Draw rect */
-   painter.setBrush(m_RectColors[index]);
-   painter.setPen(Qt::NoPen);
-   painter.drawRect(m_Rects[index]);
+   m_Painter->setBrush(m_RectColors[index]);
+   m_Painter->setPen(Qt::NoPen);
+   m_Painter->drawRect(m_Rects[index]);
 
    /* Draw text */
-   painter.setPen(QColor("white"));
-   painter.drawText(m_Rects[index], Qt::AlignCenter, m_Texts[index]);
+   m_Painter->setPen(QColor("white"));
+   m_Painter->drawText(m_Rects[index], Qt::AlignCenter, m_Texts[index]);
 }
 
 void CleHexWidget::resetColors()
@@ -283,18 +278,18 @@ void CleHexWidget::setCursorOffset(uint8_t offset)
 void CleHexWidget::setOffset(uint32_t offset)
 {
    uint8_t i;
-   QPainter painter(&m_Pixmap);
 
-   painter.setBrush(palette().color(backgroundRole()));
-   painter.setFont(m_Font);
-   painter.drawRect(QRect(0, 0, 64, 256));
+   m_Painter->setBrush(palette().color(backgroundRole()));
+   m_Painter->setFont(m_Font);
+   m_Painter->setPen(Qt::NoPen);
+   m_Painter->drawRect(QRect(0, 0, 64, 256));
 
    for (i = 0; i < 16; i++)
    {
       snprintf(m_AddrTexts[i], 16, "%8X", offset + i * 16);
       
-      painter.setPen(QColor("grey"));
-      painter.drawText(m_AddrRects[i], Qt::AlignRight | Qt::AlignVCenter, m_AddrTexts[i]);
+      m_Painter->setPen(QColor("grey"));
+      m_Painter->drawText(m_AddrRects[i], Qt::AlignRight | Qt::AlignVCenter, m_AddrTexts[i]);
    }
    resetColors();
 
@@ -341,7 +336,7 @@ void CleHexWidget::typeNybble(uint8_t value)
 
 void CleHexWidget::refresh(const void *newbuffer, const void *oldbuffer)
 {
-   uint32_t i, j;
+   uint32_t i;
 
    for (i = 0; i < 256 / m_Size; i++)
    {

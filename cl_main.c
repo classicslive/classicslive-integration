@@ -40,21 +40,18 @@ bool cl_init_session(const char* json)
 
    /* Memory-related */
    iterator = &memory_str[0];
-   if (cl_json_get(memory_str, json, "memory_notes", CL_JSON_STRING, sizeof(memory_str)))
-      cl_init_memory(&iterator);
-   else
+   if (!cl_json_get(memory_str, json, "memory_notes", CL_JSON_STRING, sizeof(memory_str)) || !cl_init_memory(&iterator))
       return false;
    cl_json_get(&memory.endianness,   json, "endianness",   CL_JSON_NUMBER, sizeof(memory.endianness));
    cl_json_get(&memory.pointer_size, json, "pointer_size", CL_JSON_NUMBER, sizeof(memory.pointer_size));
+   session.ready = true;
 
    /* Script-related */
    iterator = &script_str[0];
    if (cl_json_get(script_str, json, "script", CL_JSON_STRING, sizeof(script_str)))
       cl_init_script(&iterator, &script);
    else
-      return false;
-
-   session.ready = true;
+      return false; // TODO
 
    return true;
 }
@@ -83,7 +80,17 @@ static void cl_cb_login(struct retro_task *task, void *task_data, void *user_dat
             cl_error("Unknown error with login.");
       }
       else
+      {
          success = cl_init_session(response->data);
+
+      #ifdef CL_HAVE_EDITOR
+         if (session.ready)
+         {
+            cl_update_memory();
+            cle_init();
+         }
+      #endif
+      }
    }
 }
 
@@ -110,10 +117,6 @@ bool cl_init(struct retro_game_info *info)
 {
    settings_t *settings = config_get_ptr();
 
-#ifdef CL_HAVE_EDITOR
-   cle_init();
-#endif
-
    cl_log("Init CL\n");
    /* If the user hasn't entered a username, they probably aren't using CL */
    if (!settings->CL_SETTINGS_USERNAME || string_is_empty(settings->CL_SETTINGS_USERNAME))
@@ -135,13 +138,13 @@ bool cl_init(struct retro_game_info *info)
 
 bool cl_run()
 {
-   if (true)//session.ready) TODO: temp
+   if (session.ready)
    {
       cl_update_memory();
       cl_update_script(&script);
-#ifdef CL_HAVE_EDITOR
+   #ifdef CL_HAVE_EDITOR
       cle_run();
-#endif
+   #endif
 
       return true;
    }
