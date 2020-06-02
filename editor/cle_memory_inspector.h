@@ -8,7 +8,6 @@
 #include <QLineEdit>
 #include <QMenu>
 #include <QPushButton>
-#include <QScrollBar>
 #include <QTabBar>
 #include <QTableWidget>
 #include <QTimer>
@@ -23,12 +22,7 @@ extern "C"
 }
 #include "cle_hex_view.h"
 #include "cle_memory_note_submit.h"
-
-/* TODO: Move this to a config option? */
-#define CLE_SEARCH_MAX_ROWS 1000
-
-#define CLE_SEARCHTYPE_NORMAL  0
-#define CLE_SEARCHTYPE_POINTER 1
+#include "cle_result_table.h"
 
 class CleMemoryInspector : public QWidget
 {
@@ -41,9 +35,8 @@ public slots:
    void update();
 
 private:
-   uint8_t            m_SearchTypes  [8];
-   cl_search_t        m_Searches     [8];
-   cl_pointersearch_t m_PointerSearch[8];
+   CleResultTable *m_Searches[8];
+   CleResultTable *m_CurrentSearch;
 
    CleHexWidget        *m_HexWidget;
    CleMemoryNoteSubmit *m_MemoryNoteSubmit;
@@ -63,11 +56,10 @@ private:
    QPushButton  *m_NewButton;
    QPushButton  *m_SearchButton;
    QTabBar      *m_Tabs;
-   QTableWidget *m_ResultTable;
    QTimer       *m_UpdateTimer;
 
+   uint8_t  getCurrentCompareType(void);
    uint8_t  getCurrentSizeType(void);
-   uint32_t getClickedResultAddress(void);
    void     rebuildRows(void);
    void     rebuildRowsNormal(void);
    void     rebuildRowsPointer(void);
@@ -86,6 +78,7 @@ private slots:
    void onClickTabRename();
 
    void onHexWidgetOffsetEdited(int32_t delta);
+   void onHexWidgetRightClick(uint32_t address);
    void onHexWidgetValueEdited(uint32_t address, uint8_t value);
 
    void onResultClicked();

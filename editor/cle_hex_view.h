@@ -21,6 +21,7 @@ public:
 
 signals:
    void offsetEdited(int32_t delta);
+   void onRightClick(uint32_t address);
    void valueEdited(uint32_t address, uint8_t value);
 
 protected:

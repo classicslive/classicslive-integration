@@ -136,9 +136,7 @@ void CleHexWidget::keyPressEvent(QKeyEvent *event)
 
 void CleHexWidget::mousePressEvent(QMouseEvent *event)
 {
-   if (event->button() != Qt::LeftButton)
-      return;
-   else if (m_Size != 1)
+   if (m_Size != 1)
       return; //todo
    else
    {
@@ -148,7 +146,11 @@ void CleHexWidget::mousePressEvent(QMouseEvent *event)
       {
          if (m_Rects[i].contains(event->pos()))
          {
-            setCursorOffset(i);
+            if (event->button() == Qt::LeftButton)
+               setCursorOffset(i);
+            else if (event->button() == Qt::RightButton)
+               emit onRightClick(m_Offset + i);
+               
             return;
          }
       }
