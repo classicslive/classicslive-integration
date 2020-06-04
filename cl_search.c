@@ -66,6 +66,7 @@ bool cl_search_init(cl_search_t *search)
          search->searchbanks[i].backup = (uint8_t*)malloc(memory.banks[i].size);
          search->searchbanks[i].valid  = (uint8_t*)malloc(memory.banks[i].size);
       }
+      cl_search_reset(search);
 
       return true;
    }
@@ -318,6 +319,13 @@ uint32_t cl_search_step(cl_search_t *search, void *value, uint8_t size,
       uint8_t  i;
       uint32_t j;
 
+      if (!value)
+         cl_log("Comparing to nothing...");
+      else if (is_float)
+         cl_log("Comparing to %d...", *((float*)value));
+      else
+         cl_log("Comparing to %u...", *((uint32_t*)value));
+      
       for (i = 0; i < search->searchbank_count; i++)
       {
          uint32_t matches_this_bank = 0;
@@ -375,6 +383,7 @@ uint32_t cl_search_step(cl_search_t *search, void *value, uint8_t size,
          memcpy(sbank->backup, sbank->bank->data, sbank->bank->size);
       }
       search->matches = matches;
+      cl_log(" %u matches.\n", matches);
 
       return matches;
    }

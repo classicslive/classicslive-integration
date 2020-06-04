@@ -46,6 +46,11 @@ void CleResultTablePointer::rebuild()
    m_Table->setRowCount(m_Search.result_count);
 }
 
+void CleResultTablePointer::reset()
+{
+   cl_pointersearch_free(&m_Search);
+}
+
 void CleResultTablePointer::run(uint8_t type, uint8_t size)
 {
    QTableWidgetItem *item;

@@ -7,7 +7,11 @@
 #include "cle_result_table_normal.h"
 #include "cle_common.h"
 
-CleResultTableNormal::CleResultTableNormal(QWidget *parent)
+#define COL_ADDRESS        0
+#define COL_PREVIOUS_VALUE 1
+#define COL_CURRENT_VALUE  2
+
+CleResultTableNormal::CleResultTableNormal()
 {
    CleResultTable::init();
 
@@ -40,16 +44,120 @@ void *CleResultTableNormal::getSearchData()
    return (void*)(&m_Search);
 }
 
+void CleResultTableNormal::onResultClick()
+{
+   emit addressChanged(getClickedResultAddress() & ~0xF);
+}
+
+void CleResultTableNormal::onResultDoubleClick()
+{
+   if (m_Table->currentColumn() == COL_CURRENT_VALUE)
+   {
+      uint32_t i;
+
+      /* We gray out the other entries because they won't update while
+         we're editing. */
+      for (i = 0; i < m_Table->rowCount(); i++)
+         m_Table->item(i, COL_CURRENT_VALUE)->setTextColor(Qt::gray);
+      m_CurrentEditedRow = m_Table->currentRow();
+   }
+}
+
+void CleResultTableNormal::onResultEdited(QTableWidgetItem *result)
+{
+   if (result->row() == m_CurrentEditedRow && result->column() == COL_CURRENT_VALUE)
+   {
+      if (result->isSelected())
+      {
+         uint32_t  address;
+         QString   new_value_text;
+         bool      ok = true;
+         uint8_t   size;
+         void     *value;
+
+         address = getClickedResultAddress();
+         size = cl_sizeof_memtype(m_Search.size);
+         new_value_text = m_Table->item(m_CurrentEditedRow, COL_CURRENT_VALUE)->text();
+
+         if (m_Search.size == CL_MEMTYPE_FLOAT)
+            value = new float(new_value_text.toFloat(&ok));
+         else
+            value = new uint32_t(stringToValue(new_value_text, &ok));
+
+         if (ok)
+            cl_write_memory(NULL, address, size, value);
+         free(value);
+      }
+      m_CurrentEditedRow = -1;
+   }
+}
+
+void CleResultTableNormal::onResultSelectionChanged()
+{
+   m_CurrentEditedRow = -1;
+} 
+
 void CleResultTableNormal::rebuild()
 {
-   //todo
+   char         temp_string[32];
+   uint8_t      memtype, size;
+   uint32_t     current_row, matches, temp_value, i, j;
+
+   /* (De)allocate rows */
+   matches = m_Search.matches;
+   if (matches > CLE_SEARCH_MAX_ROWS)
+      matches = CLE_SEARCH_MAX_ROWS;
+   else if (matches == 0)
+   {
+      m_Table->setRowCount(0);
+      return;
+   }
+
+   current_row = 0;
+   memtype = 15;//getCurrentSizeType();
+   size = 1;//cl_sizeof_memtype(getCurrentSizeType());
+
+   for (i = 0; i < memory.bank_count; i++)
+   {
+      if (!m_Search.searchbanks[i].any_valid)
+         continue;
+
+      for (j = 0; j < memory.banks[i].size; j += size)
+      {
+         /* This value was filtered out */
+         if (!m_Search.searchbanks[i].valid[j])
+            continue;
+
+         /* This value is still valid; add a new row */
+         m_Table->insertRow(current_row);
+
+         /* Address */
+         snprintf(temp_string, 256, "%08X", j + memory.banks[i].start);
+         m_Table->setItem(current_row, 0, new QTableWidgetItem(QString(temp_string)));
+         /* Previous value */
+         cl_read_search(&temp_value, &m_Search, &m_Search.searchbanks[i], j, size);
+         valueToString(temp_string, sizeof(temp_string), temp_value, memtype);
+         m_Table->setItem(current_row, 1, new QTableWidgetItem(QString(temp_string)));
+         /* Current value */
+         cl_read_memory(&temp_value, &memory.banks[i], j, size);
+         valueToString(temp_string, sizeof(temp_string), temp_value, memtype);
+         m_Table->setItem(current_row, 2, new QTableWidgetItem(QString(temp_string)));
+         current_row++;
+
+         /* No need to continue */
+         if (current_row == matches)
+         {
+            m_Table->setRowCount(matches);
+            return;
+         }
+      }
+   }
 }
 
 void CleResultTableNormal::reset()
 {
    cl_search_free(&m_Search);
    cl_search_init(&m_Search);
-   cl_search_reset(&m_Search);
    m_Table->setRowCount(0);
 }
 

@@ -54,11 +54,11 @@ signals:
    virtual void requestRemove(uint32_t index) = 0;
 
 public slots:
-   virtual void onResultClick(void);
-   virtual void onResultDoubleClick(void);
-   virtual void onResultEdited(QTableWidgetItem *item);
-   virtual void onResultRightClick(const QPoint&);
-   virtual void onResultSelectionChanged(void);
+   virtual void onResultClick(void){};
+   virtual void onResultDoubleClick(void){};
+   virtual void onResultEdited(QTableWidgetItem *item){};
+   virtual void onResultRightClick(const QPoint&){};
+   virtual void onResultSelectionChanged(void){};
 
 protected:
    /* 
