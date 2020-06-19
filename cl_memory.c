@@ -154,14 +154,24 @@ bool cl_init_membanks()
    }
    else
    {
+      rarch_memory_descriptor_t *descriptor;
+
       memory.banks = (cl_membank_t*)calloc(memory.bank_count, sizeof(cl_membank_t));
       for (i = 0; i < memory.bank_count; i++)
       {
-         memory.banks[i].data = (uint8_t*)sys_info->mmaps.descriptors[i].core.ptr;
-         memory.banks[i].size = sys_info->mmaps.descriptors[i].core.len;
-         memory.banks[i].start = sys_info->mmaps.descriptors[i].core.start;
-         if (sys_info->mmaps.descriptors[i].core.addrspace)
-            snprintf(memory.banks[i].title, sizeof(memory.banks[i].title), "%s", sys_info->mmaps.descriptors[i].core.addrspace);
+         descriptor = &sys_info->mmaps.descriptors[i];
+
+         if (!descriptor->core.ptr)
+         {
+            memory.bank_count--;
+            continue;
+         }
+            
+         memory.banks[i].data  = (uint8_t*)descriptor->core.ptr;
+         memory.banks[i].size  = descriptor->core.len;
+         memory.banks[i].start = descriptor->core.start;
+         if (descriptor->core.addrspace)
+            snprintf(memory.banks[i].title, sizeof(memory.banks[i].title), "%s", descriptor->core.addrspace);
          else
             snprintf(memory.banks[i].title, sizeof(memory.banks[i].title), "Memory bank %u/%u", i + 1, memory.bank_count);
       }

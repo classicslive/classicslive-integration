@@ -84,7 +84,10 @@ bool cl_read_search(uint32_t *value, cl_search_t *search, cl_searchbank_t *sbank
       if (memory.bank_count == 0)
          return false;
       else if (memory.bank_count == 1)
+      {
          sbank = &search->searchbanks[0];
+         address -= sbank->bank->start;
+      }
       else
       {
          uint8_t i;
@@ -372,7 +375,7 @@ uint32_t cl_search_step(cl_search_t *search, void *value)
 
                   compare_result = compare_to_value(left, right, cmp_type, *intval);
                }
-            }  
+            }
 
             if (!compare_result)
                sbank->valid[j] = 0;
