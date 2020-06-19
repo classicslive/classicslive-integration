@@ -33,10 +33,7 @@ CleResultTableNormal::~CleResultTableNormal()
 
 uint32_t CleResultTableNormal::getClickedResultAddress()
 {
-   if (m_ClickedResult < 0)
-      return 0;
-   else
-      return m_Table->item(m_ClickedResult, 0)->text().split(" ")[0].toULong(NULL, 16);
+   return m_Table->item(m_Table->currentRow(), COL_ADDRESS)->text().split(" ")[0].toULong(NULL, 16);
 }
 
 void *CleResultTableNormal::getSearchData()
@@ -72,20 +69,21 @@ void CleResultTableNormal::onResultEdited(QTableWidgetItem *result)
          uint32_t  address;
          QString   new_value_text;
          bool      ok = true;
-         uint8_t   size;
          void     *value;
 
          address = getClickedResultAddress();
-         size = cl_sizeof_memtype(m_Search.size);
          new_value_text = m_Table->item(m_CurrentEditedRow, COL_CURRENT_VALUE)->text();
 
-         if (m_Search.size == CL_MEMTYPE_FLOAT)
+         if (m_Search.params.value_type == CL_MEMTYPE_FLOAT)
             value = new float(new_value_text.toFloat(&ok));
          else
             value = new uint32_t(stringToValue(new_value_text, &ok));
 
          if (ok)
-            cl_write_memory(NULL, address, size, value);
+         {
+            cl_write_memory(NULL, address, m_Search.params.size, value);
+            cl_log("Wrote %s to 0x%08X.\n", new_value_text.toStdString().c_str(), address);
+         }
          free(value);
       }
       m_CurrentEditedRow = -1;
@@ -95,13 +93,13 @@ void CleResultTableNormal::onResultEdited(QTableWidgetItem *result)
 void CleResultTableNormal::onResultSelectionChanged()
 {
    m_CurrentEditedRow = -1;
-} 
+}
 
 void CleResultTableNormal::rebuild()
 {
-   char         temp_string[32];
-   uint8_t      memtype, size;
-   uint32_t     current_row, matches, temp_value, i, j;
+   char     temp_string[32];
+   uint8_t  size, val_type;
+   uint32_t current_row, matches, temp_value, i, j;
 
    /* (De)allocate rows */
    matches = m_Search.matches;
@@ -114,8 +112,8 @@ void CleResultTableNormal::rebuild()
    }
 
    current_row = 0;
-   memtype = 15;//getCurrentSizeType();
-   size = 1;//cl_sizeof_memtype(getCurrentSizeType());
+   size        = m_Search.params.size;
+   val_type    = m_Search.params.value_type;
 
    for (i = 0; i < memory.bank_count; i++)
    {
@@ -135,12 +133,12 @@ void CleResultTableNormal::rebuild()
          snprintf(temp_string, 256, "%08X", j + memory.banks[i].start);
          m_Table->setItem(current_row, 0, new QTableWidgetItem(QString(temp_string)));
          /* Previous value */
-         cl_read_search(&temp_value, &m_Search, &m_Search.searchbanks[i], j, size);
-         valueToString(temp_string, sizeof(temp_string), temp_value, memtype);
+         cl_read_search(&temp_value, &m_Search, &m_Search.searchbanks[i], j);
+         valueToString(temp_string, sizeof(temp_string), temp_value, val_type);
          m_Table->setItem(current_row, 1, new QTableWidgetItem(QString(temp_string)));
          /* Current value */
          cl_read_memory(&temp_value, &memory.banks[i], j, size);
-         valueToString(temp_string, sizeof(temp_string), temp_value, memtype);
+         valueToString(temp_string, sizeof(temp_string), temp_value, val_type);
          m_Table->setItem(current_row, 2, new QTableWidgetItem(QString(temp_string)));
          current_row++;
 
@@ -154,18 +152,22 @@ void CleResultTableNormal::rebuild()
    }
 }
 
-void CleResultTableNormal::reset()
+void CleResultTableNormal::reset(uint8_t value_type)
 {
-   cl_search_free(&m_Search);
-   cl_search_init(&m_Search);
+   cl_search_reset(&m_Search);
+   m_Search.params.value_type = value_type;
    m_Table->setRowCount(0);
 }
 
-void CleResultTableNormal::run(uint8_t type, uint8_t size)
+void CleResultTableNormal::run()
 {
    QTableWidgetItem *item;
    char     temp_string[32];
+   uint8_t  size, val_type;
    uint32_t address, curr_value, prev_value, i, j;
+
+   size     = m_Search.params.size;
+   val_type = m_Search.params.value_type;
 
    for (i = 0; i < m_Table->rowCount(); i++)
    {
@@ -184,42 +186,35 @@ void CleResultTableNormal::run(uint8_t type, uint8_t size)
       address = item->text().split(" ")[0].toULong(NULL, 16);
 
       if (!cl_read_memory(&curr_value, NULL, address, size) ||
-          !cl_read_search(&prev_value, &m_Search, NULL, address, size))
+          !cl_read_search(&prev_value, &m_Search, NULL, address))
          break;
 
       /* Update previous value column */
-      item = m_Table->item(i, 1);
-      valueToString(temp_string, sizeof(temp_string), prev_value, type);
+      item = m_Table->item(i, COL_PREVIOUS_VALUE);
+      valueToString(temp_string, sizeof(temp_string), prev_value, val_type);
       item->setText(temp_string);
 
       /* Update current value column */
-      item = m_Table->item(i, 2);
-      if (m_CurrentEditedRow != i)
+      if (m_CurrentEditedRow < 0)
       {
-         valueToString(temp_string, sizeof(temp_string), curr_value, type);
-         item->setText(temp_string);
-      }
+         item = m_Table->item(i, COL_CURRENT_VALUE);
 
-      /* Display changed values in red */
-      if (prev_value != curr_value)
-         item->setTextColor(Qt::red);
-      else
-         item->setTextColor(Qt::white);
+         valueToString(temp_string, sizeof(temp_string), curr_value, val_type);
+         item->setText(temp_string);
+
+         /* Display changed values in red */
+         item->setTextColor(prev_value != curr_value ? Qt::red : Qt::white);
+      }
    }
 }
 
-bool CleResultTableNormal::step(const QString& text, uint8_t compare_type, uint8_t mem_type)
+bool CleResultTableNormal::step(const QString& text)
 {
-   void    *compare_value;
-   uint8_t  compare_size;
-   bool     no_input, is_float;
-   bool     ok = true;
+   void *compare_value;
+   bool  no_input = text.isEmpty();
+   bool  ok = true;
 
-   compare_size = cl_sizeof_memtype(mem_type);
-   no_input     = text.isEmpty();
-   is_float     = mem_type == CL_MEMTYPE_FLOAT ? true : false;
-
-   if (is_float)
+   if (m_Search.params.value_type == CL_MEMTYPE_FLOAT)
       compare_value = new float(text.toFloat(&ok));
    else
       compare_value = new uint32_t(stringToValue(text, &ok));
@@ -229,10 +224,7 @@ bool CleResultTableNormal::step(const QString& text, uint8_t compare_type, uint8
       cl_search_step
       (
          &m_Search,
-         no_input ? NULL : compare_value, 
-         compare_size, 
-         compare_type,
-         is_float
+         no_input ? NULL : compare_value
       );
    else if (text.front() == '"' && text.back() == '"')
       cl_search_ascii
@@ -248,15 +240,5 @@ bool CleResultTableNormal::step(const QString& text, uint8_t compare_type, uint8
 
    return true;
 }
-
-/*
-case CLE_SEARCHTYPE_POINTER:
-            cl_pointersearch_step(
-               &m_PointerSearch[m_CurrentTab],
-               no_input ? NULL : (uint32_t*)compare_value,
-               compare_size,
-               compare_type);
-            break;
-            */
 
 #endif

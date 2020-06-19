@@ -86,31 +86,24 @@ CleMemoryInspector::CleMemoryInspector()
 
    /* Initialize timer for updating search rows */
    m_UpdateTimer = new QTimer(this);
-   connect(m_UpdateTimer, SIGNAL(timeout()), this, SLOT(update()));
+   connect(m_UpdateTimer, SIGNAL(timeout()), this, SLOT(run()));
    m_UpdateTimer->start(100);
 
    memset(m_Searches, 0, sizeof(m_Searches));
    m_Searches[0] = new CleResultTableNormal;
    m_CurrentSearch = m_Searches[0];
+   connect(m_CurrentSearch, SIGNAL(addressChanged(uint32_t)),
+      this, SLOT(onAddressChanged(uint32_t)));
 
    m_TableStack = new QStackedWidget(this);
    m_TableStack->addWidget(m_CurrentSearch->getTable());
 
-   /* Initialize window layout 
-   Layout->addWidget(m_Tabs,            0, 0, 1, 2);
-   Layout->addWidget(m_SizeDropdown,    1, 0);
-   Layout->addWidget(m_NewButton,       1, 1);
-   Layout->addWidget(m_CompareDropdown, 2, 0);
-   Layout->addWidget(m_TextEntry,       2, 1);
-   Layout->addWidget(m_SearchButton,    3, 0, 1, 2);
-   Layout->addWidget(m_CurrentSearch->getTable(), 4, 0, 2, 2);
-   Layout->addWidget(m_HexWidget,       6, 0, 2, 2);
-   setLayout(Layout);*/
    rebuildLayout();
    setWindowTitle(tr("Live Editor"));
 
    /* Initialize other variables */
    m_AddressOffset = 0;
+   m_CurrentMembank = &memory.banks[0];
    m_TabCount = 1;
    m_MemoryNoteSubmit = NULL;
 
@@ -127,9 +120,16 @@ uint8_t CleMemoryInspector::getCurrentSizeType(void)
    return m_SizeDropdown->itemData(m_SizeDropdown->currentIndex()).toUInt();
 }
 
+void CleMemoryInspector::onAddressChanged(uint32_t address)
+{
+   m_CurrentMembank = cl_find_membank(address);
+   m_AddressOffset = address - m_CurrentMembank->start;
+   m_HexWidget->setOffset(address);
+}
+
 void CleMemoryInspector::onChangeCompareType()
 {
-   switch (m_CompareDropdown->itemData(m_CompareDropdown->currentIndex()).toUInt())
+   switch (getCurrentCompareType())
    {
    case CLE_CMPTYPE_EQUAL:
    case CLE_CMPTYPE_GREATER:
@@ -146,27 +146,39 @@ void CleMemoryInspector::onChangeCompareType()
    default:
       m_TextEntry->setPlaceholderText("");
    }
+   m_CurrentSearch->setCompareType(getCurrentCompareType());
 }
 
 void CleMemoryInspector::onChangeSizeType()
 {
+   m_CurrentSearch->setValueType(getCurrentSizeType());
    m_HexWidget->setSize(cl_sizeof_memtype(getCurrentSizeType()));
 }
 
 void CleMemoryInspector::onChangeTab()
 {
+   uint8_t new_tab = m_Tabs->currentIndex();
+
    /* Was the "new tab" icon clicked? */
-   if (m_Tabs->currentIndex() > m_TabCount - 1)
+   if (new_tab > m_TabCount - 1)
    {
-      m_Tabs->setTabText(m_Tabs->currentIndex(), tr("New Search"));
-      m_Tabs->addTab(tr("+"));
+      /* Setup this tab to be a new search, add a "+" button */
+      m_Tabs->setTabText(new_tab, tr("New Search"));
+      m_Tabs->addTab("+");
       m_TabCount++;
-      m_Searches[m_Tabs->currentIndex()] = new CleResultTableNormal;
-      m_TableStack->addWidget(m_Searches[m_Tabs->currentIndex()]->getTable());
+      m_Searches[new_tab] = new CleResultTableNormal;
+      m_TableStack->addWidget(m_Searches[new_tab]->getTable());
    }
-   m_CurrentSearch = m_Searches[m_Tabs->currentIndex()];
+   m_CurrentSearch = m_Searches[new_tab];
    m_CurrentSearch->rebuild();
-   m_TableStack->setCurrentIndex(m_Tabs->currentIndex());
+   m_TableStack->setCurrentIndex(new_tab);
+
+   /* Update the UI options to reflect the selected search */
+   m_CompareDropdown->setCurrentIndex(
+      m_CompareDropdown->findData(m_CurrentSearch->getCompareType()));
+   m_SizeDropdown->setCurrentIndex(
+      m_SizeDropdown->findData(m_CurrentSearch->getValueType()));
+   m_HexWidget->setSize(cl_sizeof_memtype(getCurrentSizeType()));
 }
 
 void CleMemoryInspector::onClickNew()
@@ -174,40 +186,39 @@ void CleMemoryInspector::onClickNew()
    if (!memory.bank_count)
       return;
    else
-   {
-      delete m_CurrentSearch;
-      m_CurrentSearch = new CleResultTableNormal;
-      m_TableStack->addWidget(m_CurrentSearch->getTable());
-   }
+      m_CurrentSearch->reset(getCurrentSizeType());
 }
 
 void CleMemoryInspector::onClickSearch()
 {
-   if (memory.bank_count == 0)
+   if (!memory.bank_count)
       return;
    else
    {
       if (!m_CurrentSearch->isInitted())
          onClickNew();
-      if (!m_CurrentSearch->step(m_TextEntry->text(), getCurrentCompareType(), getCurrentSizeType()))
+      if (!m_CurrentSearch->step(m_TextEntry->text()))
+      {
+         cl_log("Search input failed: %s", m_TextEntry->text().toStdString());
          m_TextEntry->setText("");
+      }
    }
 }
 
 void CleMemoryInspector::onHexWidgetOffsetEdited(int32_t delta)
 {
    /* Round down to nearest row */
-   uint32_t new_address = m_AddressOffset + (delta & ~0xF);
+   uint32_t new_offset = m_AddressOffset + (delta & ~0xF);
 
    /* Don't underflow, don't scroll into invalid data */
-   if ((new_address > m_AddressOffset && delta < 0) || 
-       new_address + 256 > memory.banks[0].size)
+   if ((new_offset > m_AddressOffset && delta < 0) || 
+       new_offset + 256 > m_CurrentMembank->size)
       return;
    else
    {
-      m_AddressOffset = new_address;
-      memcpy(m_BufferPrevious, &memory.banks[0].data[new_address], 256);
-      m_HexWidget->setOffset(new_address);
+      m_AddressOffset = new_offset;
+      memcpy(m_BufferPrevious, &m_CurrentMembank->data[new_offset], 256);
+      m_HexWidget->setOffset(m_CurrentMembank->start + new_offset);
    }
 }
 
@@ -218,7 +229,12 @@ void CleMemoryInspector::onHexWidgetValueEdited(uint32_t address, uint8_t value)
 
 void CleMemoryInspector::onClickTabRename()
 {
-   QString text = QInputDialog::getText(this, tr("Rename"), tr("Search tab name:"));
+   QString text = QInputDialog::getText
+   (
+      this, 
+      tr("Rename"), 
+      tr("Search tab name:")
+   );
 
    if (m_ClickedTab >= 0 && m_ClickedTab < m_TabCount && !text.isEmpty())
       m_Tabs->setTabText(m_ClickedTab, text);
@@ -241,7 +257,7 @@ void CleMemoryInspector::onClickResultAddMemoryNote(void)
 
       new_note.address = getClickedResultAddress();
       new_note.type = getCurrentSizeType();
-      /* TODO 
+      TODO 
       new_note.pointer_offsets = NULL;
       new_note.pointer_passes = 0;
 
@@ -360,48 +376,10 @@ void CleMemoryInspector::onRightClickTabs(const QPoint &pos)
    }
 }
 
-/*
-void CleMemoryInspector::rebuildRowsPointer()
+void CleMemoryInspector::run()
 {
-   cl_pointersearch_t *search;
-   char     temp_string[32];
-   uint8_t  memtype;
-   uint32_t current_row, matches, temp_value, i, j;
-
-   search  = &m_PointerSearch[m_CurrentTab];
-   matches = search->result_count;
-
-   m_ResultTable->setColumnCount(3 + search->passes);
-   memtype = getCurrentSizeType();
-
-   for (i = 0; i < matches; i++)
-   {
-      m_ResultTable->insertRow(i);
-
-      snprintf(temp_string, 256, "%08X", search->results[i].address_initial);
-      m_ResultTable->setItem(i, 0, new QTableWidgetItem(QString(temp_string)));
-
-      snprintf(temp_string, 256, "%02X", search->results[i].offsets[0]);
-      m_ResultTable->setItem(i, 1, new QTableWidgetItem(QString(temp_string)));
-
-      valueToString(temp_string, sizeof(temp_string), search->results[i].value_previous, memtype);
-      m_ResultTable->setItem(i, 2, new QTableWidgetItem(QString(temp_string)));
-
-      valueToString(temp_string, sizeof(temp_string), search->results[i].value_current, memtype);
-      m_ResultTable->setItem(i, 3, new QTableWidgetItem(QString(temp_string)));
-   }
-   m_ResultTable->setRowCount(matches);
-}
-*/
-
-void CleMemoryInspector::update()
-{
-   m_CurrentSearch->run(getCurrentSizeType(), cl_sizeof_memtype(getCurrentSizeType()));
-
-   if (m_AddressOffset > memory.banks[0].start + memory.banks[0].size)
-      return;
-
-   memcpy(m_BufferCurrent, &memory.banks[0].data[m_AddressOffset], 256);
+   m_CurrentSearch->run();
+   memcpy(m_BufferCurrent, &m_CurrentMembank->data[m_AddressOffset], 256);
    m_HexWidget->refresh(m_BufferCurrent, m_BufferPrevious);
    memcpy(m_BufferPrevious, m_BufferCurrent, 256);
 }

@@ -28,6 +28,8 @@ void CleResultTable::init()
    connect(m_Table, SIGNAL(itemChanged(QTableWidgetItem*)),            this, SLOT(onResultEdited(QTableWidgetItem*)));
    connect(m_Table, SIGNAL(customContextMenuRequested(const QPoint&)), this, SLOT(onResultRightClick(const QPoint&)));
    connect(m_Table, SIGNAL(itemSelectionChanged()),                    this, SLOT(onResultSelectionChanged()));
+
+   m_CurrentEditedRow = -1;
 }
 
 #endif

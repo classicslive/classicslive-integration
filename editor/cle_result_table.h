@@ -38,15 +38,21 @@ public:
    */
    virtual void rebuild() = 0;
 
-   virtual void reset() = 0;
+   virtual void reset(uint8_t value_type) = 0;
    
    /*
       Redraw the currently visible table rows with new information.
       Should be called every frame or another small interval.
    */
-   virtual void run(uint8_t type, uint8_t size) = 0;
+   virtual void run() = 0;
 
-   virtual bool step(const QString& text, uint8_t compare_type, uint8_t mem_type) = 0;
+   virtual bool step(const QString& text) = 0;
+
+   virtual uint8_t getCompareType() { return 0; }
+   virtual uint8_t getValueType() { return 0; }
+
+   virtual void setCompareType(const uint8_t new_type) {}
+   virtual void setValueType(const uint8_t new_type) {}
 
 signals:
    virtual void requestAddMemoryNote(uint32_t index) = 0;
@@ -61,11 +67,6 @@ public slots:
    virtual void onResultSelectionChanged(void){};
 
 protected:
-   /* 
-      Index of the last row clicked
-   */
-   int32_t m_ClickedResult;
-
    /* 
       The last row an edit dialog was created on, used to write the entered
       value back to the right spot in memory.

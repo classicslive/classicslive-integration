@@ -53,6 +53,7 @@ typedef struct cl_membank_t
    uint8_t  *data;
    uint32_t  size;
    uint32_t  start;
+   char      title[256];
 } cl_membank_t;
 
 /* ============================================================================
@@ -103,6 +104,12 @@ typedef struct cl_memory_t
    uint8_t       pointer_size;
 } cl_memory_t;
 
+/* 
+   Returns a pointer to the membank that contains a given virtual address,
+   or NULL if it's not found.
+*/
+cl_membank_t* cl_find_membank(uint32_t address);
+
 void cl_free_memory();
 void cl_free_memnote(cl_memnote_t *memnote);
 
@@ -113,9 +120,12 @@ bool cl_get_memnote_value(uint32_t *value, uint32_t memnote_id, uint8_t type);
 /* Populate a memory holder with values returned by the web API */
 bool cl_init_memory(const char **pos);
 
-/* Read a value from a virtual memory address, return true on success */
-/* A pointer to a memory bank can be specified. If this is NULL the 
-   exact address will be inferred from the memory info. */
+/* 
+   Read a value from a virtual memory address, return true on success.
+   -
+   A pointer to a memory bank can be specified. If this is NULL the 
+   exact address will be inferred from the memory info.
+*/
 bool cl_read_memory(uint32_t *value, cl_membank_t *bank, uint32_t address, 
    uint8_t size);
 

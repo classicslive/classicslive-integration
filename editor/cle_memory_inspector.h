@@ -35,7 +35,7 @@ public:
    CleMemoryInspector();
 
 public slots:
-   void update();
+   void run();
 
 private:
    CleResultTable *m_Searches[CLE_MAX_TABS];
@@ -44,11 +44,13 @@ private:
    CleHexWidget        *m_HexWidget;
    CleMemoryNoteSubmit *m_MemoryNoteSubmit;
 
-   uint32_t      m_AddressOffset;
-   uint8_t      *m_BufferPrevious;
-   uint8_t      *m_BufferCurrent;
-   int8_t        m_ClickedTab;
-   uint8_t       m_TabCount;
+   cl_membank_t *m_CurrentMembank;
+
+   uint32_t  m_AddressOffset;
+   uint8_t  *m_BufferPrevious;
+   uint8_t  *m_BufferCurrent;
+   int8_t    m_ClickedTab;
+   uint8_t   m_TabCount;
    
    QComboBox      *m_CompareDropdown;
    QGridLayout    *m_Layout;
@@ -60,11 +62,12 @@ private:
    QStackedWidget *m_TableStack;
    QTimer         *m_UpdateTimer;
 
-   uint8_t  getCurrentCompareType(void);
-   uint8_t  getCurrentSizeType(void);
-   void     rebuildLayout(void);
+   uint8_t getCurrentCompareType(void);
+   uint8_t getCurrentSizeType(void);
+   void    rebuildLayout(void);
 
 private slots:
+   void onAddressChanged(uint32_t address);
    void onChangeCompareType();
    void onChangeSizeType();
    void onChangeTab();

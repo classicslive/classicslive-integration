@@ -54,8 +54,27 @@ bool cl_get_memnote_flag(uint32_t index, uint8_t flag)
 
 bool cl_get_memnote_float(float *value, uint32_t memnote_id, uint8_t type)
 {
-   /* TODO */
-   return false;
+   if (memnote_id >= memory.note_count)
+      return false;
+   else
+   {
+      switch (type)
+      {
+      case CL_SRCTYPE_CURRENT_RAM:
+         memcpy(value, &memory.notes[memnote_id].value_current, sizeof(float));
+         break;
+      case CL_SRCTYPE_PREVIOUS_RAM:
+         memcpy(value, &memory.notes[memnote_id].value_previous, sizeof(float));
+         break;
+      case CL_SRCTYPE_LAST_UNIQUE_RAM:
+         memcpy(value, &memory.notes[memnote_id].value_last_unique, sizeof(float));
+         break;
+      default:
+         return false;
+      }
+   }
+
+   return true;
 }
 
 bool cl_get_memnote_value(uint32_t *value, uint32_t memnote_id, uint8_t type)
@@ -127,6 +146,7 @@ bool cl_init_membanks()
       memory.banks[0].data = (uint8_t*)mem_info.data;
       memory.banks[0].size = mem_info.size;
       memory.banks[0].start = 0;
+      snprintf(memory.banks[0].title, sizeof(memory.banks[0].title), "%s", "retro_get_memory_data");
       memory.bank_count = 1;
       cl_log("Using retro_get_memory_data | %p - %08X bytes\n", memory.banks[0].data, memory.banks[0].size);
 
@@ -140,11 +160,15 @@ bool cl_init_membanks()
          memory.banks[i].data = (uint8_t*)sys_info->mmaps.descriptors[i].core.ptr;
          memory.banks[i].size = sys_info->mmaps.descriptors[i].core.len;
          memory.banks[i].start = sys_info->mmaps.descriptors[i].core.start;
+         if (sys_info->mmaps.descriptors[i].core.addrspace)
+            snprintf(memory.banks[i].title, sizeof(memory.banks[i].title), "%s", sys_info->mmaps.descriptors[i].core.addrspace);
+         else
+            snprintf(memory.banks[i].title, sizeof(memory.banks[i].title), "Memory bank %u/%u", i + 1, memory.bank_count);
       }
 
       cl_sort_membanks(memory.banks, memory.bank_count);
       for (i = 0; i < memory.bank_count; i++)
-         cl_log("Bank %02X: 0x%08X | %08X bytes | %p\n", i, memory.banks[i].start, memory.banks[i].size, memory.banks[i].data);
+         cl_log("Bank %02X: 0x%08X | %08X bytes | %p | %s\n", i, memory.banks[i].start, memory.banks[i].size, memory.banks[i].data, memory.banks[i].title);
 
       return true;
    }

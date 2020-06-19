@@ -6,12 +6,36 @@
 #include "cle_result_table_pointer.h"
 #include "cle_common.h"
 
+CleResultTablePointer::CleResultTablePointer(uint32_t address, uint8_t size, 
+   uint8_t passes, uint32_t range, uint32_t max_results)
+{
+   uint8_t i;
+
+   CleResultTable::init();
+
+   /* Pointer-specific table styling */
+   m_Table->setColumnCount(3 + passes);
+
+   /* Initialize result table column headers */
+   QStringList TableHeader;
+   TableHeader << tr("Initial");
+   for (i = 0; i < passes; i++)
+      TableHeader << tr("Offset ") + i;
+   TableHeader << tr("Previous") << tr("Current");
+   m_Table->setHorizontalHeaderLabels(TableHeader);
+
+   cl_pointersearch_init(&m_Search, address, size, passes, range, max_results);
+}
+
+CleResultTablePointer::~CleResultTablePointer()
+{
+   cl_pointersearch_free(&m_Search);
+}
+
 uint32_t CleResultTablePointer::getClickedResultAddress()
 {
-   if (m_ClickedResult < 0)
-      return 0;
-   else
-      return m_Search.results[m_ClickedResult].address_final;
+   /* TODO: Maybe make an option to seek to initial address instead of final */
+   return m_Search.results[m_Table->currentRow()].address_final;
 }
 
 void* CleResultTablePointer::getSearchData()
@@ -22,9 +46,10 @@ void* CleResultTablePointer::getSearchData()
 void CleResultTablePointer::rebuild()
 {
    char     temp_string[32];
-   uint8_t  memtype;
+   uint8_t  size;
    uint32_t current_row, temp_value, i, j;
 
+   size = m_Search.params.size;
    m_Table->setColumnCount(3 + m_Search.passes);
 
    for (i = 0; i < m_Search.result_count; i++)
@@ -37,25 +62,28 @@ void CleResultTablePointer::rebuild()
       snprintf(temp_string, 256, "%02X", m_Search.results[i].offsets[0]);
       m_Table->setItem(i, 1, new QTableWidgetItem(QString(temp_string)));
 
-      valueToString(temp_string, sizeof(temp_string), m_Search.results[i].value_previous, m_Search.size);
+      valueToString(temp_string, sizeof(temp_string), m_Search.results[i].value_previous, size);
       m_Table->setItem(i, 2, new QTableWidgetItem(QString(temp_string)));
 
-      valueToString(temp_string, sizeof(temp_string), m_Search.results[i].value_current, m_Search.size);
+      valueToString(temp_string, sizeof(temp_string), m_Search.results[i].value_current, size);
       m_Table->setItem(i, 3, new QTableWidgetItem(QString(temp_string)));
    }
    m_Table->setRowCount(m_Search.result_count);
 }
 
-void CleResultTablePointer::reset()
+void CleResultTablePointer::reset(uint8_t value_type)
 {
    cl_pointersearch_free(&m_Search);
 }
 
-void CleResultTablePointer::run(uint8_t type, uint8_t size)
+void CleResultTablePointer::run()
 {
    QTableWidgetItem *item;
    char     temp_string[32];
+   uint8_t  val_type; // TODO: Do we pass val_type or size?
    uint32_t address, value_curr, value_prev, i, j;
+
+   val_type = m_Search.params.value_type;
 
    /* The C code updates all of the pointer results */
    cl_pointersearch_update(&m_Search);
@@ -80,14 +108,14 @@ void CleResultTablePointer::run(uint8_t type, uint8_t size)
 
       /* Update previous value column */
       item = m_Table->item(i, j);
-      valueToString(temp_string, sizeof(temp_string), value_prev, type);
+      valueToString(temp_string, sizeof(temp_string), value_prev, val_type);
       item->setText(temp_string);
 
       /* Current value column */
       item = m_Table->item(i, j + 1);
       if (m_CurrentEditedRow != i)
       {
-         valueToString(temp_string, sizeof(temp_string), value_curr, type);
+         valueToString(temp_string, sizeof(temp_string), value_curr, val_type);
          item->setText(temp_string);
       }
 
@@ -100,7 +128,7 @@ void CleResultTablePointer::run(uint8_t type, uint8_t size)
    m_Table->setRowCount(m_Search.result_count);
 }
 
-bool CleResultTablePointer::step(const QString& text, uint8_t compare_type, uint8_t mem_type)
+bool CleResultTablePointer::step(const QString& text)
 {
    return false; //todo
 }
