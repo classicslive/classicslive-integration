@@ -42,7 +42,7 @@ void *CleResultTableNormal::getSearchData()
    return (void*)(&m_Search);
 }
 
-void CleResultTableNormal::onResultClick()
+void CleResultTableNormal::onResultClick(QTableWidgetItem *item) //todo
 {
    emit addressChanged(getClickedResultAddress() & ~0xF);
 }

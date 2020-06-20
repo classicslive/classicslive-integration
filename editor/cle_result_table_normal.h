@@ -30,17 +30,17 @@ public:
    void run() override;
    bool step(const QString& text) override;
 
-   virtual uint8_t getCompareType() { return m_Search.params.compare_type; }
-   virtual uint8_t getValueType() { return m_Search.params.value_type; }
+   uint8_t getCompareType() { return m_Search.params.compare_type; }
+   uint8_t getValueType() { return m_Search.params.value_type; }
 
-   virtual void setCompareType(const uint8_t new_type) { m_Search.params.compare_type = new_type; }
-   virtual void setValueType(const uint8_t new_type) { m_Search.params.value_type = new_type; m_Search.params.size = cl_sizeof_memtype(new_type); }
+   void setCompareType(const uint8_t new_type) { m_Search.params.compare_type = new_type; }
+   void setValueType(const uint8_t new_type) { m_Search.params.value_type = new_type; m_Search.params.size = cl_sizeof_memtype(new_type); }
 
 public slots:
    void onClickResultAddMemoryNote();
    void onClickResultPointerSearch();
    void onClickResultRemove();
-   void onResultClick(void) override;
+   void onResultClick(QTableWidgetItem *item) override;
    void onResultDoubleClick(void) override;
    void onResultEdited(QTableWidgetItem *item) override;
    void onResultRightClick(const QPoint&) override;

@@ -23,7 +23,7 @@ void CleResultTable::init()
    m_Table->verticalHeader()->setDefaultSectionSize(16);
 
    /* Setup Qt slots */
-   connect(m_Table, SIGNAL(itemClicked(QTableWidgetItem*)),            this, SLOT(onResultClick()));
+   connect(m_Table, SIGNAL(itemClicked(QTableWidgetItem*)),            this, SLOT(onResultClick(QTableWidgetItem*)));
    connect(m_Table, SIGNAL(itemDoubleClicked(QTableWidgetItem*)),      this, SLOT(onResultDoubleClick()));
    connect(m_Table, SIGNAL(itemChanged(QTableWidgetItem*)),            this, SLOT(onResultEdited(QTableWidgetItem*)));
    connect(m_Table, SIGNAL(customContextMenuRequested(const QPoint&)), this, SLOT(onResultRightClick(const QPoint&)));

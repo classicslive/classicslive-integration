@@ -83,6 +83,7 @@ CleMemoryInspector::CleMemoryInspector()
    connect(m_HexWidget, SIGNAL(valueEdited(uint32_t, uint8_t)), 
       this, SLOT(onHexWidgetValueEdited(uint32_t, uint8_t)));
    m_HexWidget->setByteSwapEnabled(memory.endianness);
+   m_HexWidget->setOffset(memory.banks[0].start);
 
    /* Initialize timer for updating search rows */
    m_UpdateTimer = new QTimer(this);
@@ -126,9 +127,16 @@ uint8_t CleMemoryInspector::getCurrentSizeType(void)
 
 void CleMemoryInspector::onAddressChanged(uint32_t address)
 {
-   m_CurrentMembank = cl_find_membank(address);
-   m_AddressOffset = address - m_CurrentMembank->start;
-   m_HexWidget->setOffset(address);
+   cl_membank_t *new_bank = cl_find_membank(address);
+
+   if (!new_bank)
+      return;
+   else
+   {
+      m_CurrentMembank = new_bank;
+      m_AddressOffset = address - m_CurrentMembank->start;
+      m_HexWidget->setOffset(address);
+   }
 }
 
 void CleMemoryInspector::onChangeCompareType()
@@ -178,6 +186,13 @@ void CleMemoryInspector::onChangeTab()
    m_TableStack->setCurrentIndex(new_tab);
 
    /* Update the UI options to reflect the selected search */
+   connect(m_CurrentSearch, SIGNAL(addressChanged(uint32_t)),
+      this, SLOT(onAddressChanged(uint32_t)));
+   connect(m_CurrentSearch, SIGNAL(requestAddMemoryNote(cl_memnote_t)),
+      this, SLOT(requestAddMemoryNote(cl_memnote_t)));
+   connect(m_CurrentSearch, SIGNAL(requestPointerSearch(uint32_t)),
+      this, SLOT(requestPointerSearch(uint32_t)));
+
    m_CompareDropdown->setCurrentIndex(
       m_CompareDropdown->findData(m_CurrentSearch->getCompareType()));
    m_SizeDropdown->setCurrentIndex(
@@ -310,10 +325,13 @@ void CleMemoryInspector::requestPointerSearch(uint32_t address)
          10000
       );
 
-      m_TableStack->addWidget(m_Searches[m_TabCount]->getTable());
-      m_Tabs->setCurrentIndex(m_TabCount);
+      m_TabCount++;
+      m_TableStack->addWidget(m_Searches[m_TabCount-1]->getTable());
+      m_Tabs->setCurrentIndex(m_TabCount - 1);
       m_Tabs->setTabText(m_Tabs->currentIndex(), tr("Pointers"));
       m_Tabs->setTabTextColor(m_Tabs->currentIndex(), Qt::yellow);
+      m_Tabs->addTab("+");
+      m_CurrentSearch = m_Searches[m_TabCount-1];
    }
 }
 

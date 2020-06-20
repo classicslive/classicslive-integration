@@ -265,11 +265,9 @@ bool resolve_pointerresult(uint32_t *final_address, const cl_pointerresult_t *re
 
    for (i = 0; i < passes; i++)
    {
-      address &= 0x01FFFFFF;
       if (!cl_read_memory(&address, NULL, address, memory.pointer_size))
          return false;
       address += result->offsets[i];
-      address &= 0x01FFFFFF;
    }
    *final_address = address;
 
