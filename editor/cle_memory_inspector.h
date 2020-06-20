@@ -89,6 +89,9 @@ private slots:
 
    //void onRightClickResult(const QPoint &pos);
    void onRightClickTabs(const QPoint &pos);
+
+   void requestAddMemoryNote(cl_memnote_t note);
+   void requestPointerSearch(uint32_t address);
 };
 
 #endif

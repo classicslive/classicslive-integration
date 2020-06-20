@@ -109,14 +109,19 @@ bool cl_read_search(uint32_t *value, cl_search_t *search, cl_searchbank_t *sbank
    return false;
 }
 
-void cl_search_remove(cl_search_t *search, uint32_t address)
+bool cl_search_remove(cl_search_t *search, uint32_t address)
 {
    cl_searchbank_t *sbank = cl_searchbank_from_address(search, address);
+   bool removed;
 
-   if (sbank)
+   if (!sbank || sbank->valid[address - sbank->bank->start] == 0)
+      return false;
+   else
    {
       sbank->valid[address - sbank->bank->start] = 0;
       search->matches--;
+
+      return true;
    }
 }
 
@@ -322,10 +327,10 @@ uint32_t cl_search_step(cl_search_t *search, void *value)
       cl_searchbank_t *sbank;
       bool compare_result;
       uint32_t left, right;
-      uint32_t matches = 0;
-      uint8_t cmp_type = search->params.compare_type;
-      uint8_t size     = search->params.size;
-      uint8_t val_type = search->params.value_type;
+      uint32_t matches  = 0;
+      uint8_t  cmp_type = search->params.compare_type;
+      uint8_t  size     = search->params.size;
+      uint8_t  val_type = search->params.value_type;
       uint8_t  i;
       uint32_t j;
 
@@ -448,7 +453,7 @@ bool cl_pointersearch_init(cl_pointersearch_t *search,
       /* Do a quick scan to see how many results we start with */
       for (i = 0; i < memory.bank_count; i++)
       {
-         uint32_t target = exact_only ? bank->start + address : 0x80000000 + address; //TODO: REMOVE ASAP
+         uint32_t target = exact_only ? bank->start + address : address; //ADD VERY TEMPORARY HACKS HERE
 
          bank = &memory.banks[i];
 
@@ -474,6 +479,8 @@ bool cl_pointersearch_init(cl_pointersearch_t *search,
             if (matches == max_results)
             {
                search->result_count = max_results;
+               cl_log("Pointer search for %08X reached maximum result count of %u.\n", address, max_results);
+               
                return true;
             }
          }
@@ -488,7 +495,7 @@ bool cl_pointersearch_init(cl_pointersearch_t *search,
    }
 }
 
-uint32_t cl_pointersearch_step(cl_pointersearch_t *search, uint32_t *value)
+uint32_t cl_pointersearch_step(cl_pointersearch_t *search, void *value)
 {
    if (!search)
       return false;
@@ -517,7 +524,7 @@ uint32_t cl_pointersearch_step(cl_pointersearch_t *search, uint32_t *value)
             if (!value)
                compare_result = compare_to_nothing(result->value_previous, result->value_current, cmp_type);
             else
-               compare_result = compare_to_value(result->value_previous, result->value_current, cmp_type, *value);
+               compare_result = compare_to_value(result->value_previous, result->value_current, cmp_type, *((uint32_t*)value));
 
             if (compare_result)
             {

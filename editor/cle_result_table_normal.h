@@ -37,17 +37,20 @@ public:
    virtual void setValueType(const uint8_t new_type) { m_Search.params.value_type = new_type; m_Search.params.size = cl_sizeof_memtype(new_type); }
 
 public slots:
+   void onClickResultAddMemoryNote();
+   void onClickResultPointerSearch();
+   void onClickResultRemove();
    void onResultClick(void) override;
    void onResultDoubleClick(void) override;
    void onResultEdited(QTableWidgetItem *item) override;
-   //void onResultRightClick(const QPoint&) override;
+   void onResultRightClick(const QPoint&) override;
    void onResultSelectionChanged(void) override;
 
 signals:
    void addressChanged(uint32_t address);
-   void requestAddMemoryNote(uint32_t index) override;
-   void requestPointerSearch(uint32_t index) override;
-   void requestRemove(uint32_t index) override;
+   void requestAddMemoryNote(cl_memnote_t note);
+   void requestPointerSearch(uint32_t address);
+   //void requestRemove(uint32_t index) override;
 
 private:
    cl_search_t m_Search;

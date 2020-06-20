@@ -30,11 +30,11 @@ typedef struct cl_search_t
 
 typedef struct cl_pointerresult_t
 {
-   uint32_t  address_initial;
-   uint32_t  address_final;
-   uint32_t  value_current;
-   uint32_t  value_previous;
-   int32_t   offsets[CL_POINTER_MAX_PASSES];
+   uint32_t address_initial;
+   uint32_t address_final;
+   uint32_t value_current;
+   uint32_t value_previous;
+   int32_t  offsets[CL_POINTER_MAX_PASSES];
 } cl_pointerresult_t;
 
 typedef struct cl_pointersearch_t
@@ -52,17 +52,32 @@ bool cl_read_search (uint32_t *value, cl_search_t *search,
 uint32_t cl_search_ascii (cl_search_t *search, const char *needle, uint8_t length);
 bool     cl_search_free  (cl_search_t *search);
 bool     cl_search_init  (cl_search_t *search);
-void     cl_search_remove(cl_search_t *search, uint32_t address);
-bool     cl_search_reset (cl_search_t *search);
-uint32_t cl_search_step  (cl_search_t *search, void *value);
+
+/*
+   Unsets the validity of a specific address.
+   Returns TRUE if it succeeds.
+*/
+bool cl_search_remove(cl_search_t *search, uint32_t address);
+
+/*
+   Sets the validity of all addresses to true.
+   Returns TRUE if it succeeds.
+*/
+bool cl_search_reset(cl_search_t *search);
+
+/*
+   Unsets the validity of all addresses that no longer meet the given conditions.
+   Returns the numbers of valid addresses afterwards.
+*/
+uint32_t cl_search_step(cl_search_t *search, void *value);
 
 bool cl_pointersearch_free    (cl_pointersearch_t *search);
 bool cl_pointersearch_init    (cl_pointersearch_t *search, 
    uint32_t address, uint8_t size, uint8_t passes, uint32_t range, uint32_t max_results);
-uint32_t cl_pointersearch_step(cl_pointersearch_t *search, uint32_t *value);
+uint32_t cl_pointersearch_step(cl_pointersearch_t *search, void *value);
 
 /*
-   Updates the "value_current" variable in every result in a pointersearch.
+   Updates the "value_current" variable in every result in a pointersearch. 
 */
 void cl_pointersearch_update(cl_pointersearch_t *search);
 

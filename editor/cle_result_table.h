@@ -54,11 +54,6 @@ public:
    virtual void setCompareType(const uint8_t new_type) {}
    virtual void setValueType(const uint8_t new_type) {}
 
-signals:
-   virtual void requestAddMemoryNote(uint32_t index) = 0;
-   virtual void requestPointerSearch(uint32_t index) = 0;
-   virtual void requestRemove(uint32_t index) = 0;
-
 public slots:
    virtual void onResultClick(void){};
    virtual void onResultDoubleClick(void){};
@@ -72,6 +67,8 @@ protected:
       value back to the right spot in memory.
    */
    int32_t m_CurrentEditedRow;
+
+   int32_t m_ClickedResult;
 
    QTableWidget *m_Table;
 

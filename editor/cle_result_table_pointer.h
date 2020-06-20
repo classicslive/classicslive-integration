@@ -23,12 +23,12 @@ public:
    virtual uint8_t getValueType() { return m_Search.params.value_type; }
 
    virtual void setCompareType(const uint8_t new_type) { m_Search.params.compare_type = new_type; }
-   virtual void setValueType(const uint8_t new_type) { m_Search.params.value_type = new_type; }
+   virtual void setValueType(const uint8_t new_type) { m_Search.params.value_type = new_type; m_Search.params.size = cl_sizeof_memtype(new_type); }
 
 signals:
-   void requestAddMemoryNote(uint32_t index) override;
-   void requestPointerSearch(uint32_t index) override;
-   void requestRemove(uint32_t index) override;
+   //void requestAddMemoryNote(uint32_t index) override;
+   //void requestPointerSearch(uint32_t index) override;
+   //void requestRemove(uint32_t index) override;
 
 private:
    cl_pointersearch_t m_Search;

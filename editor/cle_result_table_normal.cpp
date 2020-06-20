@@ -1,6 +1,7 @@
 #ifndef CLE_RESULT_TABLE_NORMAL_CPP
 #define CLE_RESULT_TABLE_NORMAL_CPP
 
+#include <QMenu>
 #include <QScrollBar>
 #include <QStringList>
 
@@ -87,6 +88,57 @@ void CleResultTableNormal::onResultEdited(QTableWidgetItem *result)
          free(value);
       }
       m_CurrentEditedRow = -1;
+   }
+}
+
+void CleResultTableNormal::onClickResultAddMemoryNote()
+{
+   cl_memnote_t note;
+
+   note.address        = getClickedResultAddress();
+   note.type           = m_Search.params.value_type;
+   note.pointer_passes = 0;
+
+   emit requestAddMemoryNote(note);
+}
+
+void CleResultTableNormal::onClickResultPointerSearch()
+{
+   emit requestPointerSearch(getClickedResultAddress());
+}
+
+
+void CleResultTableNormal::onClickResultRemove()
+{
+   if (cl_search_remove(&m_Search, getClickedResultAddress()))
+      rebuild();
+}
+
+void CleResultTableNormal::onResultRightClick(const QPoint& pos)
+{
+   if (pos.isNull())
+      return;
+   else
+   {
+      m_ClickedResult = m_Table->rowAt(pos.y());
+      if (m_ClickedResult < 0 || m_ClickedResult >= m_Table->rowCount())
+         return;
+      else
+      {
+         QMenu menu;
+         QAction *action_add    = menu.addAction(tr("&Add memory note..."));
+         QAction *action_ptr    = menu.addAction(tr("Search for &pointers..."));
+         QAction *action_remove = menu.addAction(tr("&Remove"));
+
+         connect(action_add, SIGNAL(triggered()), this, 
+            SLOT(onClickResultAddMemoryNote()));
+         connect(action_ptr, SIGNAL(triggered()), this, 
+            SLOT(onClickResultPointerSearch()));
+         connect(action_remove, SIGNAL(triggered()), this, 
+            SLOT(onClickResultRemove()));
+
+         menu.exec(m_Table->mapToGlobal(pos));
+      }
    }
 }
 

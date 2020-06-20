@@ -94,6 +94,10 @@ CleMemoryInspector::CleMemoryInspector()
    m_CurrentSearch = m_Searches[0];
    connect(m_CurrentSearch, SIGNAL(addressChanged(uint32_t)),
       this, SLOT(onAddressChanged(uint32_t)));
+   connect(m_CurrentSearch, SIGNAL(requestAddMemoryNote(cl_memnote_t)),
+      this, SLOT(requestAddMemoryNote(cl_memnote_t)));
+   connect(m_CurrentSearch, SIGNAL(requestPointerSearch(uint32_t)),
+      this, SLOT(requestPointerSearch(uint32_t)));
 
    m_TableStack = new QStackedWidget(this);
    m_TableStack->addWidget(m_CurrentSearch->getTable());
@@ -240,76 +244,6 @@ void CleMemoryInspector::onClickTabRename()
       m_Tabs->setTabText(m_ClickedTab, text);
 }
 
-/*
-void CleMemoryInspector::onClickResultAddMemoryNote(void)
-{
-   if (m_ClickedResult < 0)
-      return;
-   else if (!session.game_id)
-   {
-      QMessageBox::warning(this, "Live Editor", 
-         tr("The currently played game was not recognized by the server, so you cannot submit memory notes.")
-      );
-   }
-   else
-   {
-      cl_memnote_t new_note;
-
-      new_note.address = getClickedResultAddress();
-      new_note.type = getCurrentSizeType();
-      TODO 
-      new_note.pointer_offsets = NULL;
-      new_note.pointer_passes = 0;
-
-      m_MemoryNoteSubmit = new CleMemoryNoteSubmit(new_note);
-      m_ClickedResult = -1;
-
-      m_MemoryNoteSubmit->show();
-   }
-}
-*/
-
-/* TODOTODAY: The result table needs to pass an address to here
-void CleMemoryInspector::onClickResultPointerSearch(void)
-{
-   if (m_ClickedResult < 0)
-      return;
-   else
-   {
-      m_Searches[m_TabCount] = new CleResultTablePointer;
-      cl_pointersearch_init(
-         m_Searches[m_TabCount].getSearchData(),
-         getClickedResultAddress(),
-         cl_sizeof_memtype(getCurrentSizeType()),
-         1,
-         0x100000,
-         10000);
-
-      m_Tabs->setCurrentIndex(m_TabCount);
-      m_Tabs->setTabText(m_Tabs->currentIndex(), tr("Pointers"));
-      m_Tabs->setTabTextColor(m_Tabs->currentIndex(), Qt::yellow);
-
-      m_CurrentSearch->rebuildRows();
-
-      m_ClickedResult = -1;
-   }
-}
-*/
-
-/*
-void CleMemoryInspector::onClickResultRemove(void)
-{
-   if (m_ClickedResult < 0)
-      return;
-   else
-   {
-      cl_search_remove(&m_Searches[m_CurrentTab], getClickedResultAddress());
-      rebuildRows();
-      m_ClickedResult = -1;
-   }
-}
-*/
-
 void CleMemoryInspector::onHexWidgetRightClick(uint32_t address)
 {
    QMenu menu;
@@ -323,36 +257,6 @@ void CleMemoryInspector::onHexWidgetRightClick(uint32_t address)
 
    menu.exec(QCursor::pos());
 }
-
-/*
-void CleMemoryInspector::onRightClickResult(const QPoint &pos)
-{
-   if (pos.isNull())
-      return;
-   else
-   {
-      m_ClickedResult = m_ResultTable->rowAt(pos.y());
-      if (m_ClickedResult < 0 || m_ClickedResult >= m_ResultTable->rowCount())
-         return;
-      else
-      {
-         QMenu menu;
-         QAction *action_add    = menu.addAction(tr("&Add memory note..."));
-         QAction *action_ptr    = menu.addAction(tr("Search for &pointers..."));
-         QAction *action_remove = menu.addAction(tr("&Remove"));
-
-         connect(action_add, SIGNAL(triggered()), this, 
-            SLOT(onClickResultAddMemoryNote()));
-         connect(action_ptr, SIGNAL(triggered()), this, 
-            SLOT(onClickResultPointerSearch()));
-         connect(action_remove, SIGNAL(triggered()), this, 
-            SLOT(onClickResultRemove()));
-
-         menu.exec(m_ResultTable->mapToGlobal(pos));
-      }
-   }
-}
-*/
 
 void CleMemoryInspector::onRightClickTabs(const QPoint &pos)
 {
@@ -373,6 +277,43 @@ void CleMemoryInspector::onRightClickTabs(const QPoint &pos)
 
          menu.exec(m_Tabs->mapToGlobal(pos));
       }
+   }
+}
+
+void CleMemoryInspector::requestAddMemoryNote(cl_memnote_t note)
+{
+   if (!session.game_id)
+   {
+      QMessageBox::warning(this, "Live Editor", 
+         tr("The currently played game was not recognized by the server, so you cannot submit memory notes.")
+      );
+   }
+   else
+   {
+      m_MemoryNoteSubmit = new CleMemoryNoteSubmit(note);
+      m_MemoryNoteSubmit->show();
+   }
+}
+
+void CleMemoryInspector::requestPointerSearch(uint32_t address)
+{
+   if (!address)
+      return;
+   else
+   {
+      m_Searches[m_TabCount] = new CleResultTablePointer
+      (
+         address, 
+         getCurrentSizeType(),
+         1,
+         0x10000,
+         10000
+      );
+
+      m_TableStack->addWidget(m_Searches[m_TabCount]->getTable());
+      m_Tabs->setCurrentIndex(m_TabCount);
+      m_Tabs->setTabText(m_Tabs->currentIndex(), tr("Pointers"));
+      m_Tabs->setTabTextColor(m_Tabs->currentIndex(), Qt::yellow);
    }
 }
 
