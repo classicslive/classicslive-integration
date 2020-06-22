@@ -335,7 +335,7 @@ uint32_t cl_search_step(cl_search_t *search, void *value)
       if (!value)
          cl_log("Comparing to nothing...");
       else if (val_type == CL_MEMTYPE_FLOAT)
-         cl_log("Comparing to %d...", *((float*)value));
+         cl_log("Comparing to %f...", *((float*)value));
       else
          cl_log("Comparing to %u...", *((uint32_t*)value));
       

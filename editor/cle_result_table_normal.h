@@ -19,7 +19,7 @@ class CleResultTableNormal : public CleResultTable
    Q_OBJECT
 
 public:
-   CleResultTableNormal();
+   CleResultTableNormal(QWidget* parent);
    ~CleResultTableNormal();
 
    uint32_t getClickedResultAddress() override;

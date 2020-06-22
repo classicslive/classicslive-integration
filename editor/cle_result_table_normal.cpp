@@ -12,7 +12,7 @@
 #define COL_PREVIOUS_VALUE 1
 #define COL_CURRENT_VALUE  2
 
-CleResultTableNormal::CleResultTableNormal()
+CleResultTableNormal::CleResultTableNormal(QWidget *parent)
 {
    CleResultTable::init();
 
@@ -23,6 +23,14 @@ CleResultTableNormal::CleResultTableNormal()
    QStringList TableHeader;
    TableHeader << tr("Address") << tr("Previous") << tr("Current");
    m_Table->setHorizontalHeaderLabels(TableHeader);
+
+   /* Qt connections to parent */
+   connect(this, SIGNAL(addressChanged(uint32_t)),
+      parent, SLOT(onAddressChanged(uint32_t)));
+   connect(this, SIGNAL(requestAddMemoryNote(cl_memnote_t)),
+      parent, SLOT(requestAddMemoryNote(cl_memnote_t)));
+   connect(this, SIGNAL(requestPointerSearch(uint32_t)),
+      parent, SLOT(requestPointerSearch(uint32_t)));
 
    cl_search_init(&m_Search);
 }
@@ -207,7 +215,6 @@ void CleResultTableNormal::rebuild()
 void CleResultTableNormal::reset(uint8_t value_type)
 {
    cl_search_reset(&m_Search);
-   m_Search.params.value_type = value_type;
    m_Table->setRowCount(0);
 }
 

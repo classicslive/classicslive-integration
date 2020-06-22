@@ -8,8 +8,8 @@ class CleResultTablePointer : public CleResultTable
     Q_OBJECT
 
 public:
-   CleResultTablePointer(uint32_t address, uint8_t size, uint8_t passes, 
-      uint32_t range, uint32_t max_results);
+   CleResultTablePointer(QWidget *parent, uint32_t address, uint8_t size, 
+      uint8_t passes, uint32_t range, uint32_t max_results);
    ~CleResultTablePointer();
 
    uint32_t getClickedResultAddress() override;
@@ -23,8 +23,15 @@ public:
    uint8_t getCompareType() { return m_Search.params.compare_type; }
    uint8_t getValueType() { return m_Search.params.value_type; }
 
-   void setCompareType(const uint8_t new_type) { m_Search.params.compare_type = new_type; }
-   void setValueType(const uint8_t new_type) { m_Search.params.value_type = new_type; m_Search.params.size = cl_sizeof_memtype(new_type); }
+   void setCompareType(const uint8_t new_type)
+   {
+      m_Search.params.compare_type = new_type;
+   }
+   void setValueType(const uint8_t new_type)
+   {
+      m_Search.params.value_type = new_type;
+      m_Search.params.size = cl_sizeof_memtype(new_type);
+   }
 
 public slots:
    void onResultClick(QTableWidgetItem *item) override;

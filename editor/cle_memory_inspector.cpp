@@ -91,14 +91,8 @@ CleMemoryInspector::CleMemoryInspector()
    m_UpdateTimer->start(100);
 
    memset(m_Searches, 0, sizeof(m_Searches));
-   m_Searches[0] = new CleResultTableNormal;
+   m_Searches[0] = new CleResultTableNormal(this);
    m_CurrentSearch = m_Searches[0];
-   connect(m_CurrentSearch, SIGNAL(addressChanged(uint32_t)),
-      this, SLOT(onAddressChanged(uint32_t)));
-   connect(m_CurrentSearch, SIGNAL(requestAddMemoryNote(cl_memnote_t)),
-      this, SLOT(requestAddMemoryNote(cl_memnote_t)));
-   connect(m_CurrentSearch, SIGNAL(requestPointerSearch(uint32_t)),
-      this, SLOT(requestPointerSearch(uint32_t)));
 
    m_TableStack = new QStackedWidget(this);
    m_TableStack->addWidget(m_CurrentSearch->getTable());
@@ -178,20 +172,12 @@ void CleMemoryInspector::onChangeTab()
       m_Tabs->setTabText(new_tab, tr("New Search"));
       m_Tabs->addTab("+");
       m_TabCount++;
-      m_Searches[new_tab] = new CleResultTableNormal;
+      m_Searches[new_tab] = new CleResultTableNormal(this);
       m_TableStack->addWidget(m_Searches[new_tab]->getTable());
    }
    m_CurrentSearch = m_Searches[new_tab];
    m_CurrentSearch->rebuild();
    m_TableStack->setCurrentIndex(new_tab);
-
-   /* Update the UI options to reflect the selected search */
-   connect(m_CurrentSearch, SIGNAL(addressChanged(uint32_t)),
-      this, SLOT(onAddressChanged(uint32_t)));
-   connect(m_CurrentSearch, SIGNAL(requestAddMemoryNote(cl_memnote_t)),
-      this, SLOT(requestAddMemoryNote(cl_memnote_t)));
-   connect(m_CurrentSearch, SIGNAL(requestPointerSearch(uint32_t)),
-      this, SLOT(requestPointerSearch(uint32_t)));
 
    m_CompareDropdown->setCurrentIndex(
       m_CompareDropdown->findData(m_CurrentSearch->getCompareType()));
@@ -205,7 +191,18 @@ void CleMemoryInspector::onClickNew()
    if (!memory.bank_count)
       return;
    else
-      m_CurrentSearch->reset(getCurrentSizeType());
+   {
+      delete m_Searches[m_Tabs->currentIndex()];
+      m_Searches[m_Tabs->currentIndex()] = new CleResultTableNormal(this);
+      m_CurrentSearch = m_Searches[m_Tabs->currentIndex()];
+
+      m_TableStack->insertWidget(m_Tabs->currentIndex(), m_CurrentSearch->getTable());
+      m_TableStack->setCurrentWidget(m_CurrentSearch->getTable());
+      m_Tabs->setTabTextColor(m_Tabs->currentIndex(), Qt::white);
+
+      m_CurrentSearch->setCompareType(getCurrentCompareType());
+      m_CurrentSearch->setValueType(getCurrentSizeType());
+   }
 }
 
 void CleMemoryInspector::onClickSearch()
@@ -218,7 +215,7 @@ void CleMemoryInspector::onClickSearch()
          onClickNew();
       if (!m_CurrentSearch->step(m_TextEntry->text()))
       {
-         cl_log("Search input failed: %s", m_TextEntry->text().toStdString());
+         cl_log("Search input failed: %s\n", m_TextEntry->text().toStdString().c_str());
          m_TextEntry->setText("");
       }
    }
@@ -318,6 +315,7 @@ void CleMemoryInspector::requestPointerSearch(uint32_t address)
    {
       m_Searches[m_TabCount] = new CleResultTablePointer
       (
+         this,
          address, 
          getCurrentSizeType(),
          1,

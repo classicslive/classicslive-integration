@@ -6,8 +6,8 @@
 #include "cle_result_table_pointer.h"
 #include "cle_common.h"
 
-CleResultTablePointer::CleResultTablePointer(uint32_t address, uint8_t size, 
-   uint8_t passes, uint32_t range, uint32_t max_results)
+CleResultTablePointer::CleResultTablePointer(QWidget *parent, uint32_t address,
+   uint8_t size, uint8_t passes, uint32_t range, uint32_t max_results)
 {
    char offset_str[16];
    uint8_t i;
@@ -31,6 +31,14 @@ CleResultTablePointer::CleResultTablePointer(uint32_t address, uint8_t size,
    m_ColAddress   = 0;
    m_ColValuePrev = passes + 1;
    m_ColValueCurr = passes + 2;
+
+   /* Qt connections to parent */
+   connect(this, SIGNAL(addressChanged(uint32_t)),
+      parent, SLOT(onAddressChanged(uint32_t)));
+   connect(this, SIGNAL(requestAddMemoryNote(cl_memnote_t)),
+      parent, SLOT(requestAddMemoryNote(cl_memnote_t)));
+   connect(this, SIGNAL(requestPointerSearch(uint32_t)),
+      parent, SLOT(requestPointerSearch(uint32_t)));
 
    cl_pointersearch_init(&m_Search, address, size, passes, range, max_results);
    rebuild();
