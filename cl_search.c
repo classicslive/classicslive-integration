@@ -519,10 +519,19 @@ uint32_t cl_pointersearch_step(cl_pointersearch_t *search, void *value)
          else
          {
             result->value_current = final_value;
+
             if (!value)
-               compare_result = compare_to_nothing(result->value_previous, result->value_current, cmp_type);
+            {
+               compare_result = search->params.value_type == CL_MEMTYPE_FLOAT ? 
+                  compare_to_nothing_float(result->value_previous, result->value_current, cmp_type) :
+                  compare_to_nothing(result->value_previous, result->value_current, cmp_type);
+            }
             else
-               compare_result = compare_to_value(result->value_previous, result->value_current, cmp_type, *((uint32_t*)value));
+            {
+               compare_result = search->params.value_type == CL_MEMTYPE_FLOAT ? 
+                  compare_to_value_float(result->value_previous, result->value_current, cmp_type, *((float*)value)) :
+                  compare_to_value(result->value_previous, result->value_current, cmp_type, *((uint32_t*)value));
+            }
 
             if (compare_result)
             {

@@ -367,8 +367,8 @@ void CleHexWidget::wheelEvent(QWheelEvent* event)
    int16_t amount = -0x10;
    int16_t steps = event->angleDelta().y() / 8 / 15;
 
-   amount *= event->modifiers() & Qt::ShiftModifier   ? 10 : 1;
-   amount *= event->modifiers() & Qt::ControlModifier ? 10 : 1;
+   amount *= event->modifiers() & Qt::ShiftModifier   ? 0x10 : 1;
+   amount *= event->modifiers() & Qt::ControlModifier ? 0x10 : 1;
    emit offsetEdited(amount * steps);
    event->accept();
 }

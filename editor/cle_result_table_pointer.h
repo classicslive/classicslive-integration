@@ -28,6 +28,8 @@ public:
 
 public slots:
    void onResultClick(QTableWidgetItem *item) override;
+   void onResultDoubleClick() override;
+   void onResultEdited(QTableWidgetItem *item) override;
 
 signals:
    void addressChanged(uint32_t address);

@@ -63,7 +63,50 @@ void CleResultTablePointer::onResultClick(QTableWidgetItem *item)
       else
          emit addressChanged(m_Search.results[item->row()].address_final);
    }
-   
+}
+
+void CleResultTablePointer::onResultDoubleClick()
+{
+   if (m_Table->currentColumn() == m_ColValueCurr)
+   {
+      uint32_t i;
+
+      /* We gray out the other entries because they won't update while
+         we're editing. */
+      for (i = 0; i < m_Table->rowCount(); i++)
+         m_Table->item(i, m_ColValueCurr)->setTextColor(Qt::gray);
+      m_CurrentEditedRow = m_Table->currentRow();
+   }
+}
+
+void CleResultTablePointer::onResultEdited(QTableWidgetItem *item)
+{
+   if (item->row() == m_CurrentEditedRow && item->column() == m_ColValueCurr)
+   {
+      if (item->isSelected())
+      {
+         uint32_t  address;
+         QString   new_value_text;
+         bool      ok = true;
+         void     *value;
+
+         address = m_Search.results[item->row()].address_final;
+         new_value_text = item->text();
+
+         if (m_Search.params.value_type == CL_MEMTYPE_FLOAT)
+            value = new float(new_value_text.toFloat(&ok));
+         else
+            value = new uint32_t(stringToValue(new_value_text, &ok));
+
+         if (ok)
+         {
+            cl_write_memory(NULL, address, m_Search.params.size, value);
+            cl_log("Wrote %s to 0x%08X.\n", new_value_text.toStdString().c_str(), address);
+         }
+         free(value);
+      }
+      m_CurrentEditedRow = -1;
+   }
 }
 
 void CleResultTablePointer::rebuild()
@@ -74,7 +117,7 @@ void CleResultTablePointer::rebuild()
 
    size = m_Search.params.value_type;
    m_Table->setColumnCount(3 + m_Search.passes);
-   m_Table->setRowCount(m_Search.result_count);
+   m_Table->setRowCount(0);
 
    for (i = 0; i < m_Search.result_count; i++)
    {
@@ -136,18 +179,16 @@ void CleResultTablePointer::run()
       item->setText(temp_string);
 
       /* Current value column */
-      item = m_Table->item(i, m_ColValueCurr);
-      if (m_CurrentEditedRow != i)
+      if (m_CurrentEditedRow < 0)
       {
+         item = m_Table->item(i, m_ColValueCurr);
+
          valueToString(temp_string, sizeof(temp_string), value_curr, val_type);
          item->setText(temp_string);
-      }
 
-      /* Display changed values in red */
-      if (value_prev != value_curr)
-         item->setTextColor(Qt::red);
-      else
-         item->setTextColor(Qt::white);
+         /* Display changed values in red */
+         item->setTextColor(value_prev != value_curr ? Qt::red : Qt::white);
+      }
    }
 }
 
