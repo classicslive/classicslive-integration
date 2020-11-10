@@ -21,7 +21,8 @@ public:
 
 signals:
    void offsetEdited(int32_t delta);
-   void onRightClick(uint32_t address);
+   void requestAddMemoryNote(uint32_t address);
+   void requestPointerSearch(uint32_t address);
    void valueEdited(uint32_t address, uint8_t value);
 
 protected:
@@ -30,14 +31,20 @@ protected:
    void paintEvent(QPaintEvent *event) override;
    void wheelEvent(QWheelEvent* event) override;
 
+private slots:
+   void onClickAddMemoryNote();
+   void onClickPointerSearch();
+
 private:
    void repaintAll();
    void repaintAscii(const char new_char, uint8_t index);
    void repaintRect(const void *buffer, uint8_t index);
 
    void resetColors();
-   void setCursorOffset(uint8_t offset);
+   void setCursorOffset(uint32_t offset);
    void typeNybble(uint8_t value);
+
+   void onRightClick(uint32_t address, QPoint& pos);
 
    QRect   m_Rects[256];
    QColor  m_RectColors[256];
@@ -52,7 +59,7 @@ private:
 
    QFont    m_Font;
    QPainter *m_Painter;
-   QPixmap  m_Pixmap;
+   QImage   m_Image;
 
    bool     m_AllDirty;
    uint32_t m_Offset;
@@ -60,7 +67,7 @@ private:
 
    QRect    m_Cursor;
    uint8_t  m_CursorNybble;
-   uint8_t  m_CursorOffset;
+   uint32_t m_CursorOffset;
    uint32_t m_CursorValue;
 };
 

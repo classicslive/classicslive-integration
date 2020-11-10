@@ -72,9 +72,6 @@ private slots:
    void onChangeSizeType();
    void onChangeTab();
    void onClickNew();
-   //void onClickResultAddMemoryNote();
-   //void onClickResultPointerSearch();
-   //void onClickResultRemove();
    void onClickSearch();
    void onClickTabRename();
 
@@ -82,15 +79,10 @@ private slots:
    void onHexWidgetRightClick(uint32_t address);
    void onHexWidgetValueEdited(uint32_t address, uint8_t value);
 
-   //void onResultClicked();
-   //void onResultDoubleClicked();
-   //void onResultEdited(QTableWidgetItem *result);
-   //void onResultSelectionChanged();
-
-   //void onRightClickResult(const QPoint &pos);
    void onRightClickTabs(const QPoint &pos);
 
    void requestAddMemoryNote(cl_memnote_t note);
+   void requestAddMemoryNote(uint32_t address);
    void requestPointerSearch(uint32_t address);
 };
 
