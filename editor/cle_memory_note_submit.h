@@ -2,6 +2,7 @@
 #define CLE_MEMORY_NOTE_SUBMIT_H
 
 #include <QGridLayout>
+#include <QLabel>
 #include <QLineEdit>
 #include <QPushButton>
 #include <QTextEdit>
@@ -25,6 +26,7 @@ public:
 private:
    cl_memnote_t m_MemoryNote;
    
+   QLabel      *m_Footer;
    QLineEdit   *m_Title;
    QTextEdit   *m_Description;
    QPushButton *m_SubmitButton;
