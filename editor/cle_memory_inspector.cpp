@@ -78,10 +78,12 @@ CleMemoryInspector::CleMemoryInspector()
    m_BufferCurrent  = (uint8_t*)malloc(256);
    connect(m_HexWidget, SIGNAL(offsetEdited(int32_t)), 
       this, SLOT(onHexWidgetOffsetEdited(int32_t)));
-   connect(m_HexWidget, SIGNAL(onRightClick(uint32_t)),
-      this, SLOT(onHexWidgetRightClick(uint32_t)));
    connect(m_HexWidget, SIGNAL(valueEdited(uint32_t, uint8_t)), 
       this, SLOT(onHexWidgetValueEdited(uint32_t, uint8_t)));
+   connect(m_HexWidget, SIGNAL(requestAddMemoryNote(uint32_t)),
+      this, SLOT(requestAddMemoryNote(uint32_t)));
+   connect(m_HexWidget, SIGNAL(requestPointerSearch(uint32_t)),
+      this, SLOT(requestPointerSearch(uint32_t)));
    m_HexWidget->setByteSwapEnabled(memory.endianness);
    m_HexWidget->setOffset(memory.banks[0].start);
 
@@ -166,7 +168,7 @@ void CleMemoryInspector::onChangeTab()
    uint8_t new_tab = m_Tabs->currentIndex();
 
    /* Was the "new tab" icon clicked? */
-   if (new_tab > m_TabCount - 1)
+   if (new_tab >= m_TabCount)
    {
       /* Setup this tab to be a new search, add a "+" button */
       m_Tabs->setTabText(new_tab, tr("New Search"));
@@ -192,6 +194,7 @@ void CleMemoryInspector::onClickNew()
       return;
    else
    {
+      m_TableStack->removeWidget(m_Searches[m_Tabs->currentIndex()]->getTable());
       delete m_Searches[m_Tabs->currentIndex()];
       m_Searches[m_Tabs->currentIndex()] = new CleResultTableNormal(this);
       m_CurrentSearch = m_Searches[m_Tabs->currentIndex()];
@@ -256,20 +259,6 @@ void CleMemoryInspector::onClickTabRename()
       m_Tabs->setTabText(m_ClickedTab, text);
 }
 
-void CleMemoryInspector::onHexWidgetRightClick(uint32_t address)
-{
-   QMenu menu;
-   QAction *action_add = menu.addAction(tr("&Add memory note..."));
-   QAction *action_ptr = menu.addAction(tr("Search for &pointers..."));
-
-   //connect(action_add, SIGNAL(triggered()), this, 
-   //   SLOT(onClickResultAddMemoryNote()));
-   //connect(action_ptr, SIGNAL(triggered()), this, 
-   //   SLOT(onClickResultPointerSearch()));
-
-   menu.exec(QCursor::pos());
-}
-
 void CleMemoryInspector::onRightClickTabs(const QPoint &pos)
 {
    if (pos.isNull())
@@ -307,6 +296,18 @@ void CleMemoryInspector::requestAddMemoryNote(cl_memnote_t note)
    }
 }
 
+void CleMemoryInspector::requestAddMemoryNote(uint32_t address)
+{
+   cl_memnote_t note;
+
+   note.address         = address;
+   note.type            = getCurrentSizeType();
+   note.pointer_offsets = NULL;
+   note.pointer_passes  = 0;
+
+   requestAddMemoryNote(note);
+}
+
 void CleMemoryInspector::requestPointerSearch(uint32_t address)
 {
    if (!address)
@@ -320,7 +321,7 @@ void CleMemoryInspector::requestPointerSearch(uint32_t address)
          getCurrentSizeType(),
          1,
          0x10000,
-         10000
+         100000
       );
 
       m_TabCount++;
