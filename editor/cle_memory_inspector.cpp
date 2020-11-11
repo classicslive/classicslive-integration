@@ -76,8 +76,8 @@ CleMemoryInspector::CleMemoryInspector()
    m_HexWidget = new CleHexWidget(this, 1);
    m_BufferPrevious = (uint8_t*)malloc(256);
    m_BufferCurrent  = (uint8_t*)malloc(256);
-   connect(m_HexWidget, SIGNAL(offsetEdited(int32_t)), 
-      this, SLOT(onHexWidgetOffsetEdited(int32_t)));
+   connect(m_HexWidget, SIGNAL(offsetEdited(uint32_t)), 
+      this, SLOT(onHexWidgetOffsetEdited(uint32_t)));
    connect(m_HexWidget, SIGNAL(valueEdited(uint32_t, uint8_t)), 
       this, SLOT(onHexWidgetValueEdited(uint32_t, uint8_t)));
    connect(m_HexWidget, SIGNAL(requestAddMemoryNote(uint32_t)),
@@ -86,6 +86,7 @@ CleMemoryInspector::CleMemoryInspector()
       this, SLOT(requestPointerSearch(uint32_t)));
    m_HexWidget->setByteSwapEnabled(memory.endianness);
    m_HexWidget->setOffset(memory.banks[0].start);
+   m_HexWidget->setRange(memory.banks[0].start, memory.banks[0].start + memory.banks[0].size + 1);
 
    /* Initialize timer for updating search rows */
    m_UpdateTimer = new QTimer(this);
@@ -129,7 +130,11 @@ void CleMemoryInspector::onAddressChanged(uint32_t address)
       return;
    else
    {
-      m_CurrentMembank = new_bank;
+      if (m_CurrentMembank != new_bank)
+      {
+         m_HexWidget->setRange(new_bank->start, new_bank->start + new_bank->size + 1);
+         m_CurrentMembank = new_bank;
+      }
       m_AddressOffset = address - m_CurrentMembank->start;
       m_HexWidget->setOffset(address);
    }
@@ -224,26 +229,14 @@ void CleMemoryInspector::onClickSearch()
    }
 }
 
-void CleMemoryInspector::onHexWidgetOffsetEdited(int32_t delta)
+void CleMemoryInspector::onHexWidgetOffsetEdited(uint32_t offset)
 {
-   /* Round down to nearest row */
-   uint32_t new_offset = m_AddressOffset + (delta & ~0xF);
-
-   /* Don't underflow, don't scroll into invalid data */
-   if ((new_offset > m_AddressOffset && delta < 0) || 
-       new_offset + 256 > m_CurrentMembank->size)
-      return;
-   else
-   {
-      m_AddressOffset = new_offset;
-      memcpy(m_BufferPrevious, &m_CurrentMembank->data[new_offset], 256);
-      m_HexWidget->setOffset(m_CurrentMembank->start + new_offset);
-   }
+   m_AddressOffset = offset - m_CurrentMembank->start;
 }
 
 void CleMemoryInspector::onHexWidgetValueEdited(uint32_t address, uint8_t value)
 {
-   cl_write_memory(NULL, address, 1, &value);
+   cl_write_memory(NULL, address, cl_sizeof_memtype(getCurrentSizeType()), &value);
 }
 
 void CleMemoryInspector::onClickTabRename()

@@ -12,15 +12,16 @@ class CleHexWidget : public QWidget
 public:
    CleHexWidget(QWidget *parent, uint8_t size);
 
-   void  refresh(const void *newbuffer, const void *oldbuffer);
-   void  setByteSwapEnabled(bool enabled);
-   void  setOffset(uint32_t offset);
-   void  setSize(uint8_t size);
+   void refresh(const void *newbuffer, const void *oldbuffer);
+   void setByteSwapEnabled(bool enabled);
+   void setOffset(uint32_t offset);
+   void setRange(uint32_t min, uint32_t max);
+   void setSize(uint8_t size);
 
    QSize sizeHint() const override;
 
 signals:
-   void offsetEdited(int32_t delta);
+   void offsetEdited(uint32_t offset);
    void requestAddMemoryNote(uint32_t address);
    void requestPointerSearch(uint32_t address);
    void valueEdited(uint32_t address, uint8_t value);
@@ -36,6 +37,25 @@ private slots:
    void onClickPointerSearch();
 
 private:
+   bool isCursorTop()
+   {
+      return ((m_CursorOffset - m_Position) & 0xFF) < 0x10;
+   }
+   bool isCursorTopLeft()
+   { 
+      return ((m_CursorOffset - m_Position) & 0xFF) == 0x00;
+   }
+   bool isCursorBottom() 
+   {
+      return ((m_CursorOffset - m_Position) & 0xFF) >= 0xF0;
+   }
+   bool isCursorBottomRight()
+   { 
+      return ((m_CursorOffset - m_Position) & 0xFF) == 0xFF;
+   }
+
+   void movePosition(int32_t offset);
+
    void repaintAll();
    void repaintAscii(const char new_char, uint8_t index);
    void repaintRect(const void *buffer, uint8_t index);
@@ -62,8 +82,12 @@ private:
    QImage   m_Image;
 
    bool     m_AllDirty;
-   uint32_t m_Offset;
    bool     m_UseByteSwap;
+
+   /* Values that define the area being viewed. */
+   uint32_t m_Position;
+   uint32_t m_PositionMax;
+   uint32_t m_PositionMin;
 
    QRect    m_Cursor;
    uint8_t  m_CursorNybble;

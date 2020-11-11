@@ -75,7 +75,7 @@ private slots:
    void onClickSearch();
    void onClickTabRename();
 
-   void onHexWidgetOffsetEdited(int32_t delta);
+   void onHexWidgetOffsetEdited(uint32_t offset);
    void onHexWidgetValueEdited(uint32_t address, uint8_t value);
 
    void onRightClickTabs(const QPoint &pos);
