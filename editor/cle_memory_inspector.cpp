@@ -77,7 +77,7 @@ CleMemoryInspector::CleMemoryInspector()
    m_BufferPrevious = (uint8_t*)malloc(256);
    m_BufferCurrent  = (uint8_t*)malloc(256);
    connect(m_HexWidget, SIGNAL(offsetEdited(uint32_t)), 
-      this, SLOT(onHexWidgetOffsetEdited(uint32_t)));
+      this, SLOT(onAddressChanged(uint32_t)));
    connect(m_HexWidget, SIGNAL(valueEdited(uint32_t, uint8_t)), 
       this, SLOT(onHexWidgetValueEdited(uint32_t, uint8_t)));
    connect(m_HexWidget, SIGNAL(requestAddMemoryNote(uint32_t)),
@@ -227,11 +227,6 @@ void CleMemoryInspector::onClickSearch()
          m_TextEntry->setText("");
       }
    }
-}
-
-void CleMemoryInspector::onHexWidgetOffsetEdited(uint32_t offset)
-{
-   m_AddressOffset = offset - m_CurrentMembank->start;
 }
 
 void CleMemoryInspector::onHexWidgetValueEdited(uint32_t address, uint8_t value)

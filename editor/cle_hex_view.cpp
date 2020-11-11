@@ -341,6 +341,8 @@ void CleHexWidget::setCursorOffset(uint32_t offset)
    cursor = (m_CursorOffset - m_Position) & 0xFF;
    m_RectColors[cursor].setBlue(255);
    repaintRect(NULL, cursor);
+
+   update();
 }
 
 void CleHexWidget::setOffset(uint32_t offset)
@@ -349,6 +351,9 @@ void CleHexWidget::setOffset(uint32_t offset)
 
    /* Only deal with rows of 16 bytes */
    offset &= ~0xF;
+   if (offset == m_Position)
+      return;
+
    m_Painter->setBrush(palette().color(backgroundRole()));
    m_Painter->setFont(m_Font);
    m_Painter->setPen(Qt::NoPen);
