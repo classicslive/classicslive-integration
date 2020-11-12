@@ -21,6 +21,7 @@ void CleMemoryInspector::rebuildLayout()
    m_Layout->addWidget(m_SearchButton,    3, 0, 1, 2);
    m_Layout->addWidget(m_TableStack,      4, 0, 2, 2);
    m_Layout->addWidget(m_HexWidget,       6, 0, 2, 2);
+   m_Layout->addWidget(m_Slider,          6, 2, 1, 1);
    setLayout(m_Layout);
 }
 
@@ -59,7 +60,8 @@ CleMemoryInspector::CleMemoryInspector()
 
    /* Initialize text entry box for comparison value */
    m_TextEntry = new QLineEdit();
-   connect(m_TextEntry, SIGNAL(returnPressed()), m_SearchButton, SIGNAL(clicked()));
+   connect(m_TextEntry, SIGNAL(returnPressed()), 
+      m_SearchButton, SIGNAL(clicked()));
 
    /* Initialize tab view for switching between searches */
    m_Tabs = new QTabBar();
@@ -71,6 +73,14 @@ CleMemoryInspector::CleMemoryInspector()
       this, SLOT(onChangeTab()));
    connect(m_Tabs, SIGNAL(customContextMenuRequested(const QPoint&)), 
       this, SLOT(onRightClickTabs(const QPoint&)));
+
+   /* Initialize scrollbar */
+   m_Slider = new QSlider(this);
+   m_Slider->setInvertedAppearance(true);
+   m_Slider->setTickInterval(1024 * 1024); //1MB
+   m_Slider->setTickPosition(QSlider::TicksRight);
+   connect(m_Slider, SIGNAL(sliderMoved(int)),
+      this, SLOT(onChangeScrollbar(int)));
 
    /* Initialize hex value view widget */
    m_HexWidget = new CleHexWidget(this, 1);
@@ -137,6 +147,10 @@ void CleMemoryInspector::onAddressChanged(uint32_t address)
       }
       m_AddressOffset = address - m_CurrentMembank->start;
       m_HexWidget->setOffset(address);
+
+      m_Slider->setMinimum(0);
+      m_Slider->setMaximum(m_CurrentMembank->size);
+      m_Slider->setValue(address - m_CurrentMembank->start);
    }
 }
 
@@ -160,6 +174,11 @@ void CleMemoryInspector::onChangeCompareType()
       m_TextEntry->setPlaceholderText("");
    }
    m_CurrentSearch->setCompareType(getCurrentCompareType());
+}
+
+void CleMemoryInspector::onChangeScrollbar(int value)
+{
+   onAddressChanged(m_CurrentMembank->start + value);
 }
 
 void CleMemoryInspector::onChangeSizeType()

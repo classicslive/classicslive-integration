@@ -1,6 +1,7 @@
 #ifndef CLE_MEMORY_INSPECTOR_H
 #define CLE_MEMORY_INSPECTOR_H
 
+#include <QSlider>
 #include <QComboBox>
 #include <QGridLayout>
 #include <QHeaderView>
@@ -58,8 +59,9 @@ private:
    QLineEdit      *m_TextEntry;
    QPushButton    *m_NewButton;
    QPushButton    *m_SearchButton;
-   QTabBar        *m_Tabs;
+   QSlider        *m_Slider;
    QStackedWidget *m_TableStack;
+   QTabBar        *m_Tabs;
    QTimer         *m_UpdateTimer;
 
    uint8_t getCurrentCompareType(void);
@@ -69,6 +71,7 @@ private:
 private slots:
    void onAddressChanged(uint32_t address);
    void onChangeCompareType();
+   void onChangeScrollbar(int value);
    void onChangeSizeType();
    void onChangeTab();
    void onClickNew();
