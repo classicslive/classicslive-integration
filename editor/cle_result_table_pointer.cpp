@@ -1,6 +1,7 @@
 #ifndef CLE_RESULT_TABLE_POINTER_CPP
 #define CLE_RESULT_TABLE_POINTER_CPP
 
+#include <QMenu>
 #include <QScrollBar>
 
 #include "cle_result_table_pointer.h"
@@ -57,6 +58,40 @@ uint32_t CleResultTablePointer::getClickedResultAddress()
 void* CleResultTablePointer::getSearchData()
 {
    return (void*)(&m_Search);
+}
+
+void CleResultTablePointer::onClickResultAddMemoryNote()
+{
+   cl_memnote_t note;
+
+   note.address         = m_Search.results[m_ClickedResult].address_initial;
+   note.type            = m_Search.params.value_type;
+   note.pointer_offsets = m_Search.results[m_ClickedResult].offsets;
+   note.pointer_passes  = m_Search.passes;
+
+   emit requestAddMemoryNote(note);
+}
+
+void CleResultTablePointer::onResultRightClick(const QPoint& pos)
+{
+   if (pos.isNull())
+      return;
+   else
+   {
+      m_ClickedResult = m_Table->rowAt(pos.y());
+      if (m_ClickedResult < 0 || m_ClickedResult >= m_Table->rowCount())
+         return;
+      else
+      {
+         QMenu menu;
+         QAction *action_add    = menu.addAction(tr("&Add memory note..."));
+
+         connect(action_add, SIGNAL(triggered()), this, 
+            SLOT(onClickResultAddMemoryNote()));
+
+         menu.exec(m_Table->mapToGlobal(pos));
+      }
+   }
 }
 
 /* TODO: Allow seeking to multiple steps */

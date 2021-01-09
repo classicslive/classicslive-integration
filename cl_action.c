@@ -42,7 +42,7 @@ bool cl_get_compare_value(uint32_t *buffer, uint32_t source, uint32_t offset)
          success = cl_get_memnote_value(buffer, offset, CL_SRCTYPE_LAST_UNIQUE_RAM);
          break;
       case CL_SRCTYPE_COUNTER:
-         //success = cl_get_counter_value(buffer, offset);
+         success = cl_get_counter_value(buffer, offset);
          break;
       default:
          return false;
@@ -185,10 +185,67 @@ static bool cl_act_bits(cl_action_t *action)
    }
 }
 
+static bool cl_act_write(cl_action_t *action)
+{
+   if (action->argument_count != 4)
+      return cl_free_action(action);
+   else
+   {
+      uint32_t src;
+
+      if (!cl_get_compare_value(&src, action->arguments[2], action->arguments[3]))
+         return false;
+      else
+      {
+         switch (action->arguments[0])
+         {
+         case CL_SRCTYPE_CURRENT_RAM:
+            return cl_write_memorynote(action->arguments[1], &src);
+         case CL_SRCTYPE_COUNTER:
+            script.current_page->counters[action->arguments[1]] = src;
+            break;
+         default:
+            return false;
+         }
+      }
+      
+      return true;
+   }
+}
+
+static bool cl_act_addition(cl_action_t *action)
+{
+   if (action->argument_count != 4)
+      return cl_free_action(action);
+   else
+   {
+      uint32_t src_type = action->arguments[0];
+      uint32_t src_val  = action->arguments[1];
+      uint32_t add_type = action->arguments[2];
+      uint32_t add_val  = action->arguments[3];
+      uint32_t src, add;
+
+      if (!cl_get_compare_value(&src, src_type, src_val) ||
+          !cl_get_compare_value(&add, add_type, add_val))
+         return false;
+      else
+      {
+         switch (src_type)
+         {
+         case CL_SRCTYPE_COUNTER:
+            script.current_page->counters[src_val] += add;
+            break;
+         default:
+            return false;
+         }
+      }
+
+      return true;
+   }
+}
+
 bool cl_init_action(cl_action_t *action)
 {
-   action->function = NULL;
-
    switch (action->type)
    {
    case CL_ACTTYPE_NO_PROCESS:
@@ -209,21 +266,35 @@ bool cl_init_action(cl_action_t *action)
    case CL_ACTTYPE_POST_ACHIEVEMENT:
       action->function = cl_act_post_achievement;
       break;
+   case CL_ACTTYPE_ADDITION:
+      action->function = cl_act_addition;
+      break;
    case CL_ACTTYPE_POST_LEADERBOARD:
       action->function = cl_act_post_leaderboard;
       break;
    case CL_ACTTYPE_POST_PROGRESS:
       action->function = cl_act_post_achievement_progress;
       break;
+   case CL_ACTTYPE_WRITE:
+      action->function = cl_act_write;
+      break;
+   default:
+      action->function = cl_act_no_process;
+      return false;
    }
 
-   return action->function != NULL;
+   return true;
 }
 
-/* We assume the function pointer is not NULL */
 bool cl_process_action(cl_action_t *action)
 {
-   return action->function(action);
+   if (action && action->function && action->function(action))
+   {
+      action->executions++;
+      return true;
+   }
+   
+   return false;
 }
 
 #endif

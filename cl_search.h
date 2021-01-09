@@ -67,13 +67,15 @@ bool cl_search_reset(cl_search_t *search);
 
 /*
    Unsets the validity of all addresses that no longer meet the given conditions.
-   Returns the numbers of valid addresses afterwards.
+   Returns the number of valid addresses afterwards.
 */
 uint32_t cl_search_step(cl_search_t *search, void *value);
 
-bool cl_pointersearch_free    (cl_pointersearch_t *search);
-bool cl_pointersearch_init    (cl_pointersearch_t *search, 
-   uint32_t address, uint8_t size, uint8_t passes, uint32_t range, uint32_t max_results);
+bool cl_pointersearch_free(cl_pointersearch_t *search);
+
+bool cl_pointersearch_init(cl_pointersearch_t *search, uint32_t address, 
+   uint8_t size, uint8_t passes, uint32_t range, uint32_t max_results);
+
 uint32_t cl_pointersearch_step(cl_pointersearch_t *search, void *value);
 
 /*

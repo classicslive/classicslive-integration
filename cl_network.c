@@ -7,7 +7,7 @@
 #include "cl_network.h"
 
 static char generic_post_data[CL_POST_DATA_SIZE];
-static char session_id[CL_SESSION_ID_LENGTH];
+static char session_id[CL_SESSION_ID_LENGTH + 1];
 
 bool cl_update_generic_post_data()
 {
@@ -39,20 +39,14 @@ void cl_network_init(const char *new_session_id)
 
 void cl_network_post(const char *request, const char *post_data, retro_task_callback_t cb, void *user_data)
 {
-   if (string_is_empty(post_data))
-      return;
-   else
-   {
-      char new_post_data[CL_POST_DATA_SIZE];
+   char new_post_data[CL_POST_DATA_SIZE];
    
-      cl_update_generic_post_data();
-      snprintf(new_post_data, CL_POST_DATA_SIZE, "request=%s&%s&%s", 
-       request, generic_post_data, post_data);
-      new_post_data[CL_POST_DATA_SIZE - 1] = '\0';
+   cl_update_generic_post_data();
+   snprintf(new_post_data, CL_POST_DATA_SIZE, "request=%s&%s&%s", 
+    request, generic_post_data, post_data ? post_data : "");
 
-      cl_log("cl_network_post:\nPOST: %s\n", new_post_data);
-      task_push_http_post_transfer(CL_REQUEST_URL, new_post_data, CL_TASK_MUTE, "POST", cb, user_data);
-   }
+   cl_log("cl_network_post:\nPOST: %s\n", new_post_data);
+   task_push_http_post_transfer(CL_REQUEST_URL, new_post_data, CL_TASK_MUTE, "POST", cb, user_data);
 }
 
 #endif

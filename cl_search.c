@@ -413,6 +413,58 @@ bool cl_pointersearch_free(cl_pointersearch_t *search)
    }
 }
 
+bool add_pass(cl_pointersearch_t* search, uint32_t range, uint32_t max_results)
+{
+   cl_membank_t *bank;
+   cl_pointerresult_t *result;
+   uint32_t matches, target, value;
+   uint32_t i, j, k;
+
+   cl_pointerresult_t* new_results = (cl_pointerresult_t*)calloc(max_results, sizeof(cl_pointerresult_t));
+   matches = 0;
+   
+   for (i = 0; i < search->result_count; i++)
+   {
+      cl_pointerresult_t *next_result = &search->results[i];
+
+      for (j = 0; j < memory.bank_count; j++)
+      {
+         bank = &memory.banks[j];
+         target = next_result->address_initial;
+
+         if (bank->size < memory.pointer_size)
+            continue;
+
+         for (k = 0; k < bank->size; k += memory.pointer_size)
+         {
+            cl_read_memory(&value, bank, k, memory.pointer_size);
+
+            if (value <= target && value >= target - range)
+            {
+               result = &new_results[matches];
+
+               result->offsets[1]      = next_result->offsets[0];
+               result->offsets[0]      = target - value;
+               result->address_initial = bank->start + k;
+               matches++;
+            }
+
+            if (matches == max_results)
+            {
+               cl_log("Pointer search reached maximum result count of %u.\n", max_results);
+               goto end;
+            }
+         }
+      }
+   }
+   end:
+   free(search->results);
+   search->results = new_results;
+   search->result_count = matches;
+
+   return true;
+}
+
 bool cl_pointersearch_init(cl_pointersearch_t *search, 
    uint32_t address, uint8_t val_type, uint8_t passes, uint32_t range, 
    uint32_t max_results)
@@ -483,6 +535,11 @@ bool cl_pointersearch_init(cl_pointersearch_t *search,
             }
          }
       }
+      search->result_count = matches;
+
+      if (passes == 2)
+         add_pass(search, range, max_results);
+
       /* Clear the unneeded memory */
       search->result_count = matches;
       search->results = (cl_pointerresult_t*)realloc(search->results, matches * sizeof(cl_pointerresult_t));

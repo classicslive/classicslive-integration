@@ -137,6 +137,7 @@ void cl_update_memory();
 
 bool cl_write_memory(cl_membank_t *bank, uint32_t address, uint8_t size, 
    const void *value);
+bool cl_write_memorynote(uint32_t index, const void *value);
 
 extern cl_memory_t memory;
 

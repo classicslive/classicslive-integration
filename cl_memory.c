@@ -284,6 +284,22 @@ uint8_t cl_sizeof_memtype(const uint8_t memtype)
    return 0;
 }
 
+bool cl_memorynote_resolve_ptrs(uint32_t *address, const cl_memnote_t *note)
+{
+   uint32_t final_addr = note->address;
+   uint8_t i;
+
+   for (i = 0; i < note->pointer_passes; i++)
+   {
+      if (!cl_read_memory(&final_addr, NULL, final_addr, memory.pointer_size))
+         return false;
+      final_addr += note->pointer_offsets[i];
+   }
+   *address = final_addr;
+
+   return true;
+}
+
 void cl_update_memory()
 {
    uint32_t      address;
@@ -347,6 +363,22 @@ bool cl_write_memory(cl_membank_t *bank, uint32_t address, uint8_t size,
    if (bank->data)
    /* TODO: The address should be masked */
       return cl_write(bank->data, value, address, size, memory.endianness);
+   
+   return false;
+}
+
+bool cl_write_memorynote(uint32_t index, const void *value)
+{
+   if (index >= memory.note_count)
+      return false;
+   else
+   {
+      uint32_t address;
+      const cl_memnote_t *note = &memory.notes[index];
+
+      if (cl_memorynote_resolve_ptrs(&address, note))
+         return cl_write_memory(NULL, address, cl_sizeof_memtype(note->type), value);
+   }
    
    return false;
 }

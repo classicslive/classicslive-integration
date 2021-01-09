@@ -70,13 +70,14 @@ void CleMemoryNoteSubmit::onClickSubmit(void)
       }
 
       snprintf(post_data, sizeof(post_data), 
-         "game_id=%u&address=%u&type=%u&offsets=%s&title=%s&description=%s",
+         "game_id=%u&address=%u&type=%u&offsets=%s&title=%s%s%s",
          session.game_id,
          m_MemoryNote.address,
          m_MemoryNote.type,
          pointer_data,
          title,
-         description);
+         strlen(description) ? "&description=" : "",
+         strlen(description) ? description : "");
       cl_network_post(CL_REQUEST_ADD_MEMNOTE, post_data, NULL, NULL);
 
       close();

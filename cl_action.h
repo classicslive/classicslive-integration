@@ -9,6 +9,7 @@
 #define CL_ACTTYPE_HIT_COMPARE        'h'
 #define CL_ACTTYPE_CHANGED            'n'
 #define CL_ACTTYPE_POST_ACHIEVEMENT   'A'
+#define CL_ACTTYPE_ADDITION           'D'
 #define CL_ACTTYPE_POST_LEADERBOARD   'L'
 #define CL_ACTTYPE_POST_PROGRESS      'P'
 #define CL_ACTTYPE_RESET_HITS         'R'
@@ -23,6 +24,7 @@ typedef struct cl_action_t
 {
    uint32_t *arguments;
    uint8_t   argument_count;
+   uint32_t  executions;
    bool    (*function)();
    uint8_t   indentation;
    char      type;

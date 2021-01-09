@@ -34,15 +34,16 @@ public:
    }
 
 public slots:
+   void onClickResultAddMemoryNote();
    void onResultClick(QTableWidgetItem *item) override;
-   void onResultDoubleClick() override;
+   void onResultDoubleClick(void) override;
    void onResultEdited(QTableWidgetItem *item) override;
+   void onResultRightClick(const QPoint&) override;
 
 signals:
    void addressChanged(uint32_t address);
-   //void requestAddMemoryNote(uint32_t index) override;
-   //void requestPointerSearch(uint32_t index) override;
-   //void requestRemove(uint32_t index) override;
+   void requestAddMemoryNote(cl_memnote_t note);
+   void requestRemove(uint32_t index);
 
 private:
    uint8_t m_ColAddress;
