@@ -37,6 +37,9 @@ extern "C" void cle_init()
 
    m_MemoryInspector = new CleMemoryInspector();
    m_MemoryInspector->show();
+
+   m_ScriptEditor = new CleScriptEditor();
+   m_ScriptEditor->show();
 }
 
 extern "C" void cle_run()

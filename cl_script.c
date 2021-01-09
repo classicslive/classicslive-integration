@@ -3,6 +3,8 @@
 
 #include "cl_script.h"
 
+cl_script_t script;
+
 void cl_free_page(cl_page_t *page)
 {
    uint32_t i;
@@ -11,33 +13,31 @@ void cl_free_page(cl_page_t *page)
       cl_free_action(&page->actions[i]);
 }
 
-void cl_free_script(cl_script_t *script)
+void cl_free_script()
 {
    uint32_t i;
 
-   for (i = 0; i < script->page_count; i++)
-      cl_free_page(&script->pages[i]);
+   for (i = 0; i < script.page_count; i++)
+      cl_free_page(&script.pages[i]);
 }
 
-/*
 uint32_t* cl_get_counter(uint8_t counter_num)
 {
-   if ((!current_page) || current_page->buffer.count - 1 < counter_num)
+   if (!script.current_page || CL_COUNTERS_SIZE <= counter_num)
       return NULL;
    else
-      return &current_page->buffer.memnotes[counter_num].value_current;
+      return &script.current_page->counters[counter_num];
 }
 
 bool cl_get_counter_value(uint32_t *buffer, uint8_t counter_num)
 {
-   if ((!current_page) || current_page->buffer.count - 1 < counter_num)
+   if (!script.current_page || CL_COUNTERS_SIZE <= counter_num)
       return false;
    else
-      *buffer = current_page->buffer.memnotes[counter_num].value_current;
+      *buffer = script.current_page->counters[counter_num];
 
    return true;
 }
-*/
 
 bool cl_init_page(const char **pos, cl_page_t *page)
 {
@@ -88,17 +88,17 @@ bool cl_init_page(const char **pos, cl_page_t *page)
    return page->actions != 0;
 }
 
-bool cl_init_script(const char **pos, cl_script_t *script)
+bool cl_init_script(const char **pos)
 {
-   if (!cl_strto(pos, &script->page_count, sizeof(script->page_count), false))
+   if (!cl_strto(pos, &script.page_count, sizeof(script.page_count), false))
       return false;
    else
    {
       uint32_t i;
 
-      script->pages = (cl_page_t*)calloc(script->page_count, sizeof(cl_page_t));
-      for (i = 0; i < script->page_count; i++)
-         if (!cl_init_page(pos, &script->pages[i]))
+      script.pages = (cl_page_t*)calloc(script.page_count, sizeof(cl_page_t));
+      for (i = 0; i < script.page_count; i++)
+         if (!cl_init_page(pos, &script.pages[i]))
             return false;
 
       return true;
@@ -120,7 +120,12 @@ uint32_t cl_process_if_statements(cl_page_t *page, uint32_t pos)
    {
       /* Make sure all if statements on the current indentation level are true */
       if (cl_is_if_statement(page->actions[i].type) && page->actions[i].indentation == current_indent)
-         evaluation &= cl_process_action(&page->actions[i]);
+      {
+         if (evaluation)
+            evaluation = cl_process_action(&page->actions[i]);
+         else
+            continue;
+      }
       else if (current_indent < page->actions[i].indentation)
       {
          /* Indentation went one level deeper, should we follow it? */
@@ -163,15 +168,15 @@ bool cl_process_actions(cl_page_t *page)
    return success;
 }
 
-bool cl_update_script(cl_script_t *script)
+bool cl_update_script()
 {
    bool     success = true;
    uint32_t i;
 
-   for (i = 0; i < script->page_count; i++)
+   for (i = 0; i < script.page_count; i++)
    {
-      script->current_page = &script->pages[i];
-      success &= cl_process_actions(script->current_page);
+      script.current_page = &script.pages[i];
+      success &= cl_process_actions(script.current_page);
    }
 
    return success;

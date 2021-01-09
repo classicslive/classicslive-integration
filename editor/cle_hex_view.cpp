@@ -4,6 +4,7 @@
 #include <string>
 
 #include <QBrush>
+#include <QMenu>
 #include <QPainter>
 #include <QPaintEvent>
 #include <QPen>
@@ -30,16 +31,17 @@ CleHexWidget::CleHexWidget(QWidget *parent, uint8_t size) : QWidget(parent)
       m_AddrRects[i].setSize(QSize(64, 16));
       m_AddrRects[i].moveTo(0, i * 16);
    }
-   m_Pixmap = QPixmap(sizeHint());
+   m_Image = QImage(sizeHint(), QImage::Format_RGB16);
 
-   m_Font = QFont("Monospace");
+   m_Font = QFont("Courier");
    m_Font.setPixelSize(12);
    m_Font.setStyleHint(QFont::TypeWriter);
 
-   m_Painter = new QPainter(&m_Pixmap);
+   m_Painter = new QPainter(&m_Image);
    m_Painter->setFont(m_Font);
 
    setBackgroundRole(QPalette::Base);
+   //setContextMenuPolicy(Qt::CustomContextMenu);
    setFocusPolicy(Qt::ClickFocus);
 
    setByteSwapEnabled(false);
@@ -54,28 +56,40 @@ void CleHexWidget::keyPressEvent(QKeyEvent *event)
    switch (event->key())
    {
    case Qt::Key_Left:
-      if (m_CursorOffset > 0)
-         setCursorOffset(m_CursorOffset - 1);
+      if (isCursorTopLeft())
+         movePosition(-0x10);
+      setCursorOffset(m_CursorOffset - 1);
       break;
    case Qt::Key_Right:
-      if (m_CursorOffset < 256)
-         setCursorOffset(m_CursorOffset + 1);
+      if (isCursorBottomRight())
+         movePosition(0x10);
+      setCursorOffset(m_CursorOffset + 1);
       break;
    case Qt::Key_Up:
-      if (m_CursorOffset > 16)
-         setCursorOffset(m_CursorOffset - 16);
-      else if (event->modifiers() & Qt::ShiftModifier)
-         emit offsetEdited(-0x100);
+      if (event->modifiers() & Qt::ShiftModifier)
+      {
+         movePosition(-0x100);
+         setCursorOffset(m_CursorOffset - 0x100);
+      }
       else
-         emit offsetEdited(-0x10);
+      {
+         if (isCursorTop())
+            movePosition(-0x10);
+         setCursorOffset(m_CursorOffset - 0x10);
+      }
       break;
    case Qt::Key_Down:
-      if (m_CursorOffset < 240)
-         setCursorOffset(m_CursorOffset + 16);
-      else if (event->modifiers() & Qt::ShiftModifier)
-         emit offsetEdited(0x100);
+      if (event->modifiers() & Qt::ShiftModifier)
+      {
+         movePosition(0x100);
+         setCursorOffset(m_CursorOffset + 0x100);
+      }
       else
-         emit offsetEdited(0x10);
+      {
+         if (isCursorBottom())
+            movePosition(0x10);
+         setCursorOffset(m_CursorOffset + 0x10);
+      }
       break;
    case Qt::Key_0:
    case Qt::Key_1:
@@ -124,8 +138,8 @@ void CleHexWidget::keyPressEvent(QKeyEvent *event)
          address = address_text.toULong(&ok, 16);
          if (ok)
          {
-            emit offsetEdited(address - m_Offset);
-            setCursorOffset(address & 0x0F);
+            setOffset(address);
+            setCursorOffset(address);
          }
       }
    default:
@@ -136,29 +150,73 @@ void CleHexWidget::keyPressEvent(QKeyEvent *event)
 
 void CleHexWidget::mousePressEvent(QMouseEvent *event)
 {
-   if (event->button() != Qt::LeftButton)
-      return;
-   else if (m_Size != 1)
+   if (m_Size != 1)
       return; //todo
    else
    {
+      QPoint pos = event->pos();
       uint32_t i;
 
       for (i = 0; i < 256; i++)
       {
-         if (m_Rects[i].contains(event->pos()))
+         if (m_Rects[i].contains(pos))
          {
-            setCursorOffset(i);
+            if (event->button() == Qt::LeftButton)
+               setCursorOffset(m_Position + i);
+            else if (event->button() == Qt::RightButton)
+               onRightClick(m_Position + i, pos);
             return;
          }
       }
    }
 }
 
+void CleHexWidget::movePosition(int32_t offset)
+{
+   uint32_t new_pos = m_Position + offset;
+
+   if (new_pos < m_PositionMin)
+      setOffset(m_PositionMin);
+   else if (new_pos + 0x100 >= m_PositionMax)
+      setOffset(m_PositionMax - 0x100);
+   else
+      setOffset(new_pos);
+}
+
+void CleHexWidget::onClickAddMemoryNote()
+{
+   emit requestAddMemoryNote(m_CursorOffset);
+}
+
+void CleHexWidget::onClickPointerSearch()
+{
+   emit requestPointerSearch(m_CursorOffset);
+}
+
+void CleHexWidget::onRightClick(uint32_t address, QPoint& pos)
+{
+   if (address < m_Position || pos.isNull())
+      return;
+   else
+   {
+      QMenu menu;
+      QAction *action_add = menu.addAction(tr("&Add memory note..."));
+      QAction *action_ptr = menu.addAction(tr("Search for &pointers..."));
+
+      setCursorOffset(address);
+      connect(action_add, SIGNAL(triggered()), this, 
+         SLOT(onClickAddMemoryNote()));
+      connect(action_ptr, SIGNAL(triggered()), this, 
+         SLOT(onClickPointerSearch()));
+
+      menu.exec(mapToGlobal(pos));
+   }
+}
+
 void CleHexWidget::paintEvent(QPaintEvent *event)
 {
    QPainter painter(this);
-   painter.drawPixmap(0, 0, m_Pixmap);
+   painter.drawImage(0, 0, m_Image);
 }
 
 void CleHexWidget::repaintAll()
@@ -260,24 +318,41 @@ void CleHexWidget::setByteSwapEnabled(bool enabled)
    m_UseByteSwap = enabled;
 }
 
-void CleHexWidget::setCursorOffset(uint8_t offset)
+void CleHexWidget::setCursorOffset(uint32_t offset)
 {
+   uint8_t cursor = (m_CursorOffset - m_Position) & 0xFF;
+
    /* Repaint old highlight */
-   m_RectColors[m_CursorOffset].setBlue(0);
-   repaintRect(NULL, m_CursorOffset);
+   m_RectColors[cursor].setBlue(0);
+   repaintRect(NULL, cursor);
 
    m_CursorNybble = 0;
-   m_CursorOffset = offset;
    m_CursorValue  = 0;
 
+   /* Check bounds */
+   if (offset < m_PositionMin)
+      m_CursorOffset = m_PositionMin;
+   else if (offset >= m_PositionMax)
+      m_CursorOffset = m_PositionMax;
+   else
+      m_CursorOffset = offset;
+
    /* Repaint new highlight */
-   m_RectColors[offset].setBlue(255);
-   repaintRect(NULL, offset);
+   cursor = (m_CursorOffset - m_Position) & 0xFF;
+   m_RectColors[cursor].setBlue(255);
+   repaintRect(NULL, cursor);
+
+   update();
 }
 
 void CleHexWidget::setOffset(uint32_t offset)
 {
    uint8_t i;
+
+   /* Only deal with rows of 16 bytes */
+   offset &= ~0xF;
+   if (offset == m_Position)
+      return;
 
    m_Painter->setBrush(palette().color(backgroundRole()));
    m_Painter->setFont(m_Font);
@@ -292,8 +367,17 @@ void CleHexWidget::setOffset(uint32_t offset)
       m_Painter->drawText(m_AddrRects[i], Qt::AlignRight | Qt::AlignVCenter, m_AddrTexts[i]);
    }
    resetColors();
+   setCursorOffset(m_CursorOffset);
 
-   m_Offset = offset;
+   m_Position = offset;
+   emit offsetEdited(offset);
+}
+
+void CleHexWidget::setRange(uint32_t min, uint32_t max)
+{
+   m_PositionMin = min;
+   m_PositionMax = max;
+   setOffset(min);
 }
 
 void CleHexWidget::setSize(uint8_t size)
@@ -329,8 +413,8 @@ void CleHexWidget::typeNybble(uint8_t value)
 
    if (m_CursorNybble >= m_Size * 2)
    {
-      emit valueEdited(m_Offset + m_CursorOffset, m_CursorValue);
-      setCursorOffset(m_CursorOffset + 1);
+      emit valueEdited(m_CursorOffset, m_CursorValue);
+      setCursorOffset(m_CursorOffset + m_Size);
    }
 }
 
@@ -365,9 +449,9 @@ void CleHexWidget::wheelEvent(QWheelEvent* event)
    int16_t amount = -0x10;
    int16_t steps = event->angleDelta().y() / 8 / 15;
 
-   amount *= event->modifiers() & Qt::ShiftModifier   ? 10 : 1;
-   amount *= event->modifiers() & Qt::ControlModifier ? 10 : 1;
-   emit offsetEdited(amount * steps);
+   amount *= event->modifiers() & Qt::ShiftModifier   ? 0x10 : 1;
+   amount *= event->modifiers() & Qt::ControlModifier ? 0x10 : 1;
+   movePosition(amount * steps);
    event->accept();
 }
 

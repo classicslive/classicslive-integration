@@ -23,7 +23,7 @@ void cl_task_md5(retro_task_t *task)
    MD5_Init(&state->context);
    MD5_Update(&state->context, state->data, state->size);
    MD5_Final(state->md5_raw, &state->context);
-   snprintf(state->md5_final, 32, CL_SNPRINTF_MD5,
+   snprintf(state->md5_final, 32 + 1, CL_SNPRINTF_MD5,
       state->md5_raw[0],  state->md5_raw[1],  state->md5_raw[2],  
       state->md5_raw[3],  state->md5_raw[4],  state->md5_raw[5],  
       state->md5_raw[6],  state->md5_raw[7],  state->md5_raw[8],  
@@ -37,8 +37,10 @@ void cl_task_md5(retro_task_t *task)
    task_set_finished(task, true);
 }
 
-/* Hash info loaded into the beginning of GC/Wii memory. (0x00 - 0x2B) */
-/* This includes game ID, region, revision, and some console info.     */ 
+/*
+   Hash info loaded into the beginning of GC/Wii memory. (0x00 - 0x2B)
+   This includes game ID, region, revision, and some console info.
+*/ 
 void cl_task_gcwii(retro_task_t *task)
 {
    cl_md5_ctx_t *state = NULL;
@@ -52,11 +54,13 @@ void cl_task_gcwii(retro_task_t *task)
       mem_info.id = RETRO_MEMORY_SYSTEM_RAM;
       core_get_memory(&mem_info);
 
-      /* Give it a little time to init fully */
+      /* Give it an arbitrary amount of time to init fully */
       retro_sleep(5000);
       
-      /* When memory has been initialized and is valid, */
-      /* 0x20 in memory will read 0D15EA5E              */
+      /* 
+         When memory has been initialized and is valid,
+         0x20 in memory will read 0D15EA5E
+      */
       if (mem_info.data && 
          ((uint8_t*)mem_info.data)[0x20] == 0x0D &&
          ((uint8_t*)mem_info.data)[0x21] == 0x15 &&
@@ -157,8 +161,10 @@ uint8_t* cl_identify_iso9660(intfstream_t *stream)
    }
 }
 
-/* Hash the Nintendo Content Container Header. Used for 3DS. */
-/* TODO: See below and do this instead to support CIA */
+/*
+   Hash the Nintendo Content Container Header. Used for 3DS.
+   TODO: See below and do this instead to support CIA
+*/
 uint8_t* cl_identify_ncch(const char *path)
 {
    intfstream_t *stream;

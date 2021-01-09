@@ -17,13 +17,12 @@ void cle_init();
 void cle_run();
 #endif
 
-static cl_script_t script;
 cl_session_t session;
 
 bool cl_init_session(const char* json)
 {
    const char *iterator;
-   char session_id[CL_SESSION_ID_LENGTH];
+   char session_id[CL_SESSION_ID_LENGTH + 1];
    char memory_str[2048];
    char script_str[2048];
 
@@ -49,7 +48,7 @@ bool cl_init_session(const char* json)
    /* Script-related */
    iterator = &script_str[0];
    if (cl_json_get(script_str, json, "script", CL_JSON_STRING, sizeof(script_str)))
-      cl_init_script(&iterator, &script);
+      cl_init_script(&iterator);
    else
       return false; // TODO
 
@@ -106,7 +105,7 @@ static void cl_post_login()
    char post_data[2048];
 
    snprintf(post_data, sizeof(post_data), 
-      "request=login&hash=%.32s&username=Celery&filename=%s", 
+      "request=login&hash=%.32s&username=celery&filename=%s", 
       session.checksum, session.content_name);
    post_data[2047] = '\0';
 
@@ -127,7 +126,7 @@ bool cl_init(struct retro_game_info *info)
    {
       session.checksum[0]        = '\0';
       session.last_status_update = time(0);
-      session.ready              = false;
+      session.ready              = true;
       strncpy(session.content_name, path_basename(info->path), sizeof(session.content_name) - 1);
 
       cl_identify(info, session.checksum, cl_post_login);
@@ -142,6 +141,14 @@ bool cl_run()
    {
       cl_update_memory();
       cl_update_script(&script);
+
+      /* Pingback every X seconds to update rich presence */
+      if (time(0) >= session.last_status_update + 60)
+      {
+         session.last_status_update = time(0);
+         cl_network_post(CL_REQUEST_PING, "", NULL, NULL);
+      }
+
    #ifdef CL_HAVE_EDITOR
       cle_run();
    #endif

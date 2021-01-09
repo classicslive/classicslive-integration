@@ -1,6 +1,7 @@
 #ifndef CLE_MEMORY_INSPECTOR_H
 #define CLE_MEMORY_INSPECTOR_H
 
+#include <QSlider>
 #include <QComboBox>
 #include <QGridLayout>
 #include <QHeaderView>
@@ -8,7 +9,7 @@
 #include <QLineEdit>
 #include <QMenu>
 #include <QPushButton>
-#include <QScrollBar>
+#include <QStackedWidget>
 #include <QTabBar>
 #include <QTableWidget>
 #include <QTimer>
@@ -23,12 +24,9 @@ extern "C"
 }
 #include "cle_hex_view.h"
 #include "cle_memory_note_submit.h"
+#include "cle_result_table.h"
 
-/* TODO: Move this to a config option? */
-#define CLE_SEARCH_MAX_ROWS 1000
-
-#define CLE_SEARCHTYPE_NORMAL  0
-#define CLE_SEARCHTYPE_POINTER 1
+#define CLE_MAX_TABS 8
 
 class CleMemoryInspector : public QWidget
 {
@@ -38,63 +36,55 @@ public:
    CleMemoryInspector();
 
 public slots:
-   void update();
+   void run();
 
 private:
-   uint8_t            m_SearchTypes  [8];
-   cl_search_t        m_Searches     [8];
-   cl_pointersearch_t m_PointerSearch[8];
+   CleResultTable *m_Searches[CLE_MAX_TABS];
+   CleResultTable *m_CurrentSearch;
 
    CleHexWidget        *m_HexWidget;
    CleMemoryNoteSubmit *m_MemoryNoteSubmit;
 
-   uint32_t      m_AddressOffset;
-   uint8_t      *m_BufferPrevious;
-   uint8_t      *m_BufferCurrent;
-   int32_t       m_ClickedResult;
-   int8_t        m_ClickedTab;
-   int32_t       m_CurrentEditedRow;
-   uint8_t       m_CurrentTab;
-   uint8_t       m_TabCount;
-   
-   QComboBox    *m_CompareDropdown;
-   QComboBox    *m_SizeDropdown;
-   QLineEdit    *m_TextEntry;
-   QPushButton  *m_NewButton;
-   QPushButton  *m_SearchButton;
-   QTabBar      *m_Tabs;
-   QTableWidget *m_ResultTable;
-   QTimer       *m_UpdateTimer;
+   cl_membank_t *m_CurrentMembank;
 
-   uint8_t  getCurrentSizeType(void);
-   uint32_t getClickedResultAddress(void);
-   void     rebuildRows(void);
-   void     rebuildRowsNormal(void);
-   void     rebuildRowsPointer(void);
-   void     updateNormal(void);
-   void     updatePointer(void);
+   uint32_t  m_AddressOffset;
+   uint8_t  *m_BufferPrevious;
+   uint8_t  *m_BufferCurrent;
+   int8_t    m_ClickedTab;
+   uint8_t   m_TabCount;
+   
+   QComboBox      *m_CompareDropdown;
+   QGridLayout    *m_Layout;
+   QComboBox      *m_SizeDropdown;
+   QLineEdit      *m_TextEntry;
+   QPushButton    *m_NewButton;
+   QPushButton    *m_SearchButton;
+   QSlider        *m_Slider;
+   QStackedWidget *m_TableStack;
+   QTabBar        *m_Tabs;
+   QTimer         *m_UpdateTimer;
+
+   uint8_t getCurrentCompareType(void);
+   uint8_t getCurrentSizeType(void);
+   void    rebuildLayout(void);
 
 private slots:
+   void onAddressChanged(uint32_t address);
    void onChangeCompareType();
+   void onChangeScrollbar(int value);
    void onChangeSizeType();
    void onChangeTab();
    void onClickNew();
-   void onClickResultAddMemoryNote();
-   void onClickResultPointerSearch();
-   void onClickResultRemove();
    void onClickSearch();
    void onClickTabRename();
 
-   void onHexWidgetOffsetEdited(int32_t delta);
    void onHexWidgetValueEdited(uint32_t address, uint8_t value);
 
-   void onResultClicked();
-   void onResultDoubleClicked();
-   void onResultEdited(QTableWidgetItem *result);
-   void onResultSelectionChanged();
-
-   void onRightClickResult(const QPoint &pos);
    void onRightClickTabs(const QPoint &pos);
+
+   void requestAddMemoryNote(cl_memnote_t note);
+   void requestAddMemoryNote(uint32_t address);
+   void requestPointerSearch(uint32_t address);
 };
 
 #endif

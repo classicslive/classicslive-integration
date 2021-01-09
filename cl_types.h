@@ -15,14 +15,14 @@ typedef struct cl_system_t
 
 typedef struct cl_session_t
 {
-   char     checksum[32];
+   char     checksum[32 + 1];
    char     content_name[256];
    uint16_t game_id;
    char     game_name[256];
    char     generic_post[2048];
    bool     cheats_on;
    bool     states_on;
-   char     id[CL_SESSION_ID_LENGTH];
+   char     id[CL_SESSION_ID_LENGTH + 1];
    time_t   last_status_update;
    bool     ready;
 
