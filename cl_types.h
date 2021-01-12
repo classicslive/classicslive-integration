@@ -22,7 +22,7 @@ typedef struct cl_session_t
    char     generic_post[2048];
    bool     cheats_on;
    bool     states_on;
-   char     id[CL_SESSION_ID_LENGTH + 1];
+   char     id[CL_SESSION_ID_LENGTH];
    time_t   last_status_update;
    bool     ready;
 

@@ -22,7 +22,7 @@ cl_session_t session;
 bool cl_init_session(const char* json)
 {
    const char *iterator;
-   char session_id[CL_SESSION_ID_LENGTH + 1];
+   char session_id[CL_SESSION_ID_LENGTH];
    char memory_str[2048];
    char script_str[2048];
 
@@ -102,12 +102,17 @@ bool cl_post_empty_login()
 
 static void cl_post_login()
 {
+   settings_t *settings = config_get_ptr();
    char post_data[2048];
 
-   snprintf(post_data, sizeof(post_data), 
-      "request=login&hash=%.32s&username=celery&filename=%s", 
-      session.checksum, session.content_name);
-   post_data[2047] = '\0';
+   snprintf
+   (
+      post_data, sizeof(post_data), 
+      "request=login&hash=%.32s&username=%s&filename=%s", 
+      session.checksum,
+      settings->CL_SETTINGS_USERNAME,
+      session.content_name
+   );
 
    task_push_http_post_transfer(CL_REQUEST_URL, post_data, CL_TASK_MUTE, "POST", cl_cb_login, post_data);
 }
