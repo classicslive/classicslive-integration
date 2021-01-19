@@ -108,9 +108,10 @@ static void cl_post_login()
    snprintf
    (
       post_data, sizeof(post_data), 
-      "request=login&hash=%.32s&username=%s&filename=%s", 
+      "request=login&hash=%.32s&username=%s&password=%s&filename=%s", 
       session.checksum,
       settings->CL_SETTINGS_USERNAME,
+      settings->CL_SETTINGS_LOGIN_INFO,
       session.content_name
    );
 
