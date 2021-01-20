@@ -149,7 +149,7 @@ bool cl_run()
       cl_update_script(&script);
 
       /* Pingback every X seconds to update rich presence */
-      if (time(0) >= session.last_status_update + 60)
+      if (time(0) >= session.last_status_update + CL_PRESENCE_INTERVAL)
       {
          session.last_status_update = time(0);
          cl_network_post(CL_REQUEST_PING, "", NULL, NULL);
