@@ -167,6 +167,7 @@ bool cl_run()
 
 void cl_free()
 {
+   cl_network_post(CL_REQUEST_CLOSE, NULL, NULL, NULL);
    cl_free_memory();
    cl_free_script(&script);
 }

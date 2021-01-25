@@ -11,6 +11,7 @@
 
 #define CL_REQUEST_LOGIN            "login"
 #define CL_REQUEST_ADD_MEMNOTE      "add_memory_note"
+#define CL_REQUEST_CLOSE            "close"
 #define CL_REQUEST_PING             "ping"
 #define CL_REQUEST_POST_ACHIEVEMENT "post_unlock"
 #define CL_REQUEST_POST_HASH        "post_hash"
