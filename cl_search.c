@@ -418,10 +418,12 @@ bool add_pass(cl_pointersearch_t* search, uint32_t range, uint32_t max_results)
    cl_membank_t *bank;
    cl_pointerresult_t *result;
    uint32_t matches, target, value;
-   uint32_t i, j, k;
+   uint32_t i, j, k, l;
 
-   cl_pointerresult_t* new_results = (cl_pointerresult_t*)calloc(max_results, sizeof(cl_pointerresult_t));
+   cl_pointerresult_t* new_results = (cl_pointerresult_t*)calloc(
+      max_results, sizeof(cl_pointerresult_t));
    matches = 0;
+   search->passes += 1;
    
    for (i = 0; i < search->result_count; i++)
    {
@@ -443,15 +445,20 @@ bool add_pass(cl_pointersearch_t* search, uint32_t range, uint32_t max_results)
             {
                result = &new_results[matches];
 
-               result->offsets[1]      = next_result->offsets[0];
-               result->offsets[0]      = target - value;
+               /* Shift all offsets over by one */
+               for (l = search->passes - 1; l > 0; l--)
+                  result->offsets[l] = next_result->offsets[l - 1];
+
+               /* Make this the new initial offset */
+               result->offsets[0] = target - value;
                result->address_initial = bank->start + k;
                matches++;
             }
 
+            /* Back out if we have too many results */
             if (matches == max_results)
             {
-               cl_log("Pointer search reached maximum result count of %u.\n", max_results);
+               cl_log("Search reached maximum count of %u.\n", max_results);
                goto end;
             }
          }
@@ -486,7 +493,7 @@ bool cl_pointersearch_init(cl_pointersearch_t *search,
          return false;
       }
 
-      search->passes              = passes;
+      search->passes              = 1;
       search->range               = range;
       search->params.compare_type = CLE_CMPTYPE_EQUAL;
       search->params.size         = cl_sizeof_memtype(val_type);
@@ -537,14 +544,16 @@ bool cl_pointersearch_init(cl_pointersearch_t *search,
       }
       search->result_count = matches;
 
-      if (passes == 2)
+      /* We've only done one pass so far. Run any extra passes */
+      for (i = passes; i > 1; i--)
          add_pass(search, range, max_results);
 
       /* Clear the unneeded memory */
       search->result_count = matches;
-      search->results = (cl_pointerresult_t*)realloc(search->results, matches * sizeof(cl_pointerresult_t));
+      search->results = (cl_pointerresult_t*)realloc(
+         search->results, matches * sizeof(cl_pointerresult_t));
 
-      cl_log("Pointer search for %08X returned %u results.\n", address, matches);
+      cl_log("Pointer search for %08X found %u results.\n", address, matches);
 
       return true;
    }
