@@ -26,13 +26,13 @@ cl_membank_t* cl_find_membank(uint32_t address)
    return NULL;
 }
 
-cl_memnote_t* cl_find_memnote(uint32_t index)
+cl_memnote_t* cl_find_memnote(uint32_t key)
 {
    uint32_t i;
 
    for (i = 0; i < memory.note_count; i++)
    {
-      if (memory.notes[i].index == index)
+      if (memory.notes[i].key == key)
          return &memory.notes[i];
    }
 
@@ -207,7 +207,7 @@ bool cl_init_memory(const char **pos)
    {
       new_memnote = &memory.notes[i];
 
-      if (!(cl_strto(pos, &new_memnote->index,          4, false) &&
+      if (!(cl_strto(pos, &new_memnote->key,            4, false) &&
             cl_strto(pos, &new_memnote->order,          4, false) &&
             cl_strto(pos, &new_memnote->address,        4, false) &&
             cl_strto(pos, &new_memnote->type,           1, false) &&
@@ -216,7 +216,7 @@ bool cl_init_memory(const char **pos)
          return false;
          
       cl_log("Memory note #%u - S: %u, P: %u, A: %08X",
-       new_memnote->index,
+       new_memnote->key,
        cl_sizeof_memtype(new_memnote->type),
        new_memnote->pointer_passes,
        new_memnote->address);
@@ -378,14 +378,14 @@ bool cl_write_memory(cl_membank_t *bank, uint32_t address, uint8_t size,
    return false;
 }
 
-bool cl_write_memorynote(uint32_t index, const void *value)
+bool cl_write_memorynote(uint32_t key, const void *value)
 {
-   if (index >= memory.note_count)
+   if (!value)
       return false;
    else
    {
       uint32_t address;
-      cl_memnote_t *note = cl_find_memnote(index);
+      cl_memnote_t *note = cl_find_memnote(key);
 
       if (!note)
          return false;

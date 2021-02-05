@@ -30,7 +30,7 @@ bool cl_update_generic_post_data()
       {
          if (cl_get_memnote_value(&value, note, CL_SRCTYPE_CURRENT_RAM))
             snprintf(generic_post_data, sizeof(generic_post_data), "%s&m%u=%u", 
-             generic_post_data, note->index, value);
+             generic_post_data, note->key, value);
          else
             return false;
       }

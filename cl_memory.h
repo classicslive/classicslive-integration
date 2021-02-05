@@ -68,7 +68,7 @@ typedef struct cl_membank_t
 ============================================================================ */
 typedef struct cl_memnote_t
 {
-   uint32_t  index;
+   uint32_t  key;
    uint32_t  order;
    uint32_t  address;
 
@@ -143,7 +143,7 @@ void cl_update_memory();
 
 bool cl_write_memory(cl_membank_t *bank, uint32_t address, uint8_t size, 
    const void *value);
-bool cl_write_memorynote(uint32_t index, const void *value);
+bool cl_write_memorynote(uint32_t key, const void *value);
 
 extern cl_memory_t memory;
 
