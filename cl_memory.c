@@ -26,6 +26,19 @@ cl_membank_t* cl_find_membank(uint32_t address)
    return NULL;
 }
 
+cl_memnote_t* cl_find_memnote(uint32_t index)
+{
+   uint32_t i;
+
+   for (i = 0; i < memory.note_count; i++)
+   {
+      if (memory.notes[i].index == index)
+         return &memory.notes[i];
+   }
+
+   return NULL;
+}
+
 void cl_free_memnote(cl_memnote_t *memnote)
 {
    free(memnote->pointer_offsets);
@@ -44,64 +57,59 @@ void cl_free_memory()
    memory.notes = NULL;
 }
 
-bool cl_get_memnote_flag(uint32_t index, uint8_t flag)
+bool cl_get_memnote_flag(cl_memnote_t *note, uint8_t flag)
 {
-   if (index >= memory.note_count)
+   if (!note)
       return false;
    else
-      return (memory.notes[index].flags & (1 << flag)) != 0;
+      return (note->flags & (1 << flag)) != 0;
 }
 
-bool cl_get_memnote_float(float *value, uint32_t memnote_id, uint8_t type)
+bool cl_get_memnote_flag_from_key(uint32_t key, uint8_t flag)
 {
-   if (memnote_id >= memory.note_count)
+   cl_memnote_t *note = cl_find_memnote(key);
+
+   if (!note)
+      return false;
+   else
+      return cl_get_memnote_flag(note, flag);
+}
+
+bool cl_get_memnote_value(uint32_t *value, cl_memnote_t *note, uint8_t type)
+{
+   if (!note)
       return false;
    else
    {
       switch (type)
       {
       case CL_SRCTYPE_CURRENT_RAM:
-         memcpy(value, &memory.notes[memnote_id].value_current, sizeof(float));
+         *value = note->value_current;
          break;
       case CL_SRCTYPE_PREVIOUS_RAM:
-         memcpy(value, &memory.notes[memnote_id].value_previous, sizeof(float));
+         *value = note->value_previous;
          break;
       case CL_SRCTYPE_LAST_UNIQUE_RAM:
-         memcpy(value, &memory.notes[memnote_id].value_last_unique, sizeof(float));
+         *value = note->value_last_unique;
          break;
       default:
          return false;
       }
    }
-
-   return true;
-}
-
-bool cl_get_memnote_value(uint32_t *value, uint32_t memnote_id, uint8_t type)
-{
-   if (memnote_id >= memory.note_count)
-      return false;
-   else
-   {
-      switch (type)
-      {
-      case CL_SRCTYPE_CURRENT_RAM:
-         *value = memory.notes[memnote_id].value_current;
-         break;
-      case CL_SRCTYPE_PREVIOUS_RAM:
-         *value = memory.notes[memnote_id].value_previous;
-         break;
-      case CL_SRCTYPE_LAST_UNIQUE_RAM:
-         *value = memory.notes[memnote_id].value_last_unique;
-         break;
-      default:
-         return false;
-      }
-   }
-   if (memory.notes[memnote_id].type == CL_MEMTYPE_FLOAT)
+   if (note->type == CL_MEMTYPE_FLOAT)
       *value = *((float*)value);
    
    return true;
+}
+
+bool cl_get_memnote_value_from_key(uint32_t *value, uint32_t key, uint8_t type)
+{
+   cl_memnote_t *note = cl_find_memnote(key);
+
+   if (!note)
+      return false;
+   else
+      return cl_get_memnote_value(value, note, type);
 }
 
 void cl_sort_membanks(cl_membank_t *banks, uint8_t count)
@@ -199,13 +207,16 @@ bool cl_init_memory(const char **pos)
    {
       new_memnote = &memory.notes[i];
 
-      if (!(cl_strto(pos, &new_memnote->address,        4, false) &&
+      if (!(cl_strto(pos, &new_memnote->index,          4, false) &&
+            cl_strto(pos, &new_memnote->order,          4, false) &&
+            cl_strto(pos, &new_memnote->address,        4, false) &&
             cl_strto(pos, &new_memnote->type,           1, false) &&
             cl_strto(pos, &new_memnote->flags,          1, false) &&
             cl_strto(pos, &new_memnote->pointer_passes, 1, false)))
          return false;
          
-      cl_log("S: %u, P: %u, A: %08X",
+      cl_log("Memory note #%u - S: %u, P: %u, A: %08X",
+       new_memnote->index,
        cl_sizeof_memtype(new_memnote->type),
        new_memnote->pointer_passes,
        new_memnote->address);
@@ -374,9 +385,11 @@ bool cl_write_memorynote(uint32_t index, const void *value)
    else
    {
       uint32_t address;
-      const cl_memnote_t *note = &memory.notes[index];
+      cl_memnote_t *note = cl_find_memnote(index);
 
-      if (cl_memorynote_resolve_ptrs(&address, note))
+      if (!note)
+         return false;
+      else if (cl_memorynote_resolve_ptrs(&address, note))
          return cl_write_memory(NULL, address, cl_sizeof_memtype(note->type), value);
    }
    

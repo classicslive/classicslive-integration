@@ -17,13 +17,20 @@ bool cl_update_generic_post_data()
 
    snprintf(generic_post_data, sizeof(generic_post_data), "session_id=%s", 
     session_id);
+
+   /*
+      Track the values of all memory notes that have the "rich presence" 
+      flag set.
+   */
    for (i = 0; i < memory.note_count; i++)
    {
-      if (cl_get_memnote_flag(i, CL_MEMFLAG_RICH))
+      cl_memnote_t *note = &memory.notes[i];
+
+      if (cl_get_memnote_flag(note, CL_MEMFLAG_RICH))
       {
-         if (cl_get_memnote_value(&value, i, CL_SRCTYPE_CURRENT_RAM))
+         if (cl_get_memnote_value(&value, note, CL_SRCTYPE_CURRENT_RAM))
             snprintf(generic_post_data, sizeof(generic_post_data), "%s&m%u=%u", 
-             generic_post_data, i, value);
+             generic_post_data, note->index, value);
          else
             return false;
       }

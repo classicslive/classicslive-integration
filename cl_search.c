@@ -493,6 +493,7 @@ bool cl_pointersearch_init(cl_pointersearch_t *search,
          return false;
       }
 
+      /* Initialize search parameters */
       search->passes              = 1;
       search->range               = range;
       search->params.compare_type = CLE_CMPTYPE_EQUAL;
@@ -504,7 +505,8 @@ bool cl_pointersearch_init(cl_pointersearch_t *search,
          exact_only = false;
 
       /* We create a temporary array of max size and trim it down after */
-      search->results = (cl_pointerresult_t*)calloc(max_results, sizeof(cl_pointerresult_t));
+      search->results = (cl_pointerresult_t*)calloc(
+         max_results, sizeof(cl_pointerresult_t));
       matches = 0;
 
       /* Do a quick scan to see how many results we start with */

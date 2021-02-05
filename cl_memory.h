@@ -68,6 +68,8 @@ typedef struct cl_membank_t
 ============================================================================ */
 typedef struct cl_memnote_t
 {
+   uint32_t  index;
+   uint32_t  order;
    uint32_t  address;
 
    /* TODO: Set these back to correct sizes */
@@ -113,9 +115,13 @@ cl_membank_t* cl_find_membank(uint32_t address);
 void cl_free_memory();
 void cl_free_memnote(cl_memnote_t *memnote);
 
-bool cl_get_memnote_flag(uint32_t note_flags, uint8_t flag);
-bool cl_get_memnote_float(float *value, uint32_t memnote_id, uint8_t type);
-bool cl_get_memnote_value(uint32_t *value, uint32_t memnote_id, uint8_t type);
+/* Return whether or not a certain flag is set for a given memnote. */
+bool cl_get_memnote_flag(cl_memnote_t *note, uint8_t flag);
+bool cl_get_memnote_flag_from_key(uint32_t key, uint8_t flag);
+
+/* Return the value of a given memnote. */
+bool cl_get_memnote_value(uint32_t *value, cl_memnote_t *note, uint8_t type);
+bool cl_get_memnote_value_from_key(uint32_t *value, uint32_t key, uint8_t type);
 
 /* Populate a memory holder with values returned by the web API */
 bool cl_init_memory(const char **pos);

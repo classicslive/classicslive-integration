@@ -33,13 +33,9 @@ bool cl_get_compare_value(uint32_t *buffer, uint32_t source, uint32_t offset)
          *buffer = offset;
          break;
       case CL_SRCTYPE_CURRENT_RAM:
-         success = cl_get_memnote_value(buffer, offset, CL_SRCTYPE_CURRENT_RAM);
-         break;
       case CL_SRCTYPE_PREVIOUS_RAM:
-         success = cl_get_memnote_value(buffer, offset, CL_SRCTYPE_PREVIOUS_RAM);
-         break;
       case CL_SRCTYPE_LAST_UNIQUE_RAM:
-         success = cl_get_memnote_value(buffer, offset, CL_SRCTYPE_LAST_UNIQUE_RAM);
+         success = cl_get_memnote_value_from_key(buffer, offset, source);
          break;
       case CL_SRCTYPE_COUNTER:
          success = cl_get_counter_value(buffer, offset);
