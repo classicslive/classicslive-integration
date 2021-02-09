@@ -54,11 +54,10 @@ static bool cl_act_post_achievement(cl_action_t *action)
       return cl_free_action(action);
    else
    {
-      uint32_t achievement_id;
+      uint32_t key = action->arguments[0];
       char     data[CL_POST_DATA_SIZE];
 
-      achievement_id = action->arguments[0];
-      snprintf(data, CL_POST_DATA_SIZE, "achievement_id=%u", achievement_id);
+      snprintf(data, CL_POST_DATA_SIZE, "ach_id=%u", key);
       cl_network_post(CL_REQUEST_POST_ACHIEVEMENT, data, NULL, NULL);
 
       /* Clear this action so we don't re-submit the achievement */
@@ -76,21 +75,14 @@ static bool cl_act_post_achievement_progress(cl_action_t *action)
 
 static bool cl_act_post_leaderboard(cl_action_t *action)
 {
-   if (action->argument_count % 2 != 1)
+   if (action->argument_count != 1)
       return cl_free_action(action);
    else
    {
+      uint32_t key = action->arguments[0];
       char     data[CL_POST_DATA_SIZE];
-      uint32_t value;
-      uint8_t  i;
 
-      snprintf(data, sizeof(data), "lb_id=%u", action->arguments[0]);
-      for (i = 1; i < action->argument_count; i += 2)
-      {
-         if (!cl_get_compare_value(&value, action->arguments[i], action->arguments[i + 1]))
-            continue;
-         snprintf(data, sizeof(data), "%s&%u=%u", data, action->arguments[i + 1], value);
-      }
+      snprintf(data, CL_POST_DATA_SIZE, "ldb_id=%u", key);
       cl_network_post(CL_REQUEST_POST_LEADERBOARD, data, NULL, NULL);
    }
    
