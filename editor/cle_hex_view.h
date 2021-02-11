@@ -34,6 +34,7 @@ protected:
 
 private slots:
    void onClickAddMemoryNote();
+   void onClickGoto();
    void onClickPointerSearch();
 
 private:

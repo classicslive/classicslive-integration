@@ -10,8 +10,6 @@ cl_membank_t* cl_find_membank(uint32_t address)
 {
    if (!memory.bank_count)
       return NULL;
-   else if (memory.bank_count == 1)
-      return &memory.banks[0];
    else
    {
       uint8_t i;

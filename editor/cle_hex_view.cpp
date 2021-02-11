@@ -12,6 +12,11 @@
 #include <QRect>
 #include <QWidget>
 
+extern "C"
+{
+   #include "../cl_memory.h"
+}
+
 #include "cle_hex_view.h"
 
 void swap_rects(QRect *a, QRect *b)
@@ -188,6 +193,11 @@ void CleHexWidget::onClickAddMemoryNote()
    emit requestAddMemoryNote(m_CursorOffset);
 }
 
+void CleHexWidget::onClickGoto()
+{
+   setOffset(m_CursorOffset);
+}
+
 void CleHexWidget::onClickPointerSearch()
 {
    emit requestPointerSearch(m_CursorOffset);
@@ -201,13 +211,25 @@ void CleHexWidget::onRightClick(uint32_t address, QPoint& pos)
    {
       QMenu menu;
       QAction *action_add = menu.addAction(tr("&Add memory note..."));
-      QAction *action_ptr = menu.addAction(tr("Search for &pointers..."));
+      QAction *action_ptr = menu.addAction(tr("Search for &pointers"));
+      QAction *action_goto;
+      uint32_t goto_address;
 
       setCursorOffset(address);
       connect(action_add, SIGNAL(triggered()), this, 
          SLOT(onClickAddMemoryNote()));
       connect(action_ptr, SIGNAL(triggered()), this, 
          SLOT(onClickPointerSearch()));
+
+      /* Allow following a pointer if it is valid */
+      if (cl_read_memory(&goto_address, NULL, address, memory.pointer_size) &&
+          cl_find_membank(goto_address))
+      {
+         m_CursorOffset = goto_address;
+         action_goto = menu.addAction(tr("&Goto this address"));
+         connect(action_goto, SIGNAL(triggered()), this,
+            SLOT(onClickGoto()));
+      }
 
       menu.exec(mapToGlobal(pos));
    }
