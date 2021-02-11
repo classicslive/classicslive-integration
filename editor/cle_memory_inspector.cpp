@@ -293,7 +293,8 @@ void CleMemoryInspector::requestAddMemoryNote(cl_memnote_t note)
    if (!session.game_id)
    {
       QMessageBox::warning(this, "Live Editor", 
-         tr("The currently played game was not recognized by the server, so you cannot submit memory notes.")
+         tr("The content you are running was not recognized by the server, so "
+            "you cannot submit memory notes.")
       );
    }
    else
@@ -326,7 +327,7 @@ void CleMemoryInspector::requestPointerSearch(uint32_t address)
          this,
          address, 
          getCurrentSizeType(),
-         1,
+         3,
          0x10000,
          100000
       );
