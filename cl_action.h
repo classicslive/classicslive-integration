@@ -11,6 +11,7 @@
 #define CL_ACTTYPE_POST_ACHIEVEMENT   'A'
 #define CL_ACTTYPE_ADDITION           'D'
 #define CL_ACTTYPE_POST_LEADERBOARD   'L'
+#define CL_ACTTYPE_MULTIPLY           'M'
 #define CL_ACTTYPE_POST_PROGRESS      'P'
 #define CL_ACTTYPE_RESET_HITS         'R'
 #define CL_ACTTYPE_WRITE              'W'

@@ -206,14 +206,13 @@ bool cl_init_memory(const char **pos)
       new_memnote = &memory.notes[i];
 
       if (!(cl_strto(pos, &new_memnote->key,            4, false) &&
-            cl_strto(pos, &new_memnote->order,          4, false) &&
             cl_strto(pos, &new_memnote->address,        4, false) &&
             cl_strto(pos, &new_memnote->type,           1, false) &&
             cl_strto(pos, &new_memnote->flags,          1, false) &&
             cl_strto(pos, &new_memnote->pointer_passes, 1, false)))
          return false;
          
-      cl_log("Memory note #%u - S: %u, P: %u, A: %08X",
+      cl_log("Memory note {%u} - S: %u, P: %u, A: %08X",
        new_memnote->key,
        cl_sizeof_memtype(new_memnote->type),
        new_memnote->pointer_passes,
