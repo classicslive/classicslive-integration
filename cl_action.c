@@ -69,8 +69,18 @@ static bool cl_act_post_achievement(cl_action_t *action)
 
 static bool cl_act_post_achievement_progress(cl_action_t *action)
 {
-   /* TODO */
-   return false;
+   if (action->argument_count != 1)
+      return cl_free_action(action);
+   else
+   {
+      uint32_t key = action->arguments[0];
+      char     data[CL_POST_DATA_SIZE];
+
+      snprintf(data, CL_POST_DATA_SIZE, "ach_id=%u", key);
+      cl_network_post(CL_REQUEST_POST_ACHIEVEMENT, data, NULL, NULL);
+   }
+   
+   return true;
 }
 
 static bool cl_act_post_leaderboard(cl_action_t *action)
@@ -240,7 +250,6 @@ static bool cl_act_multiplication(cl_action_t *action)
    {
       uint32_t dest_type = action->arguments[0];
       uint32_t dest_val  = action->arguments[1];
-      uint32_t mults[action->argument_count - 2];
       uint32_t result;
       uint8_t i;
 
@@ -251,12 +260,13 @@ static bool cl_act_multiplication(cl_action_t *action)
       /* Make sure requested multipliers are valid, and multiply if so */
       for (i = 0; i < action->argument_count - 2; i += 2)
       {
-         if (!cl_get_compare_value(
-               &mults[i / 2],
-               action->arguments[i],
-               action->arguments[i + 1]))
+         uint32_t type   = action->arguments[i];
+         uint32_t offset = action->arguments[i + 1];
+         uint32_t value;
+
+         if (!cl_get_compare_value(&value, type, offset))
             return false;
-         result *= mults[i / 2];
+         result *= value;
       }
 
       switch (dest_type)
