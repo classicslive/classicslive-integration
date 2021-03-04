@@ -77,7 +77,7 @@ static bool cl_act_post_achievement_progress(cl_action_t *action)
       char     data[CL_POST_DATA_SIZE];
 
       snprintf(data, CL_POST_DATA_SIZE, "ach_id=%u", key);
-      cl_network_post(CL_REQUEST_POST_ACHIEVEMENT, data, NULL, NULL);
+      cl_network_post(CL_REQUEST_POST_PROGRESS, data, NULL, NULL);
    }
    
    return true;
@@ -279,6 +279,41 @@ static bool cl_act_multiplication(cl_action_t *action)
       }
 
       return true;
+   }
+}
+
+static bool cl_act_subtraction(cl_action_t *action)
+{
+   if (action->argument_count != 4)
+      return cl_free_action(action);
+   else
+   {
+      uint32_t src_type = action->arguments[0];
+      uint32_t src_val  = action->arguments[1];
+      uint32_t sub_type = action->arguments[2];
+      uint32_t sub_val  = action->arguments[3];
+      uint32_t src, sub;
+
+      if (!cl_get_compare_value(&src, src_type, src_val) ||
+          !cl_get_compare_value(&sub, sub_type, sub_val))
+         return false;
+      else
+      {
+         uint32_t result = src - sub;
+         bool return_val = result < src;
+
+         switch (src_type)
+         {
+         case CL_SRCTYPE_COUNTER:
+            script.current_page->counters[src_val] -= sub;
+            break;
+         default:
+            return false;
+         }
+
+         /* TODO: This is false on underflow. Should we do anything else? */
+         return return_val;
+      }
    }
 }
 
