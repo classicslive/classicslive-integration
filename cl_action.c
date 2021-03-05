@@ -305,7 +305,7 @@ static bool cl_act_subtraction(cl_action_t *action)
          switch (src_type)
          {
          case CL_SRCTYPE_COUNTER:
-            script.current_page->counters[src_val] -= sub;
+            script.current_page->counters[src_val] = result;
             break;
          default:
             return false;
