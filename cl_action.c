@@ -217,23 +217,103 @@ static bool cl_act_addition(cl_action_t *action)
       return cl_free_action(action);
    else
    {
-      uint32_t src_type = action->arguments[0];
-      uint32_t src_val  = action->arguments[1];
-      uint32_t add_type = action->arguments[2];
-      uint32_t add_val  = action->arguments[3];
-      uint32_t src, add;
+      uint32_t dst_type = action->arguments[0];
+      uint32_t dst_val  = action->arguments[1];
+      uint32_t src_type = action->arguments[2];
+      uint32_t src_val  = action->arguments[3];
+      uint32_t dst, src;
 
-      if (!cl_get_compare_value(&src, src_type, src_val) ||
-          !cl_get_compare_value(&add, add_type, add_val))
+      if (!cl_get_compare_value(&dst, dst_type, dst_val) ||
+          !cl_get_compare_value(&src, src_type, src_val))
          return false;
       else
       {
+         uint32_t result = dst + src;
+         bool overflow = result < dst;
+
          switch (src_type)
          {
          case CL_SRCTYPE_COUNTER:
-            script.current_page->counters[src_val] += add;
+            script.current_page->counters[src_val] = result;
             break;
          default:
+            cl_script_break(true, "Invalid destination type: %u", dst_type);
+            return false;
+         }
+
+         if (overflow)
+         {
+            cl_script_break(false, "Addition underflow (%u + %u == %u)",
+               dst, src, result);
+
+            return false;
+         }
+         else
+            return true;
+      }
+   }
+}
+
+static bool cl_act_bitwise_and(cl_action_t *action)
+{
+   if (action->argument_count != 4)
+      return cl_free_action(action);
+   else
+   {
+      uint32_t dst_type = action->arguments[0];
+      uint32_t dst_val  = action->arguments[1];
+      uint32_t src_type = action->arguments[2];
+      uint32_t src_val  = action->arguments[3];
+      uint32_t dst, src;
+
+      if (!cl_get_compare_value(&dst, dst_type, dst_val) ||
+          !cl_get_compare_value(&src, src_type, src_val))
+         return false;
+      else
+      {
+         uint32_t result = dst & src;
+
+         switch (dst_type)
+         {
+         case CL_SRCTYPE_COUNTER:
+            script.current_page->counters[dst_val] = result;
+            break;
+         default:
+            cl_script_break(true, "Invalid destination type: %u", dst_type);
+            return false;
+         }
+      }
+
+      return true;
+   }
+}
+
+static bool cl_act_bitwise_or(cl_action_t *action)
+{
+   if (action->argument_count != 4)
+      return cl_free_action(action);
+   else
+   {
+      uint32_t dst_type = action->arguments[0];
+      uint32_t dst_val  = action->arguments[1];
+      uint32_t src_type = action->arguments[2];
+      uint32_t src_val  = action->arguments[3];
+      uint32_t dst, src;
+
+      if (!cl_get_compare_value(&dst, dst_type, dst_val) ||
+          !cl_get_compare_value(&src, src_type, src_val))
+         return false;
+      else
+      {
+         uint32_t result = dst | src;
+
+         switch (dst_type)
+         {
+         case CL_SRCTYPE_COUNTER:
+            script.current_page->counters[dst_val] = result;
+            break;
+         default:
+            cl_script_break(true, "Invalid destination type: %u", dst_type);
             return false;
          }
       }
@@ -288,19 +368,19 @@ static bool cl_act_subtraction(cl_action_t *action)
       return cl_free_action(action);
    else
    {
-      uint32_t src_type = action->arguments[0];
-      uint32_t src_val  = action->arguments[1];
-      uint32_t sub_type = action->arguments[2];
-      uint32_t sub_val  = action->arguments[3];
-      uint32_t src, sub;
+      uint32_t dst_type = action->arguments[0];
+      uint32_t dst_val  = action->arguments[1];
+      uint32_t src_type = action->arguments[2];
+      uint32_t src_val  = action->arguments[3];
+      uint32_t dst, src;
 
-      if (!cl_get_compare_value(&src, src_type, src_val) ||
-          !cl_get_compare_value(&sub, sub_type, sub_val))
+      if (!cl_get_compare_value(&dst, dst_type, dst_val) ||
+          !cl_get_compare_value(&src, src_type, src_val))
          return false;
       else
       {
-         uint32_t result = src - sub;
-         bool return_val = result < src;
+         uint32_t result = dst - src;
+         bool underflow = result > dst;
 
          switch (src_type)
          {
@@ -308,14 +388,19 @@ static bool cl_act_subtraction(cl_action_t *action)
             script.current_page->counters[src_val] = result;
             break;
          default:
+            cl_script_break(true, "Invalid destination type: %u", dst_type);
             return false;
          }
 
-         if (!return_val)
+         if (underflow)
+         {
             cl_script_break(false, "Subtraction underflow (%u - %u == %u)",
-               src, sub, result);
+               dst, src, result);
 
-         return return_val;
+            return false;
+         }
+         else
+            return true;
       }
    }
 }
@@ -350,6 +435,12 @@ bool cl_init_action(cl_action_t *action)
       break;
    case CL_ACTTYPE_MULTIPLY:
       action->function = cl_act_multiplication;
+      break;
+   case CL_ACTTYPE_AND:
+      action->function = cl_act_bitwise_and;
+      break;
+   case CL_ACTTYPE_OR:
+      action->function = cl_act_bitwise_or;
       break;
    case CL_ACTTYPE_POST_PROGRESS:
       action->function = cl_act_post_achievement_progress;
