@@ -14,6 +14,7 @@
 #define CL_ACTTYPE_MULTIPLY           'M'
 #define CL_ACTTYPE_POST_PROGRESS      'P'
 #define CL_ACTTYPE_RESET_HITS         'R'
+#define CL_ACTTYPE_SUBTRACTION        'S'
 #define CL_ACTTYPE_WRITE              'W'
 
 #define CL_CMPTYPE_IFEQUAL            1

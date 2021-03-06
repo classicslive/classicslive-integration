@@ -90,6 +90,8 @@ bool cl_init_page(const char **pos, cl_page_t *page)
 
 bool cl_init_script(const char **pos)
 {
+   script.status = CL_SCRSTATUS_INACTIVE;
+
    if (!cl_strto(pos, &script.page_count, sizeof(script.page_count), false))
       return false;
    else
@@ -101,6 +103,7 @@ bool cl_init_script(const char **pos)
          if (!cl_init_page(pos, &script.pages[i]))
             return false;
 
+      script.status = CL_SRCSTATUS_ACTIVE;
       return true;
    }
 }
@@ -155,7 +158,9 @@ bool cl_process_actions(cl_page_t *page)
    
    while (i < page->action_count)
    {
-      if (cl_is_if_statement(page->actions[i].type))
+      if (script.status != CL_SRCSTATUS_ACTIVE)
+         return false;
+      else if (cl_is_if_statement(page->actions[i].type))
          i = cl_process_if_statements(page, i);
       else
       {
@@ -170,16 +175,33 @@ bool cl_process_actions(cl_page_t *page)
 
 bool cl_update_script()
 {
-   bool     success = true;
-   uint32_t i;
-
-   for (i = 0; i < script.page_count; i++)
+   if (script.status != CL_SRCSTATUS_ACTIVE)
+      return false;
+   else
    {
-      script.current_page = &script.pages[i];
-      success &= cl_process_actions(script.current_page);
-   }
+      bool     success = true;
+      uint32_t i;
 
-   return success;
+      for (i = 0; i < script.page_count; i++)
+      {
+         script.current_page = &script.pages[i];
+         success &= cl_process_actions(script.current_page);
+      }
+
+      return success;
+   }
+}
+
+void cl_script_break(bool fatal, const char *format, ...)
+{
+   va_list args;
+
+   script.status = CL_SCRSTATUS_PAUSED;
+   script.error_fatal = fatal;
+
+   va_start(args, format);
+   vsprintf(script.error_msg, format, args);
+   va_end(args);
 }
 
 #endif

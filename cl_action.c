@@ -311,7 +311,10 @@ static bool cl_act_subtraction(cl_action_t *action)
             return false;
          }
 
-         /* TODO: This is false on underflow. Should we do anything else? */
+         if (!return_val)
+            cl_script_break(false, "Subtraction underflow (%u - %u == %u)",
+               src, sub, result);
+
          return return_val;
       }
    }
@@ -350,6 +353,9 @@ bool cl_init_action(cl_action_t *action)
       break;
    case CL_ACTTYPE_POST_PROGRESS:
       action->function = cl_act_post_achievement_progress;
+      break;
+   case CL_ACTTYPE_SUBTRACTION:
+      action->function = cl_act_subtraction;
       break;
    case CL_ACTTYPE_WRITE:
       action->function = cl_act_write;

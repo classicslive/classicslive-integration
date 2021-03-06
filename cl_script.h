@@ -1,9 +1,15 @@
 #ifndef CL_SCRIPT_H
 #define CL_SCRIPT_H
 
-#define CL_PGFLAG_ACTIVE       0
-#define CL_PGFLAG_CORE         1
-#define CL_PGFLAG_GLOBAL_PAUSE 2
+enum
+{
+   CL_SCRSTATUS_INACTIVE = 0,
+
+   CL_SRCSTATUS_ACTIVE,
+   CL_SCRSTATUS_PAUSED,
+
+   CL_SCRSTATUS_LAST
+};
 
 /* TODO: Arbitrary! Have pages allocate more/less depending on need */
 #define CL_COUNTERS_SIZE       16
@@ -26,9 +32,13 @@ typedef struct cl_script_t
    cl_page_t *pages;
    uint16_t   page_count;
 
-   /* Used while processing */
    cl_page_t *current_page;
    bool       evaluation;
+   uint8_t    status;
+
+   /* Used for identifying the cause of breaks while debugging */
+   bool error_fatal;
+   char error_msg[256];
 } cl_script_t;
 
 /* Public */
@@ -37,6 +47,9 @@ uint32_t* cl_get_counter       (uint8_t counter_number);
 bool      cl_get_counter_value (uint32_t *buffer, uint8_t counter_num);
 bool      cl_init_script       (const char **pos);
 bool      cl_update_script     ();
+
+/* Halts processing of the script and core. */
+void cl_script_break(bool fatal, const char *format, ...);
 
 /* Private
 bool     cl_is_if_statement       (uint8_t type);
