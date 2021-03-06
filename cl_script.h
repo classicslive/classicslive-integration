@@ -32,9 +32,10 @@ typedef struct cl_script_t
    cl_page_t *pages;
    uint16_t   page_count;
 
-   cl_page_t *current_page;
-   bool       evaluation;
-   uint8_t    status;
+   cl_action_t *current_action;
+   cl_page_t   *current_page;
+   bool         evaluation;
+   uint8_t      status;
 
    /* Used for identifying the cause of breaks while debugging */
    bool error_fatal;

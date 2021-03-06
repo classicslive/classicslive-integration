@@ -46,12 +46,13 @@ void CleScriptEditor::run()
    QTableWidgetItem  *item;
    const cl_action_t *action;
    char     temp_string[32];
-   uint32_t i;
+   uint32_t i, j;
 
    if (!script.page_count)
       return;
 
    m_Table->setRowCount(script.pages[0].action_count);
+
    for (i = 0; i < m_Table->rowCount(); i++)
    {
       action = &script.pages[0].actions[i];
@@ -60,13 +61,25 @@ void CleScriptEditor::run()
       snprintf(temp_string, sizeof(temp_string), "%c", action->type);
       m_Table->setItem(i, 0, new QTableWidgetItem(QString(temp_string)));
 
-      m_Table->setItem(i, 1, new QTableWidgetItem(QString(temp_string)));
-
       /* Update arguments column */
+      QString args;
+      for (j = 0; j < action->argument_count; j++)
+         args += QString::number(action->arguments[j]) + " ";
+      m_Table->setItem(i, 1, new QTableWidgetItem(args));
+
+      /* Update executions column */
       snprintf(temp_string, sizeof(temp_string), "%u", action->executions);
       m_Table->setItem(i, 2, new QTableWidgetItem(QString(temp_string)));
+
+      /* Highlight this row if it is the one the debugger breaks on. */
+      if (script.status == CL_SCRSTATUS_PAUSED && script.current_action == action)
+         m_Table->item(i, 0)->setBackground(Qt::red);
    }
-   m_Label->setText("Counter 0: " + QString::number(script.pages[0].counters[0]));
+
+   if (script.status == CL_SCRSTATUS_PAUSED)
+      m_Label->setText(script.error_msg);
+   else
+      m_Label->setText("Counter 0: " + QString::number(script.pages[0].counters[0]));
 }
 
 #endif

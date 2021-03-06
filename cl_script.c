@@ -158,8 +158,10 @@ bool cl_process_actions(cl_page_t *page)
    
    while (i < page->action_count)
    {
+      script.current_action = &page->actions[i];
+
       if (script.status != CL_SRCSTATUS_ACTIVE)
-         return false;
+         break;
       else if (cl_is_if_statement(page->actions[i].type))
          i = cl_process_if_statements(page, i);
       else
