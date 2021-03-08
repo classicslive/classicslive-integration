@@ -228,28 +228,42 @@ static bool cl_act_addition(cl_action_t *action)
          return false;
       else
       {
-         uint32_t result = dst + src;
-         bool overflow = result < dst;
-
-         switch (dst_type)
+         /* TODO: More cases */
+         if (dst_type == CL_SRCTYPE_CURRENT_RAM &&
+           memory.notes[dst_val].type == CL_MEMTYPE_FLOAT)
          {
-         case CL_SRCTYPE_COUNTER:
-            script.current_page->counters[dst_val] = result;
-            break;
-         default:
-            cl_script_break(true, "Invalid destination type: %u", dst_type);
-            return false;
-         }
+            float result = *((float*)(&memory.notes[dst_val].value_current));
 
-         if (overflow)
-         {
-            cl_script_break(false, "Addition overflow (%u + %u == %u)",
-               dst, src, result);
+            result += *((float*)(&src));
+            memcpy(&memory.notes[dst_val].value_current, &result, 4);
 
-            return false;
+            return true;
          }
          else
-            return true;
+         {
+            uint32_t result = dst + src;
+            bool overflow = result < dst;
+
+            switch (dst_type)
+            {
+            case CL_SRCTYPE_COUNTER:
+               script.current_page->counters[dst_val] = result;
+               break;
+            default:
+               cl_script_break(true, "Invalid destination type: %u", dst_type);
+               return false;
+            }
+
+            if (overflow)
+            {
+               cl_script_break(false, "Addition overflow (%u + %u == %u)",
+                  dst, src, result);
+
+               return false;
+            }
+            else
+               return true;
+         }
       }
    }
 }
