@@ -213,209 +213,160 @@ static bool cl_act_write(cl_action_t *action)
 
 static bool cl_act_addition(cl_action_t *action)
 {
-   if (action->argument_count != 4)
+   if (action->argument_count != 3)
       return cl_free_action(action);
    else
    {
-      uint32_t dst_type = action->arguments[0];
-      uint32_t dst_val  = action->arguments[1];
-      uint32_t src_type = action->arguments[2];
-      uint32_t src_val  = action->arguments[3];
+      uint32_t ctr      = action->arguments[0];
+      uint32_t src_type = action->arguments[1];
+      uint32_t src_val  = action->arguments[2];
       uint32_t dst, src;
 
-      if (!cl_get_compare_value(&dst, dst_type, dst_val) ||
-          !cl_get_compare_value(&src, src_type, src_val))
+      if (!cl_get_compare_value(&src, src_type, src_val))
          return false;
       else
       {
-         /* TODO: More cases */
-         if (dst_type == CL_SRCTYPE_CURRENT_RAM &&
-           memory.notes[dst_val].type == CL_MEMTYPE_FLOAT)
+         uint32_t result = dst + src;
+         bool overflow = result < dst;
+
+         script.current_page->counters[ctr] = result;
+
+         if (overflow)
          {
-            float result = *((float*)(&memory.notes[dst_val].value_current));
-
-            result += *((float*)(&src));
-            memcpy(&memory.notes[dst_val].value_current, &result, 4);
-
-            return true;
+            cl_script_break(false, "Addition overflow (%u + %u == %u)",
+               dst, src, result);
+            return false;
          }
          else
-         {
-            uint32_t result = dst + src;
-            bool overflow = result < dst;
-
-            switch (dst_type)
-            {
-            case CL_SRCTYPE_COUNTER:
-               script.current_page->counters[dst_val] = result;
-               break;
-            default:
-               cl_script_break(true, "Invalid destination type: %u", dst_type);
-               return false;
-            }
-
-            if (overflow)
-            {
-               cl_script_break(false, "Addition overflow (%u + %u == %u)",
-                  dst, src, result);
-
-               return false;
-            }
-            else
-               return true;
-         }
+            return true;
       }
    }
 }
 
+/*
+   A template for command actions that only use one argument, for a counter 
+   index that operates on itself.
+*/
+#define CL_TEMPLATE_CTR_UNARY \
+   uint32_t ctr; \
+   if (action->argument_count != 1) \
+      return false; \
+   ctr = action->arguments[0]; \
+   if (ctr >= CL_COUNTERS_SIZE) \
+      return false; \
+   else
+
+/*
+   A template for command actions that use one argument for a counter index and
+   two for a compare value lookup.
+*/
+#define CL_TEMPLATE_CTR_BINARY \
+   uint32_t ctr, src, src_type, src_val; \
+   if (action->argument_count != 3) \
+      return false; \
+   ctr      = action->arguments[0]; \
+   src_type = action->arguments[1]; \
+   src_val  = action->arguments[2]; \
+   if (!cl_get_compare_value(&src, src_type, src_val)) \
+      return false; \
+   else if (ctr >= CL_COUNTERS_SIZE) \
+      return false; \
+   else
+
 static bool cl_act_bitwise_and(cl_action_t *action)
 {
-   if (action->argument_count != 4)
-      return cl_free_action(action);
-   else
+   CL_TEMPLATE_CTR_BINARY
    {
-      uint32_t dst_type = action->arguments[0];
-      uint32_t dst_val  = action->arguments[1];
-      uint32_t src_type = action->arguments[2];
-      uint32_t src_val  = action->arguments[3];
-      uint32_t dst, src;
+      script.current_page->counters[ctr] &= src;
+      return true;
+   }
+}
 
-      if (!cl_get_compare_value(&dst, dst_type, dst_val) ||
-          !cl_get_compare_value(&src, src_type, src_val))
-         return false;
-      else
-      {
-         uint32_t result = dst & src;
-
-         switch (dst_type)
-         {
-         case CL_SRCTYPE_COUNTER:
-            script.current_page->counters[dst_val] = result;
-            break;
-         default:
-            cl_script_break(true, "Invalid destination type: %u", dst_type);
-            return false;
-         }
-      }
-
+static bool cl_act_bitwise_flip(cl_action_t *action)
+{
+   CL_TEMPLATE_CTR_UNARY
+   {
+      script.current_page->counters[ctr] = ~script.current_page->counters[ctr];
       return true;
    }
 }
 
 static bool cl_act_bitwise_or(cl_action_t *action)
 {
-   if (action->argument_count != 4)
-      return cl_free_action(action);
-   else
+   CL_TEMPLATE_CTR_BINARY
    {
-      uint32_t dst_type = action->arguments[0];
-      uint32_t dst_val  = action->arguments[1];
-      uint32_t src_type = action->arguments[2];
-      uint32_t src_val  = action->arguments[3];
-      uint32_t dst, src;
-
-      if (!cl_get_compare_value(&dst, dst_type, dst_val) ||
-          !cl_get_compare_value(&src, src_type, src_val))
-         return false;
-      else
-      {
-         uint32_t result = dst | src;
-
-         switch (dst_type)
-         {
-         case CL_SRCTYPE_COUNTER:
-            script.current_page->counters[dst_val] = result;
-            break;
-         default:
-            cl_script_break(true, "Invalid destination type: %u", dst_type);
-            return false;
-         }
-      }
-
+      script.current_page->counters[ctr] |= src;
       return true;
    }
 }
 
+static bool cl_act_bitwise_xor(cl_action_t *action)
+{
+   CL_TEMPLATE_CTR_BINARY
+   {
+      script.current_page->counters[ctr] ^= src;
+      return true;
+   }
+}
+
+static bool cl_act_shift_left(cl_action_t *action)
+{
+   CL_TEMPLATE_CTR_BINARY
+   {
+      if (src > sizeof(script.current_page->counters[ctr]))
+      {
+         cl_script_break(false, "Attempted left shift past maximum length.");
+         return false;
+      }
+      script.current_page->counters[ctr] <<= src;
+         
+      return true;
+   }
+}
+
+static bool cl_act_shift_right(cl_action_t *action)
+{
+   CL_TEMPLATE_CTR_BINARY
+   {
+      if (src > sizeof(script.current_page->counters[ctr]))
+      {
+         cl_script_break(false, "Attempted right shift past maximum length.");
+         return false;
+      }
+      script.current_page->counters[ctr] >>= src;
+         
+      return true;
+   }
+}
+
+/*
+   TODO: Support float values, catch overflows (?)
+*/
 static bool cl_act_multiplication(cl_action_t *action)
 {
-   if (action->argument_count % 2 || action->argument_count < 4)
-      return cl_free_action(action);
-   else
+   CL_TEMPLATE_CTR_BINARY
    {
-      uint32_t dest_type = action->arguments[0];
-      uint32_t dest_val  = action->arguments[1];
-      uint32_t result;
-      uint8_t i;
-
-      /* Make sure requested destination is valid */
-      if (!cl_get_compare_value(&result, dest_type, dest_val))
-         return false;
-
-      /* Make sure requested multipliers are valid, and multiply if so */
-      for (i = 0; i < action->argument_count - 2; i += 2)
-      {
-         uint32_t type   = action->arguments[i];
-         uint32_t offset = action->arguments[i + 1];
-         uint32_t value;
-
-         if (!cl_get_compare_value(&value, type, offset))
-            return false;
-         result *= value;
-      }
-
-      switch (dest_type)
-      {
-      case CL_SRCTYPE_COUNTER:
-         script.current_page->counters[dest_val] = result;
-         break;
-      default:
-         return false;
-      }
-
+      script.current_page->counters[ctr] *= src;
       return true;
    }
 }
 
 static bool cl_act_subtraction(cl_action_t *action)
 {
-   if (action->argument_count != 4)
-      return cl_free_action(action);
-   else
+   CL_TEMPLATE_CTR_BINARY
    {
-      uint32_t dst_type = action->arguments[0];
-      uint32_t dst_val  = action->arguments[1];
-      uint32_t src_type = action->arguments[2];
-      uint32_t src_val  = action->arguments[3];
-      uint32_t dst, src;
+      uint32_t result = script.current_page->counters[ctr] - src;
+      bool underflow = result > script.current_page->counters[ctr];
 
-      if (!cl_get_compare_value(&dst, dst_type, dst_val) ||
-          !cl_get_compare_value(&src, src_type, src_val))
-         return false;
-      else
+      if (underflow)
       {
-         uint32_t result = dst - src;
-         bool underflow = result > dst;
-
-         switch (src_type)
-         {
-         case CL_SRCTYPE_COUNTER:
-            script.current_page->counters[src_val] = result;
-            break;
-         default:
-            cl_script_break(true, "Invalid destination type: %u", dst_type);
-            return false;
-         }
-
-         if (underflow)
-         {
-            cl_script_break(false, "Subtraction underflow (%u - %u == %u)",
-               dst, src, result);
-
-            return false;
-         }
-         else
-            return true;
+         cl_script_break(false, "Subtraction underflow (%u - %u == %u)",
+            dst, src, result);
+         return false;
       }
+      script.current_page->counters[ctr] = result;
+      
+      return true;
    }
 }
 

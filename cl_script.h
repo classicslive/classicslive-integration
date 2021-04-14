@@ -12,7 +12,7 @@ enum
 };
 
 /* TODO: Arbitrary! Have pages allocate more/less depending on need */
-#define CL_COUNTERS_SIZE       16
+#define CL_COUNTERS_SIZE 16
 
 #include "cl_action.h"
 
