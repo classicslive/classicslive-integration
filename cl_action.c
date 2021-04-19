@@ -361,7 +361,7 @@ static bool cl_act_subtraction(cl_action_t *action)
       if (underflow)
       {
          cl_script_break(false, "Subtraction underflow (%u - %u == %u)",
-            dst, src, result);
+            script.current_page->counters[ctr], src, result);
          return false;
       }
       script.current_page->counters[ctr] = result;

@@ -1,0 +1,179 @@
+#include "cle_action_block.h"
+
+#include <QComboBox>
+#include <QDebug>
+#include <QLabel>
+#include <QLineEdit>
+#include <QMouseEvent>
+#include <QPainter>
+#include <QPushButton>
+
+CleActionBlock::CleActionBlock(QWidget* parent) : QWidget(parent)
+{
+  m_Indentation = 0;
+
+  m_GroupBox = new QGroupBox(this);
+
+  m_Layout = new QHBoxLayout(this);
+  m_Layout->setContentsMargins(4, 4, 4, 4);
+
+  setGeometry(0, 0, CLE_BLOCK_WIDTH, CLE_BLOCK_HEIGHT);
+
+  auto a = new QLabel("Logical AND counter", this);
+  auto c = new QLineEdit(this);
+  c->setGeometry(0, 0, 16, CLE_BLOCK_HEIGHT);
+  auto d = new QLabel("with", this);
+  auto e = new QComboBox(this);
+  e->addItem("value");
+  auto f = new QLineEdit(this);
+  f->setGeometry(0, 0, 64, CLE_BLOCK_HEIGHT);
+
+  m_Layout->addWidget(a);
+  m_Layout->addWidget(c);
+  m_Layout->addWidget(d);
+  m_Layout->addWidget(e);
+  m_Layout->addWidget(f);
+
+  m_SnapDirection = CLE_ACT_SNAP_NONE;
+
+  m_GroupBox->setLayout(m_Layout);
+  m_GroupBox->move(4, 0);
+
+  m_Next = nullptr;
+  m_Prev = nullptr;
+}
+
+CleActionBlock::~CleActionBlock()
+{
+  detach();
+}
+
+void CleActionBlock::mouseMoveEvent(QMouseEvent *event)
+{
+  QPoint adjusted_pos = m_DragPos.parent +
+    (event->globalPos() - m_DragPos.global) - m_DragPos.self;
+
+  setPosition(adjusted_pos);
+  emit onDrag(this);
+}
+
+void CleActionBlock::mousePressEvent(QMouseEvent *event)
+{
+  if (event->button() == Qt::LeftButton)
+  {
+    m_DragPos.global = event->globalPos();
+    m_DragPos.parent = mapToParent(event->pos());
+    m_DragPos.self   = event->pos();
+  }
+  else if (event->button() == Qt::RightButton)
+    close();
+}
+
+char CleActionBlock::getSnapArea(QPoint pos)
+{
+  if (!m_SnapZone.contains(pos))
+    return -1;
+  else
+    return (pos.x() - m_SnapZone.x()) / CLE_BLOCK_HEIGHT;
+}
+
+void CleActionBlock::attach(CleActionBlock *target, char indentation)
+{
+  auto x = target->pos().x() + (indentation - target->getIndentation()) * CLE_BLOCK_HEIGHT;
+  auto y = target->pos().y() + CLE_BLOCK_HEIGHT;
+
+  setPosition(QPoint(x, y));
+
+  auto next = target->getNext();
+  if (next && next != this)
+  {
+    next->setPrev(this);
+    m_Next = next;
+    m_Prev = target;
+
+    while (next && next != this)
+    {
+      next->setPosition(QPoint(next->x(), next->y() + CLE_BLOCK_HEIGHT));
+      next = next->getNext();
+    }
+  }
+
+  target->setNext(this);
+  m_Indentation = indentation;
+  m_Prev = target;
+}
+
+void CleActionBlock::detach()
+{
+  if (m_Prev)
+    m_Prev->setNext(m_Next);
+  if (m_Next)
+  {
+    auto next = m_Next;
+
+    m_Next->setPrev(m_Prev);
+    while (next)
+    {
+      next->setPosition(QPoint(next->x(), next->y() - CLE_BLOCK_HEIGHT));
+      next = next->getNext();
+    }
+  }
+
+  setPrev(nullptr);
+  setNext(nullptr);
+  m_Indentation = -1;
+}
+
+void CleActionBlock::paintEvent(QPaintEvent *e)
+{
+  QPainter painter(this);
+
+  if (m_Indentation >= 0)
+  {
+    switch (m_Indentation % 4)
+    {
+    case 0:
+      painter.setBrush(QColor(15, 99, 179));
+      break;
+    case 1:
+      painter.setBrush(QColor(189, 60, 48));
+      break;
+    case 2:
+      painter.setBrush(QColor(0, 121, 61));
+      break;
+    case 3:
+      painter.setBrush(QColor(167, 54, 169));
+      break;
+    }
+    painter.setPen(Qt::NoPen);
+    painter.drawRect(0, 0, 4, height());
+  }
+
+  if (m_SnapDirection != CLE_ACT_SNAP_NONE)
+  {
+    QLinearGradient gradient(0, 0, width(), 4);
+    gradient.setColorAt(0, Qt::darkBlue);
+    gradient.setColorAt(1, Qt::blue);
+
+    painter.setBrush(gradient);
+    painter.setPen(Qt::NoPen);
+    painter.drawRect(0, 0, width(), 4);
+  }
+}
+
+void CleActionBlock::onSnap(const QPoint *position, unsigned char direction)
+{
+  m_SnapDirection = direction;
+  setPosition(*position);
+}
+
+void CleActionBlock::setPosition(QPoint pos)
+{
+  move(pos);
+  m_SnapZone = QRect(
+    pos.x() - CLE_BLOCK_HEIGHT * m_Indentation - CLE_BLOCK_HEIGHT / 2,
+    pos.y() + height() - CLE_BLOCK_HEIGHT / 2,
+    CLE_BLOCK_HEIGHT * (m_Indentation + 2),
+    CLE_BLOCK_HEIGHT * 1.5
+  );
+}
