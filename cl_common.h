@@ -9,7 +9,6 @@
 #include <time.h>
 
 #include <libretro.h>
-#include <rhash.h>
 
 #include <file/file_path.h>
 #include <net/net_http.h>
@@ -32,8 +31,7 @@
 #include "../../paths.h"
 #include "../../retroarch.h"
 
-#include "../../discord/discord.h"
-#include "../../input/input_mapper.h"
+#include "../../network/discord.h"
 #include "../../network/net_http_special.h"
 #include "../../tasks/tasks_internal.h"
 

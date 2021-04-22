@@ -23,7 +23,6 @@
 #define CL_POST_DATA_SIZE 2048
 #define CL_URL_SIZE       256
 
-#include "../../discord/discord.h"
 #include "../../network/net_http_special.h"
 #include "../../tasks/tasks_internal.h"
 

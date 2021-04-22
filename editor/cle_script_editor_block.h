@@ -1,8 +1,10 @@
-#ifndef MAINWINDOW_H
-#define MAINWINDOW_H
+#ifndef CLE_SCRIPT_EDITOR_BLOCK_H
+#define CLE_SCRIPT_EDITOR_BLOCK_H
 
-#include <QMainWindow>
 #include <QPushButton>
+#include <QWidget>
+#include <vector>
+
 #include "cle_action_block.h"
 
 class CleScriptEditorBlock : public QWidget

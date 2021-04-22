@@ -3,6 +3,8 @@
 
 #include "cle_action_block.h"
 
+#include <QWidget>
+
 class CleActionBlockCtrBinary : public CleActionBlock
 {
   Q_OBJECT

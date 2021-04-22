@@ -1,3 +1,6 @@
+#ifndef CLE_SCRIPT_EDITOR_BLOCK_CPP
+#define CLE_SCRIPT_EDITOR_BLOCK_CPP
+
 #include "cle_script_editor_block.h"
 
 #include <QMouseEvent>
@@ -44,3 +47,5 @@ void CleScriptEditorBlock::mousePressEvent(QMouseEvent *event)
     blocks.push_back(a);
   }
 }
+
+#endif

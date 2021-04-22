@@ -2,11 +2,12 @@
 #define CL_IDENTIFY_H
 
 #include "cl_common.h"
+#include <lrc_hash.h>
 
 typedef struct cl_md5_ctx_t
 {
    MD5_CTX   context;
-   uint8_t  *data;
+   void     *data;
    uint32_t  size;
    char     *md5_final;
    uint8_t   md5_raw[16];

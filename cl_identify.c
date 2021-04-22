@@ -23,6 +23,7 @@ void cl_task_md5(retro_task_t *task)
    MD5_Init(&state->context);
    MD5_Update(&state->context, state->data, state->size);
    MD5_Final(state->md5_raw, &state->context);
+
    snprintf(state->md5_final, 32 + 1, CL_SNPRINTF_MD5,
       state->md5_raw[0],  state->md5_raw[1],  state->md5_raw[2],  
       state->md5_raw[3],  state->md5_raw[4],  state->md5_raw[5],  

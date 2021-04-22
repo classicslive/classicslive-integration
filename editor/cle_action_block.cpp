@@ -1,12 +1,14 @@
-#include "cle_action_block.h"
+#ifndef CLE_ACTION_BLOCK_CPP
+#define CLE_ACTION_BLOCK_CPP
 
 #include <QComboBox>
-#include <QDebug>
 #include <QLabel>
 #include <QLineEdit>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPushButton>
+
+#include "cle_action_block.h"
 
 CleActionBlock::CleActionBlock(QWidget* parent) : QWidget(parent)
 {
@@ -177,3 +179,5 @@ void CleActionBlock::setPosition(QPoint pos)
     CLE_BLOCK_HEIGHT * 1.5
   );
 }
+
+#endif
