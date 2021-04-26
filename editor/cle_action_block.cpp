@@ -14,32 +14,14 @@ CleActionBlock::CleActionBlock(QWidget* parent) : QWidget(parent)
 {
   m_Indentation = 0;
 
-  m_GroupBox = new QGroupBox(this);
-
   m_Layout = new QHBoxLayout(this);
-  m_Layout->setContentsMargins(4, 4, 4, 4);
+  m_Layout->setContentsMargins(16, 4, 4, 4);
 
   setGeometry(0, 0, CLE_BLOCK_WIDTH, CLE_BLOCK_HEIGHT);
 
-  auto a = new QLabel("Logical AND counter", this);
-  auto c = new QLineEdit(this);
-  c->setGeometry(0, 0, 16, CLE_BLOCK_HEIGHT);
-  auto d = new QLabel("with", this);
-  auto e = new QComboBox(this);
-  e->addItem("value");
-  auto f = new QLineEdit(this);
-  f->setGeometry(0, 0, 64, CLE_BLOCK_HEIGHT);
-
-  m_Layout->addWidget(a);
-  m_Layout->addWidget(c);
-  m_Layout->addWidget(d);
-  m_Layout->addWidget(e);
-  m_Layout->addWidget(f);
-
   m_SnapDirection = CLE_ACT_SNAP_NONE;
 
-  m_GroupBox->setLayout(m_Layout);
-  m_GroupBox->move(4, 0);
+  setLayout(m_Layout);
 
   m_Next = nullptr;
   m_Prev = nullptr;
@@ -123,13 +105,19 @@ void CleActionBlock::detach()
 
   setPrev(nullptr);
   setNext(nullptr);
-  m_Indentation = -1;
+  m_Indentation = 0;
 }
 
 void CleActionBlock::paintEvent(QPaintEvent *e)
 {
   QPainter painter(this);
 
+  /* Draw a light border around all elements */
+  painter.setPen(Qt::darkGray);
+  painter.setRenderHint(QPainter::Antialiasing);
+  painter.drawRoundedRect(QRectF(1, 1, CLE_BLOCK_WIDTH - 2, CLE_BLOCK_HEIGHT - 1), 2.0, 2.0);
+
+  /* Draw a colored tab to the left of the block to represent indentation level */
   if (m_Indentation >= 0)
   {
     switch (m_Indentation % 4)

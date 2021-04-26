@@ -3,14 +3,34 @@
 
 #include "cle_action_block.h"
 
-#include <QWidget>
+#include <QComboBox>
+#include <QLabel>
+#include <QLineEdit>
+#include <QStackedWidget>
 
 class CleActionBlockCtrBinary : public CleActionBlock
 {
   Q_OBJECT
 
 public:
-  virtual QString toString();
+  CleActionBlockCtrBinary(QWidget* parent);
+
+  virtual QString toString() override;
+
+private:
+  QLabel    *m_LabelA;
+  QLineEdit *m_CounterIndex;
+  QLabel    *m_LabelB;
+  
+  QComboBox      *m_ModifierType;
+  QLineEdit      *m_ModifierValueLineEdit;
+  QComboBox      *m_ModifierValueComboBox;
+  QStackedWidget *m_ModifierStack;
+
+  uint32_t getModifierValue();
+
+private slots:
+  void onChangeModifierType(int index);
 };
 
 #endif

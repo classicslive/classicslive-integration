@@ -44,10 +44,10 @@ public:
   CleActionBlock* getPrev() { return m_Prev; }
   CleActionBlock* getNext() { return m_Next; }
 
-  /**
-   * Returns which indentation level the specified point will snap into, or -1
-   * if it is not in range.
-   */
+  /*
+    Returns which indentation level the specified point will snap into, or -1
+    if it is not in range.
+  */
   char getSnapArea(QPoint pos);
 
   QRect getSnapZone() { return m_SnapZone; }
@@ -59,9 +59,9 @@ public:
 public slots:
   void onSnap(const QPoint *position, unsigned char direction);
 
-  void mouseMoveEvent(QMouseEvent *event) override;
-  void mousePressEvent(QMouseEvent *event) override;
-  void paintEvent(QPaintEvent *e) override;
+  virtual void mouseMoveEvent(QMouseEvent *event) override;
+  virtual void mousePressEvent(QMouseEvent *event) override;
+  virtual void paintEvent(QPaintEvent *e) override;
 
 signals:
   void onDrag(CleActionBlock* block);
@@ -73,7 +73,6 @@ protected:
   */
   DragStart m_DragPos;
 
-  QGroupBox      *m_GroupBox;
   char            m_Indentation;
   QHBoxLayout    *m_Layout;
   CleActionBlock *m_Next;

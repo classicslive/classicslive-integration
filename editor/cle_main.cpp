@@ -4,7 +4,6 @@
 #include <QtWidgets/QStyleFactory>
 
 #include "cle_main.h"
-#include "cle_memory_inspector.h"
 
 /* these must last for the lifetime of the QApplication */
 static int app_argc = 1;
@@ -38,7 +37,7 @@ extern "C" void cle_init()
    m_MemoryInspector = new CleMemoryInspector();
    m_MemoryInspector->show();
 
-   m_ScriptEditor = new CleScriptEditor();
+   m_ScriptEditor = new CleScriptEditorBlock();
    m_ScriptEditor->show();
 }
 
