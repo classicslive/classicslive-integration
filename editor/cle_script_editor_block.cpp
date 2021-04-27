@@ -2,6 +2,7 @@
 #define CLE_SCRIPT_EDITOR_BLOCK_CPP
 
 #include "cle_script_editor_block.h"
+#include "cle_action_block_bookend.h"
 #include "cle_action_block_ctrbinary.h"
 
 #include <QMouseEvent>
@@ -12,6 +13,10 @@ CleScriptEditorBlock::CleScriptEditorBlock(QWidget *parent)
   auto a = new CleActionBlockCtrBinary(this);
   connect(a, SIGNAL(onDrag(CleActionBlock*)), this, SLOT(checkSnaps(CleActionBlock*)));
   blocks.push_back(a);
+
+  auto b = new CleActionBlockBookend(this);
+  connect(b, SIGNAL(onDrag(CleActionBlock*)), this, SLOT(checkSnaps(CleActionBlock*)));
+  blocks.push_back(b);
 }
 
 CleScriptEditorBlock::~CleScriptEditorBlock()

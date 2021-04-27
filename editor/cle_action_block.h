@@ -38,6 +38,9 @@ public:
   void attach(CleActionBlock *target, char indentation);
   void detach();
   char getIndentation() { return m_Indentation; }
+  virtual bool isStart() { return false; }
+  virtual bool isEnd() { return false; }
+  virtual void setType(uint8_t type) { m_Type = type; }
 
   virtual QString toString() { return "0 30 0"; }
 

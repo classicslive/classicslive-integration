@@ -1,5 +1,5 @@
-#ifndef CLE_ACTION_BLOCK_CTRBINARY
-#define CLE_ACTION_BLOCK_CTRBINARY
+#ifndef CLE_ACTION_BLOCK_CTRBINARY_CPP
+#define CLE_ACTION_BLOCK_CTRBINARY_CPP
 
 #include "cle_action_block_ctrbinary.h"
 
@@ -71,6 +71,20 @@ void CleActionBlockCtrBinary::onChangeModifierType(int index)
     m_ModifierStack->setCurrentIndex(1);
     break;
   }
+}
+
+void CleActionBlockCtrBinary::setType(uint8_t type)
+{
+  /*
+  switch (type)
+  {
+  case CL_ACTTYPE_AND:
+    m_LabelA->setText("Logical AND counter");
+    break;
+  default:
+    m_LabelA->setText("Invalid action type " + QString::number(m_Type));
+  }
+  */
 }
 
 QString CleActionBlockCtrBinary::toString()
