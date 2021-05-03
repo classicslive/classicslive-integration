@@ -10,9 +10,7 @@ extern "C"
 
 uint32_t stringToValue(QString string, bool *ok);
 
-/*
-   Output an appropriately formatted C-string representing a memory value.
-*/
+/* Output an appropriately formatted C-string representing a memory value. */
 void valueToString(char *string, uint8_t length, uint32_t value, 
    uint8_t memtype);
 

@@ -10,7 +10,7 @@ class CleActionBlockBookend : public CleActionBlock
   Q_OBJECT
 
 public:
-  CleActionBlockBookend(QWidget* parent);
+  CleActionBlockBookend(QWidget* parent, bool is_end);
 
   virtual QString toString() override { return ""; };
 
@@ -21,7 +21,7 @@ public:
 
 private:
   /* Whether or not this bookend represents the end of a script. */
-  bool m_IsEnd;
+  bool m_IsEnd = false;
 
   QLabel *m_Label;
 };

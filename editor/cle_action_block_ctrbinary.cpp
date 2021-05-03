@@ -26,8 +26,10 @@ CleActionBlockCtrBinary::CleActionBlockCtrBinary(QWidget* parent) : CleActionBlo
 
   m_ModifierValueLineEdit = new QLineEdit(this);
 
+  /* TODO: Have this refresh when the combobox is clicked */
   m_ModifierValueComboBox = new QComboBox(this);
-  m_ModifierValueComboBox->addItem(memory.notes[0].title);
+  for (int i = 0; i < memory.note_count; i++)
+    m_ModifierValueComboBox->addItem(memory.notes[i].title);
 
   m_ModifierStack = new QStackedWidget(this);
   m_ModifierStack->addWidget(m_ModifierValueLineEdit);

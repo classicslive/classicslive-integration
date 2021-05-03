@@ -17,6 +17,8 @@ public:
 
 public slots:
   void checkSnaps(CleActionBlock* position);
+
+  /* QWidget overrides */
   void mousePressEvent(QMouseEvent *event) override;
 
 private:

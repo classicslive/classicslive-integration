@@ -14,9 +14,13 @@ CleScriptEditorBlock::CleScriptEditorBlock(QWidget *parent)
   connect(a, SIGNAL(onDrag(CleActionBlock*)), this, SLOT(checkSnaps(CleActionBlock*)));
   blocks.push_back(a);
 
-  auto b = new CleActionBlockBookend(this);
+  auto b = new CleActionBlockBookend(this, false);
   connect(b, SIGNAL(onDrag(CleActionBlock*)), this, SLOT(checkSnaps(CleActionBlock*)));
   blocks.push_back(b);
+
+  auto c = new CleActionBlockBookend(this, true);
+  connect(c, SIGNAL(onDrag(CleActionBlock*)), this, SLOT(checkSnaps(CleActionBlock*)));
+  blocks.push_back(c);
 }
 
 CleScriptEditorBlock::~CleScriptEditorBlock()

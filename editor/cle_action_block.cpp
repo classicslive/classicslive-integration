@@ -64,7 +64,7 @@ char CleActionBlock::getSnapArea(QPoint pos)
 void CleActionBlock::attach(CleActionBlock *target, char indentation)
 {
   auto x = target->pos().x() + (indentation - target->getIndentation()) * CLE_BLOCK_HEIGHT;
-  auto y = target->pos().y() + CLE_BLOCK_HEIGHT;
+  auto y = target->pos().y() + target->height();
 
   setPosition(QPoint(x, y));
 
@@ -77,7 +77,7 @@ void CleActionBlock::attach(CleActionBlock *target, char indentation)
 
     while (next && next != this)
     {
-      next->setPosition(QPoint(next->x(), next->y() + CLE_BLOCK_HEIGHT));
+      next->setPosition(QPoint(next->x(), next->y() + next->height()));
       next = next->getNext();
     }
   }
