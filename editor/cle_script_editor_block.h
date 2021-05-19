@@ -15,6 +15,8 @@ public:
   CleScriptEditorBlock(QWidget *parent = nullptr);
   ~CleScriptEditorBlock();
 
+  QString toString();
+
 public slots:
   void checkSnaps(CleActionBlock* position);
 

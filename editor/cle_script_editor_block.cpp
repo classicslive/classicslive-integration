@@ -58,4 +58,37 @@ void CleScriptEditorBlock::mousePressEvent(QMouseEvent *event)
   }
 }
 
+QString CleScriptEditorBlock::toString()
+{
+  const QString   error  = "0";
+  CleActionBlock* next   = nullptr;
+  CleActionBlock* start  = nullptr;
+  QString         string = QString::number(1, 16);
+
+  /* Find our starting point */
+  for (int i = 0; i < blocks.size(); i++)
+  {
+    if (blocks[i]->isStart())
+    {
+      start = blocks[i];
+      break;
+    }
+  }
+  if (!start)
+    return error;
+
+  /* Iterate through all blocks after the starting bookend */
+  next = start->getNext();
+  if (!next)
+    return error;
+  else do
+  {
+    string += " " + next->toString();
+    next = next->getNext();
+  } while (next && !next->isEnd());
+
+  /* Return final string only if the code block was closed with a bookend */
+  return next->isEnd() ? string : error;
+}
+
 #endif
