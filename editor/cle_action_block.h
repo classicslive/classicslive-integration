@@ -76,10 +76,11 @@ protected:
   */
   DragStart m_DragPos;
 
-  char            m_Indentation;
+  cl_action_t    *m_Action;
+  char            m_Indentation = 0;
   QHBoxLayout    *m_Layout;
-  CleActionBlock *m_Next;
-  CleActionBlock *m_Prev;
+  CleActionBlock *m_Next = nullptr;
+  CleActionBlock *m_Prev = nullptr;
   unsigned char   m_SnapDirection;
   QRect           m_SnapZone;
   unsigned char   m_Type;

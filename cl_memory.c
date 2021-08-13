@@ -129,15 +129,75 @@ void cl_sort_membanks(cl_membank_t *banks, uint8_t count)
    }
 }
 
-bool cl_init_membanks()
+bool cl_init_membanks_libretro(const retro_memory_descriptor *descs, 
+   const unsigned num_descs)
+{
+   const rarch_memory_descriptor_t *desc;
+
+   memory.banks = (cl_membank_t*)calloc(num_descs, sizeof(cl_membank_t));
+   memory.bank_count = num_descs;
+   for (i = 0; i < num_descs; i++)
+   {
+      desc = &descs[i];
+
+      /* Is this bank's data a null pointer? Ignore it */
+      if (!desc->ptr)
+      {
+         memory.bank_count--;
+         continue;
+      }
+      
+      /* Copy the libretro mmap parameters into our format */
+      memory.banks[i].data  = (uint8_t*)desc->ptr;
+      memory.banks[i].size  = desc->len;
+      memory.banks[i].start = desc->start;
+
+      /* Setup the title of the memory bank */
+      if (desc->addrspace)
+         snprintf(memory.banks[i].title, sizeof(memory.banks[i].title), 
+                  "%s", desc->addrspace);
+      else
+         snprintf(memory.banks[i].title, sizeof(memory.banks[i].title), 
+                  "Memory bank %u/%u", i + 1, memory.bank_count);
+   }
+
+   cl_sort_membanks(memory.banks, memory.bank_count);
+   for (i = 0; i < memory.bank_count; i++)
+      cl_log("Bank %02X: 0x%08X | %08X bytes | %p | %s\n", i, 
+             memory.banks[i].start, 
+             memory.banks[i].size, 
+             memory.banks[i].data, 
+             memory.banks[i].title);
+
+   return true;
+}
+
+bool cl_init_membanks_retroarch()
 {
    rarch_system_info_t* sys_info = runloop_get_system_info();
-   uint8_t i;
 
-   memory.bank_count = sys_info->mmaps.num_descriptors;
+   if (!sys_info)
+      return false;
 
-   /* No mmaps; we use retro_get_memory_data instead */
-   if (memory.bank_count == 0)
+   /* 
+      If a RetroArch mmap is available, copy it into a temporary array of 
+      libretro descriptors, then run the generic libretro initializer.
+   */
+   if (sys_info->mmaps.num_descriptors > 0)
+   {
+      retro_memory_descriptor *descs = (retro_memory_descriptor*)calloc(sizeof(retro_memory_descriptor), memory.bank_count);
+      bool success;
+      unsigned i;
+
+      for (i = 0; i < sys_info->mmaps.num_descriptors; i++)
+         memcpy(descs[i], &sys_info->mmaps.descriptors[i]->core, sizeof(retro_memory_descriptor));
+      success = cl_init_membanks_libretro(descs, sys_info->mmaps.num_descriptors);
+      free(descs);
+
+      return success;
+   }
+   /* No mmaps; we try retro_get_memory_data instead */
+   else
    {
       retro_ctx_memory_info_t mem_info;
 
@@ -148,43 +208,15 @@ bool cl_init_membanks()
       if (!mem_info.data)
          return false;
 
+      /* Copy RETRO_MEMORY_SYSTEM_RAM data into a single CL membank */
       memory.banks = (cl_membank_t*)malloc(sizeof(cl_membank_t));
       memory.banks[0].data = (uint8_t*)mem_info.data;
       memory.banks[0].size = mem_info.size;
       memory.banks[0].start = 0;
-      snprintf(memory.banks[0].title, sizeof(memory.banks[0].title), "%s", "retro_get_memory_data");
+      snprintf(memory.banks[0].title, sizeof(memory.banks[0].title), "%s", "RETRO_MEMORY_SYSTEM_RAM");
       memory.bank_count = 1;
-      cl_log("Using retro_get_memory_data | %p - %08X bytes\n", memory.banks[0].data, memory.banks[0].size);
 
-      return true;
-   }
-   else
-   {
-      rarch_memory_descriptor_t *descriptor;
-
-      memory.banks = (cl_membank_t*)calloc(memory.bank_count, sizeof(cl_membank_t));
-      for (i = 0; i < memory.bank_count; i++)
-      {
-         descriptor = &sys_info->mmaps.descriptors[i];
-
-         if (!descriptor->core.ptr)
-         {
-            memory.bank_count--;
-            continue;
-         }
-            
-         memory.banks[i].data  = (uint8_t*)descriptor->core.ptr;
-         memory.banks[i].size  = descriptor->core.len;
-         memory.banks[i].start = descriptor->core.start;
-         if (descriptor->core.addrspace)
-            snprintf(memory.banks[i].title, sizeof(memory.banks[i].title), "%s", descriptor->core.addrspace);
-         else
-            snprintf(memory.banks[i].title, sizeof(memory.banks[i].title), "Memory bank %u/%u", i + 1, memory.bank_count);
-      }
-
-      cl_sort_membanks(memory.banks, memory.bank_count);
-      for (i = 0; i < memory.bank_count; i++)
-         cl_log("Bank %02X: 0x%08X | %08X bytes | %p | %s\n", i, memory.banks[i].start, memory.banks[i].size, memory.banks[i].data, memory.banks[i].title);
+      cl_log("Using RETRO_MEMORY_SYSTEM_RAM | %p - %08X bytes\n", memory.banks[0].data, memory.banks[0].size);
 
       return true;
    }

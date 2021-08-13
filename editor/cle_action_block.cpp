@@ -12,8 +12,6 @@
 
 CleActionBlock::CleActionBlock(QWidget* parent) : QWidget(parent)
 {
-  m_Indentation = 0;
-
   m_Layout = new QHBoxLayout(this);
   m_Layout->setContentsMargins(16, 4, 4, 4);
 
@@ -22,9 +20,6 @@ CleActionBlock::CleActionBlock(QWidget* parent) : QWidget(parent)
   m_SnapDirection = CLE_ACT_SNAP_NONE;
 
   setLayout(m_Layout);
-
-  m_Next = nullptr;
-  m_Prev = nullptr;
 }
 
 CleActionBlock::~CleActionBlock()

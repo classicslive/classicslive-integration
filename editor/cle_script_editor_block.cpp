@@ -51,7 +51,7 @@ void CleScriptEditorBlock::mousePressEvent(QMouseEvent *event)
 {
   if (event->button() == Qt::RightButton)
   {
-    auto a = new CleActionBlock(this);
+    auto a = new CleActionBlockCtrBinary(this);
     connect(a, SIGNAL(onDrag(CleActionBlock*)), this, SLOT(checkSnaps(CleActionBlock*)));
     a->show();
     blocks.push_back(a);
