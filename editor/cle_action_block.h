@@ -7,6 +7,11 @@
 
 #include "cle_common.h"
 
+extern "C"
+{
+   #include "../cl_action.h"
+}
+
 /*
   Used to determine which side of the element should be highlighted when
   snapping to another.

@@ -129,10 +129,11 @@ void cl_sort_membanks(cl_membank_t *banks, uint8_t count)
    }
 }
 
-bool cl_init_membanks_libretro(const retro_memory_descriptor *descs, 
+bool cl_init_membanks_libretro(const struct retro_memory_descriptor *descs, 
    const unsigned num_descs)
 {
-   const rarch_memory_descriptor_t *desc;
+   const struct retro_memory_descriptor *desc;
+   unsigned i;
 
    memory.banks = (cl_membank_t*)calloc(num_descs, sizeof(cl_membank_t));
    memory.bank_count = num_descs;
@@ -185,12 +186,12 @@ bool cl_init_membanks_retroarch()
    */
    if (sys_info->mmaps.num_descriptors > 0)
    {
-      retro_memory_descriptor *descs = (retro_memory_descriptor*)calloc(sizeof(retro_memory_descriptor), memory.bank_count);
+      struct retro_memory_descriptor *descs = (struct retro_memory_descriptor*)calloc(sizeof(struct retro_memory_descriptor), memory.bank_count);
       bool success;
       unsigned i;
 
       for (i = 0; i < sys_info->mmaps.num_descriptors; i++)
-         memcpy(descs[i], &sys_info->mmaps.descriptors[i]->core, sizeof(retro_memory_descriptor));
+         memcpy(&descs[i], &sys_info->mmaps.descriptors[i].core, sizeof(struct retro_memory_descriptor));
       success = cl_init_membanks_libretro(descs, sys_info->mmaps.num_descriptors);
       free(descs);
 
