@@ -106,20 +106,49 @@ typedef struct cl_memory_t
    uint8_t       pointer_size;
 } cl_memory_t;
 
-/* 
-   Returns a pointer to the membank that contains a given virtual address,
-   or NULL if it's not found.
-*/
+/**
+ * Looks up which memory bank a given virtual address is contained in.
+ * @param address A virtual memory address.
+ * @return A pointer to the memory bank, or NULL if one is not found.
+ **/
 cl_membank_t* cl_find_membank(uint32_t address);
 
+/**
+ * Frees all values contained within the global memory context.
+ **/
 void cl_free_memory();
-void cl_free_memnote(cl_memnote_t *memnote);
 
-/* Return whether or not a certain flag is set for a given memnote. */
+/**
+ * Frees a memory note. Called automatically as part of cl_free_memory.
+ * @param memnote The memory note to be freed
+ **/
+void cl_free_memnote(cl_memnote_t *note);
+
+/**
+ * Initializes memory banks from an array of libretro memory descriptors.
+ * @param descs An array of libretro memory descriptors.
+ * @param num_descs The count of elements in descs.
+ * @return Whether or not memory banks could be initialized.
+ **/
+bool cl_init_membanks_libretro(const struct retro_memory_descriptor *descs, 
+   const unsigned num_descs);
+
+/**
+ * Checks whether or not a certain flag is set for a given memory note.
+ * @param note A pointer to a memory note.
+ * @param key A memory note key to be looked up automatically.
+ * @param flag The memory note flag to check. For example, CL_MEMFLAG_RICH.
+ **/
 bool cl_get_memnote_flag(cl_memnote_t *note, uint8_t flag);
 bool cl_get_memnote_flag_from_key(uint32_t key, uint8_t flag);
 
-/* Return the value of a given memnote. */
+/**
+ * Copies the current value of a memory note into a buffer.
+ * @param value A buffer for the value to be copied into. Should not be NULL.
+ * @param note A pointer to a memory note.
+ * @param key A memory note key to be looked up automatically.
+ * @param flag The memory note flag to check. For example, CL_MEMFLAG_RICH.
+ **/
 bool cl_get_memnote_value(uint32_t *value, cl_memnote_t *note, uint8_t type);
 bool cl_get_memnote_value_from_key(uint32_t *value, uint32_t key, uint8_t type);
 
@@ -135,15 +164,29 @@ bool cl_init_memory(const char **pos);
 bool cl_read_memory(uint32_t *value, cl_membank_t *bank, uint32_t address, 
    uint8_t size);
 
-/* Returns size (in bytes) of a given memory type ID */
-uint8_t cl_sizeof_memtype(const uint8_t memtype);
+/**
+ * Returns the size (in bytes) of a given memory type ID.
+ * @param type A type of memory value. For example, CL_MEMTYPE_8BIT.
+ * @return The number of bytes the memory type takes up, or 0 if invalid.
+ **/
+unsigned cl_sizeof_memtype(const unsigned type);
 
-/* Step through all memnotes and update their values, called once per frame */
+/**
+ * Steps through all memory notes and updates their values. Should be called 
+ * once per frame.
+ **/
 void cl_update_memory();
 
+/*
+   Writes the given data to a location in emulated virtual memory.
+   A specific membank can be passed to save a calculation, or given as NULL to
+   be looked up automatically.
+*/
 bool cl_write_memory(cl_membank_t *bank, uint32_t address, uint8_t size, 
    const void *value);
-bool cl_write_memorynote(uint32_t key, const void *value);
+
+/* Writes the value referenced by a memnote with the given data */
+bool cl_write_memnote(uint32_t key, const void *value);
 
 extern cl_memory_t memory;
 

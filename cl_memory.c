@@ -37,11 +37,11 @@ cl_memnote_t* cl_find_memnote(uint32_t key)
    return NULL;
 }
 
-void cl_free_memnote(cl_memnote_t *memnote)
+void cl_free_memnote(cl_memnote_t *note)
 {
-   free(memnote->pointer_offsets);
-   memnote->pointer_passes  = 0;
-   memnote->pointer_offsets = NULL;
+   free(note->pointer_offsets);
+   note->pointer_passes  = 0;
+   note->pointer_offsets = NULL;
 }
 
 void cl_free_memory()
@@ -173,56 +173,6 @@ bool cl_init_membanks_libretro(const struct retro_memory_descriptor *descs,
    return true;
 }
 
-bool cl_init_membanks_retroarch()
-{
-   rarch_system_info_t* sys_info = runloop_get_system_info();
-
-   if (!sys_info)
-      return false;
-
-   /* 
-      If a RetroArch mmap is available, copy it into a temporary array of 
-      libretro descriptors, then run the generic libretro initializer.
-   */
-   if (sys_info->mmaps.num_descriptors > 0)
-   {
-      struct retro_memory_descriptor *descs = (struct retro_memory_descriptor*)calloc(sizeof(struct retro_memory_descriptor), memory.bank_count);
-      bool success;
-      unsigned i;
-
-      for (i = 0; i < sys_info->mmaps.num_descriptors; i++)
-         memcpy(&descs[i], &sys_info->mmaps.descriptors[i].core, sizeof(struct retro_memory_descriptor));
-      success = cl_init_membanks_libretro(descs, sys_info->mmaps.num_descriptors);
-      free(descs);
-
-      return success;
-   }
-   /* No mmaps; we try retro_get_memory_data instead */
-   else
-   {
-      retro_ctx_memory_info_t mem_info;
-
-      mem_info.id = RETRO_MEMORY_SYSTEM_RAM;
-      core_get_memory(&mem_info);
-
-      /* Nothing here either, let's give up */
-      if (!mem_info.data)
-         return false;
-
-      /* Copy RETRO_MEMORY_SYSTEM_RAM data into a single CL membank */
-      memory.banks = (cl_membank_t*)malloc(sizeof(cl_membank_t));
-      memory.banks[0].data = (uint8_t*)mem_info.data;
-      memory.banks[0].size = mem_info.size;
-      memory.banks[0].start = 0;
-      snprintf(memory.banks[0].title, sizeof(memory.banks[0].title), "%s", "RETRO_MEMORY_SYSTEM_RAM");
-      memory.bank_count = 1;
-
-      cl_log("Using RETRO_MEMORY_SYSTEM_RAM | %p - %08X bytes\n", memory.banks[0].data, memory.banks[0].size);
-
-      return true;
-   }
-}
-
 bool cl_init_memory(const char **pos)
 {
    cl_memnote_t *new_memnote;
@@ -293,9 +243,9 @@ bool cl_read_memory(uint32_t *value, cl_membank_t *bank, uint32_t address, uint8
    return false;
 }
 
-uint8_t cl_sizeof_memtype(const uint8_t memtype)
+unsigned cl_sizeof_memtype(const unsigned type)
 {
-   switch (memtype)
+   switch (type)
    {
    case CL_MEMTYPE_8BIT:
    case CL_MEMTYPE_1BIT_A:
@@ -325,7 +275,7 @@ uint8_t cl_sizeof_memtype(const uint8_t memtype)
    return 0;
 }
 
-bool cl_memorynote_resolve_ptrs(uint32_t *address, const cl_memnote_t *note)
+bool cl_memnote_resolve_ptrs(uint32_t *address, const cl_memnote_t *note)
 {
    uint32_t final_addr = note->address;
    uint8_t i;
@@ -350,8 +300,9 @@ void cl_update_memory()
    uint32_t      i;
    uint8_t       j;
 
+   /* TODO: This is where membanks were initted previously. */
    if (memory.bank_count == 0)
-      cl_init_membanks();
+      return;
 
    for (i = 0; i < memory.note_count; i++)
    {
@@ -408,7 +359,7 @@ bool cl_write_memory(cl_membank_t *bank, uint32_t address, uint8_t size,
    return false;
 }
 
-bool cl_write_memorynote(uint32_t key, const void *value)
+bool cl_write_memnote(uint32_t key, const void *value)
 {
    if (!value)
       return false;
@@ -419,7 +370,7 @@ bool cl_write_memorynote(uint32_t key, const void *value)
 
       if (!note)
          return false;
-      else if (cl_memorynote_resolve_ptrs(&address, note))
+      else if (cl_memnote_resolve_ptrs(&address, note))
          return cl_write_memory(NULL, address, cl_sizeof_memtype(note->type), value);
    }
    

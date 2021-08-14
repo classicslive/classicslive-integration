@@ -198,7 +198,7 @@ static bool cl_act_write(cl_action_t *action)
          switch (action->arguments[0])
          {
          case CL_SRCTYPE_CURRENT_RAM:
-            return cl_write_memorynote(action->arguments[1], &src);
+            return cl_write_memnote(action->arguments[1], &src);
          case CL_SRCTYPE_COUNTER:
             script.current_page->counters[action->arguments[1]] = src;
             break;

@@ -19,6 +19,56 @@ void cle_run();
 
 cl_session_t session;
 
+bool cl_init_membanks_retroarch()
+{
+   rarch_system_info_t* sys_info = runloop_get_system_info();
+
+   if (!sys_info)
+      return false;
+
+   /* 
+      If a RetroArch mmap is available, copy it into a temporary array of 
+      libretro descriptors, then run the generic libretro initializer.
+   */
+   if (sys_info->mmaps.num_descriptors > 0)
+   {
+      struct retro_memory_descriptor *descs = (struct retro_memory_descriptor*)calloc(sizeof(struct retro_memory_descriptor), memory.bank_count);
+      bool success;
+      unsigned i;
+
+      for (i = 0; i < sys_info->mmaps.num_descriptors; i++)
+         memcpy(&descs[i], &sys_info->mmaps.descriptors[i].core, sizeof(struct retro_memory_descriptor));
+      success = cl_init_membanks_libretro(descs, sys_info->mmaps.num_descriptors);
+      free(descs);
+
+      return success;
+   }
+   /* No mmaps; we try retro_get_memory_data instead */
+   else
+   {
+      retro_ctx_memory_info_t mem_info;
+
+      mem_info.id = RETRO_MEMORY_SYSTEM_RAM;
+      core_get_memory(&mem_info);
+
+      /* Nothing here either, let's give up */
+      if (!mem_info.data)
+         return false;
+
+      /* Copy RETRO_MEMORY_SYSTEM_RAM data into a single CL membank */
+      memory.banks = (cl_membank_t*)malloc(sizeof(cl_membank_t));
+      memory.banks[0].data = (uint8_t*)mem_info.data;
+      memory.banks[0].size = mem_info.size;
+      memory.banks[0].start = 0;
+      snprintf(memory.banks[0].title, sizeof(memory.banks[0].title), "%s", "RETRO_MEMORY_SYSTEM_RAM");
+      memory.bank_count = 1;
+
+      cl_log("Using RETRO_MEMORY_SYSTEM_RAM | %p - %08X bytes\n", memory.banks[0].data, memory.banks[0].size);
+
+      return true;
+   }
+}
+
 bool cl_init_session(const char* json)
 {
    const char *iterator;
@@ -43,6 +93,7 @@ bool cl_init_session(const char* json)
       return false;
    cl_json_get(&memory.endianness,   json, "endianness",   CL_JSON_NUMBER, sizeof(memory.endianness));
    cl_json_get(&memory.pointer_size, json, "pointer_size", CL_JSON_NUMBER, sizeof(memory.pointer_size));
+   cl_init_membanks_retroarch();
    session.ready = true;
 
    /* Script-related */
