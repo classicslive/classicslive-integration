@@ -63,7 +63,7 @@ static bool cl_act_post_achievement(cl_action_t *action)
       /* Clear this action so we don't re-submit the achievement */
       cl_free_action(action);
    }
-   
+
    return true;
 }
 
@@ -211,38 +211,6 @@ static bool cl_act_write(cl_action_t *action)
    }
 }
 
-static bool cl_act_addition(cl_action_t *action)
-{
-   if (action->argument_count != 3)
-      return cl_free_action(action);
-   else
-   {
-      uint32_t ctr      = action->arguments[0];
-      uint32_t src_type = action->arguments[1];
-      uint32_t src_val  = action->arguments[2];
-      uint32_t dst, src;
-
-      if (!cl_get_compare_value(&src, src_type, src_val))
-         return false;
-      else
-      {
-         uint32_t result = dst + src;
-         bool overflow = result < dst;
-
-         script.current_page->counters[ctr] = result;
-
-         if (overflow)
-         {
-            cl_script_break(false, "Addition overflow (%u + %u == %u)",
-               dst, src, result);
-            return false;
-         }
-         else
-            return true;
-      }
-   }
-}
-
 /*
    A template for command actions that only use one argument, for a counter 
    index that operates on itself.
@@ -351,6 +319,25 @@ static bool cl_act_multiplication(cl_action_t *action)
    }
 }
 
+static bool cl_act_addition(cl_action_t *action)
+{
+   CL_TEMPLATE_CTR_BINARY
+   {
+      uint32_t result = script.current_page->counters[ctr] + src;
+      bool overflow = result < script.current_page->counters[ctr];
+
+      if (overflow)
+      {
+         cl_script_break(false, "Addition overflow (%u + %u == %u)",
+            script.current_page->counters[ctr], src, result);
+         return false;
+      }
+      script.current_page->counters[ctr] = result;
+      
+      return true;
+   }
+}
+
 static bool cl_act_subtraction(cl_action_t *action)
 {
    CL_TEMPLATE_CTR_BINARY
@@ -426,12 +413,16 @@ bool cl_init_action(cl_action_t *action)
 
 bool cl_process_action(cl_action_t *action)
 {
-   if (action && action->function && action->function(action))
+   if (!action)
+      cl_script_break(true, "Attempted to process a NULL action.");
+   else if (!action->function)
+      cl_script_break(true, "Attempted to process an action with NULL implementation (action type %04X).", action->type);
+   else if (action->function(action))
    {
       action->executions++;
       return true;
    }
-   
+
    return false;
 }
 
