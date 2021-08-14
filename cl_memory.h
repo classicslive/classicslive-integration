@@ -130,7 +130,7 @@ void cl_free_memnote(cl_memnote_t *note);
  * @param num_descs The count of elements in descs.
  * @return Whether or not memory banks could be initialized.
  **/
-bool cl_init_membanks_libretro(const struct retro_memory_descriptor *descs, 
+bool cl_init_membanks_libretro(struct retro_memory_descriptor **descs, 
    const unsigned num_descs);
 
 /**

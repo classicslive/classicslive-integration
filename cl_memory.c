@@ -129,7 +129,7 @@ void cl_sort_membanks(cl_membank_t *banks, uint8_t count)
    }
 }
 
-bool cl_init_membanks_libretro(const struct retro_memory_descriptor *descs, 
+bool cl_init_membanks_libretro(struct retro_memory_descriptor **descs, 
    const unsigned num_descs)
 {
    const struct retro_memory_descriptor *desc;
@@ -139,7 +139,7 @@ bool cl_init_membanks_libretro(const struct retro_memory_descriptor *descs,
    memory.bank_count = num_descs;
    for (i = 0; i < num_descs; i++)
    {
-      desc = &descs[i];
+      desc = descs[i];
 
       /* Is this bank's data a null pointer? Ignore it */
       if (!desc->ptr)

@@ -22,23 +22,25 @@ cl_session_t session;
 bool cl_init_membanks_retroarch()
 {
    rarch_system_info_t* sys_info = runloop_get_system_info();
+   unsigned num_descs;
 
    if (!sys_info)
       return false;
+   num_descs = sys_info->mmaps.num_descriptors;
 
    /* 
       If a RetroArch mmap is available, copy it into a temporary array of 
       libretro descriptors, then run the generic libretro initializer.
    */
-   if (sys_info->mmaps.num_descriptors > 0)
+   if (num_descs > 0)
    {
-      struct retro_memory_descriptor *descs = (struct retro_memory_descriptor*)calloc(sizeof(struct retro_memory_descriptor), memory.bank_count);
+      struct retro_memory_descriptor **descs = (struct retro_memory_descriptor**)calloc(sizeof(struct retro_memory_descriptor*), num_descs);
       bool success;
       unsigned i;
 
-      for (i = 0; i < sys_info->mmaps.num_descriptors; i++)
-         memcpy(&descs[i], &sys_info->mmaps.descriptors[i].core, sizeof(struct retro_memory_descriptor));
-      success = cl_init_membanks_libretro(descs, sys_info->mmaps.num_descriptors);
+      for (i = 0; i < num_descs; i++)
+         descs[i] = &sys_info->mmaps.descriptors[i].core;
+      success = cl_init_membanks_libretro(descs, num_descs);
       free(descs);
 
       return success;
@@ -52,7 +54,7 @@ bool cl_init_membanks_retroarch()
       core_get_memory(&mem_info);
 
       /* Nothing here either, let's give up */
-      if (!mem_info.data)
+      if (!mem_info.data || !mem_info.size)
          return false;
 
       /* Copy RETRO_MEMORY_SYSTEM_RAM data into a single CL membank */
