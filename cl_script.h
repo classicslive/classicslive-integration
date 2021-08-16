@@ -49,14 +49,13 @@ bool      cl_get_counter_value (uint32_t *buffer, uint8_t counter_num);
 bool      cl_init_script       (const char **pos);
 bool      cl_update_script     ();
 
-/* Halts processing of the script and core. */
+/**
+ * Signals to halt processing of the script and core. Used when debugging 
+ * scripts.
+ * @param fatal Whether or not the break reason included a fatal error.
+ * @param format A format string with arguments, to specify a reason for breaking. 
+ **/
 void cl_script_break(bool fatal, const char *format, ...);
-
-/* Private
-bool     cl_is_if_statement       (uint8_t type);
-bool     cl_process_actions       (cl_page_t *page);
-uint32_t cl_process_if_statements (cl_page_t *page, uint32_t pos);
-*/
 
 extern cl_script_t script;
 

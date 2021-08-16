@@ -65,7 +65,7 @@ bool cl_init_membanks_retroarch()
       snprintf(memory.banks[0].title, sizeof(memory.banks[0].title), "%s", "RETRO_MEMORY_SYSTEM_RAM");
       memory.bank_count = 1;
 
-      cl_log("Using RETRO_MEMORY_SYSTEM_RAM | %p - %08X bytes\n", memory.banks[0].data, memory.banks[0].size);
+      cl_log("Using RETRO_MEMORY_SYSTEM_RAM | %08X bytes\n", memory.banks[0].size);
 
       return true;
    }

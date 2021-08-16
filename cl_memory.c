@@ -1,7 +1,6 @@
 #ifndef CL_MEMORY_C
 #define CL_MEMORY_C
 
-#include "cl_common.h"
 #include "cl_memory.h"
 
 cl_memory_t memory;
@@ -24,6 +23,12 @@ cl_membank_t* cl_find_membank(uint32_t address)
    return NULL;
 }
 
+/**
+ * Looks up a memory note based on its key.
+ * @param key The memory note key to look up. Currently a value between 0-999.
+ * @return A pointer to the appropriate memory note, or NULL if one with the
+ * given key does not exist.
+ **/
 cl_memnote_t* cl_find_memnote(uint32_t key)
 {
    uint32_t i;
@@ -44,7 +49,7 @@ void cl_free_memnote(cl_memnote_t *note)
    note->pointer_offsets = NULL;
 }
 
-void cl_free_memory()
+void cl_memory_free()
 {
    uint32_t i;
 
@@ -129,6 +134,7 @@ void cl_sort_membanks(cl_membank_t *banks, uint8_t count)
    }
 }
 
+#ifdef LIBRETRO_H__
 bool cl_init_membanks_libretro(struct retro_memory_descriptor **descs, 
    const unsigned num_descs)
 {
@@ -155,23 +161,23 @@ bool cl_init_membanks_libretro(struct retro_memory_descriptor **descs,
 
       /* Setup the title of the memory bank */
       if (desc->addrspace)
-         snprintf(memory.banks[i].title, sizeof(memory.banks[i].title), 
+         snprintf(memory.banks[i].title, sizeof(memory.banks[i].title),
                   "%s", desc->addrspace);
       else
-         snprintf(memory.banks[i].title, sizeof(memory.banks[i].title), 
+         snprintf(memory.banks[i].title, sizeof(memory.banks[i].title),
                   "Memory bank %u/%u", i + 1, memory.bank_count);
    }
 
    cl_sort_membanks(memory.banks, memory.bank_count);
    for (i = 0; i < memory.bank_count; i++)
-      cl_log("Bank %02X: 0x%08X | %08X bytes | %p | %s\n", i, 
-             memory.banks[i].start, 
-             memory.banks[i].size, 
-             memory.banks[i].data, 
+      cl_log("Bank %02X: 0x%08X | %08X bytes | %s\n", i,
+             memory.banks[i].start,
+             memory.banks[i].size,
              memory.banks[i].title);
 
    return true;
 }
+#endif
 
 bool cl_init_memory(const char **pos)
 {
@@ -195,7 +201,7 @@ bool cl_init_memory(const char **pos)
             cl_strto(pos, &new_memnote->pointer_passes, 1, false)))
          return false;
          
-      cl_log("Memory note {%u} - S: %u, P: %u, A: %08X",
+      cl_log("Memory note {%03u} - S: %u, P: %u, A: %08X",
        new_memnote->key,
        cl_sizeof_memtype(new_memnote->type),
        new_memnote->pointer_passes,
@@ -275,10 +281,17 @@ unsigned cl_sizeof_memtype(const unsigned type)
    return 0;
 }
 
+/**
+ * Gets the final address referenced by a memory note's chain of pointers, and
+ * reads it into a buffer.
+ * @param address The buffer to read the address into.
+ * @param note A pointer to the memory note to have its address resolved.
+ * @return Whether or not the final address could be inferred from the note.
+ **/
 bool cl_memnote_resolve_ptrs(uint32_t *address, const cl_memnote_t *note)
 {
    uint32_t final_addr = note->address;
-   uint8_t i;
+   unsigned i;
 
    for (i = 0; i < note->pointer_passes; i++)
    {
@@ -300,7 +313,8 @@ void cl_update_memory()
    uint32_t      i;
    uint8_t       j;
 
-   /* TODO: This is where membanks were initted previously. */
+   /* Have memory banks not been set up yet? */
+   /* TODO: Maybe we should attempt to set up membanks here, like before */
    if (memory.bank_count == 0)
       return;
 

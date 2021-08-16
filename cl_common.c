@@ -5,9 +5,7 @@
 
 void cl_error(const char *format, ...)
 {
-#ifndef CL_SHOW_ERRORS
-   return;
-#else
+#if CL_SHOW_ERRORS == true
    char msg[256];
    va_list argv;
 
@@ -19,10 +17,9 @@ void cl_error(const char *format, ...)
 #endif
 }
 
-#define CL_LOGGING true
 void cl_log(const char *format, ...)
 {
-#ifdef CL_LOGGING
+#if CL_LOGGING == true
    va_list argv;
 
    va_start(argv, format);

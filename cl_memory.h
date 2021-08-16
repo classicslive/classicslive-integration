@@ -44,28 +44,35 @@
 #include "cl_types.h"
 #define HAVE_CLASSICS_LIVE_EDITOR true//TODO: remove
 
-/* ============================================================================
-   Meant for libretro mmaps but is also used for retro_get_memory_data
-   This info allows us to follow pointers across different memory regions.
-============================================================================ */
+/**
+ * A "memory bank" or "membank" is a region in emulated memory that has been
+ * mapped virtually. This data allows us to follow pointers across different
+ * memory regions.
+**/
 typedef struct cl_membank_t
 {
-   uint8_t  *data;
-   uint32_t  size;
-   uint32_t  start;
-   char      title[256];
+   /* The location of the actual data */
+   uint8_t *data;
+
+   /* The number of bytes this bank contains */
+   uint32_t size;
+
+   /* The virtual location of the first byte of this bank's data */
+   uint32_t start;
+
+   char title[256];
 } cl_membank_t;
 
-/* ============================================================================
-   A "memnote" is a point in core memory that corresponds
-   with an observable in-game value. Instead of accessing specific addreses
-   every frame we allocate memnotes and update their contents, then look 
-   off of them for script conditions.
+/**
+ * A "memory note" or "memnote" is a point in core memory that corresponds
+ * with an observable in-game value. Instead of accessing specific addreses
+ * every frame, we allocate memory notes and update their contents, then look 
+ * off of them for script conditions.
 
-   Here, we keep track of a memnote's value on the current and previous
-   frame, as well as the last unique value it had before it became
-   what it currently is. 
-============================================================================ */
+ * Here, we keep track of a memnote's value on the current and previous
+ * frame, as well as the last unique value it had before it became
+ * what it currently is. 
+**/
 typedef struct cl_memnote_t
 {
    uint32_t  key;
@@ -97,9 +104,9 @@ typedef struct cl_memnote_t
 typedef struct cl_memory_t
 {
    cl_memnote_t *notes;
-   uint32_t      note_count;
    cl_membank_t *banks;
-   uint8_t       bank_count;
+   unsigned      note_count;
+   unsigned      bank_count;
 
    /* Metadata about the core that tells us how to read its values */
    uint8_t       endianness;
@@ -116,7 +123,7 @@ cl_membank_t* cl_find_membank(uint32_t address);
 /**
  * Frees all values contained within the global memory context.
  **/
-void cl_free_memory();
+void cl_memory_free();
 
 /**
  * Frees a memory note. Called automatically as part of cl_free_memory.
@@ -130,8 +137,10 @@ void cl_free_memnote(cl_memnote_t *note);
  * @param num_descs The count of elements in descs.
  * @return Whether or not memory banks could be initialized.
  **/
+#ifdef LIBRETRO_H__
 bool cl_init_membanks_libretro(struct retro_memory_descriptor **descs, 
    const unsigned num_descs);
+#endif
 
 /**
  * Checks whether or not a certain flag is set for a given memory note.
@@ -155,12 +164,14 @@ bool cl_get_memnote_value_from_key(uint32_t *value, uint32_t key, uint8_t type);
 /* Populate a memory holder with values returned by the web API */
 bool cl_init_memory(const char **pos);
 
-/* 
-   Read a value from a virtual memory address, return true on success.
-   -
-   A pointer to a memory bank can be specified. If this is NULL the 
-   exact address will be inferred from the memory info.
-*/
+/** 
+ * Reads a value from a virtual memory address into a buffer.
+ * @param value The buffer to be read into.
+ * @param bank A pointer to a specific memory bank, or NULL to have it be 
+ * looked up automatically.
+ * @param address The virtual memory address to read from.
+ * @param size The number of bytes to read.
+ **/
 bool cl_read_memory(uint32_t *value, cl_membank_t *bank, uint32_t address, 
    uint8_t size);
 
@@ -177,11 +188,15 @@ unsigned cl_sizeof_memtype(const unsigned type);
  **/
 void cl_update_memory();
 
-/*
-   Writes the given data to a location in emulated virtual memory.
-   A specific membank can be passed to save a calculation, or given as NULL to
-   be looked up automatically.
-*/
+/**
+ * Writes the given data to a location in emulated virtual memory.
+ * @param bank A pointer to a specific memory bank, or NULL to have it be 
+ * looked up automatically.
+ * @param address The virtual address to write to.
+ * @param size The number of bytes to write.
+ * @param value A pointer to the source data.
+ * @return Whether or not the write succeeded.
+ **/
 bool cl_write_memory(cl_membank_t *bank, uint32_t address, uint8_t size, 
    const void *value);
 
