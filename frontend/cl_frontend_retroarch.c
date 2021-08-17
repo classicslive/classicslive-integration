@@ -9,5 +9,5 @@ void cl_fe_pause(void)
 
 void cl_fe_unpause(void)
 {
-   command_event(CMD_EVENT_PAUSE, NULL);
+   command_event(CMD_EVENT_UNPAUSE, NULL);
 }
