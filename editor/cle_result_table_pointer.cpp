@@ -7,6 +7,11 @@
 #include "cle_result_table_pointer.h"
 #include "cle_common.h"
 
+extern "C" 
+{
+   #include "../cl_common.h"
+}
+
 CleResultTablePointer::CleResultTablePointer(QWidget *parent, uint32_t address,
    uint8_t size, uint8_t passes, uint32_t range, uint32_t max_results)
 {

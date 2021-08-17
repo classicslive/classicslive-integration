@@ -2,6 +2,7 @@
 #define CL_SCRIPT_C
 
 #include "cl_script.h"
+#include "frontend/cl_frontend.h"
 
 cl_script_t script;
 
@@ -200,6 +201,9 @@ void cl_script_break(bool fatal, const char *format, ...)
 
    script.status = CL_SCRSTATUS_PAUSED;
    script.error_fatal = fatal;
+
+   if (fatal)
+      cl_fe_pause();
 
    va_start(args, format);
    vsprintf(script.error_msg, format, args);

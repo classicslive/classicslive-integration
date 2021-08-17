@@ -8,6 +8,11 @@
 #include "cle_result_table_normal.h"
 #include "cle_common.h"
 
+extern "C" 
+{
+   #include "../cl_common.h"
+}
+
 #define COL_ADDRESS        0
 #define COL_PREVIOUS_VALUE 1
 #define COL_CURRENT_VALUE  2

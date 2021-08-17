@@ -8,6 +8,11 @@
 #include "cle_result_table_normal.h"
 #include "cle_result_table_pointer.h"
 
+extern "C" 
+{
+   #include "../cl_common.h"
+}
+
 void CleMemoryInspector::rebuildLayout()
 {
    m_Layout = new QGridLayout(this);

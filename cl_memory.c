@@ -1,6 +1,7 @@
 #ifndef CL_MEMORY_C
 #define CL_MEMORY_C
 
+#include "cl_common.h"
 #include "cl_memory.h"
 
 cl_memory_t memory;
