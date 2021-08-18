@@ -8,6 +8,12 @@
  **/
 
 /**
+ * Signals to the frontend to display an error message.
+ * @param msg The message to be displayed.
+ **/
+void cl_fe_display_error(const char *msg);
+
+/**
  * Signals to the frontend to stop processing new frames until unpaused.
  **/
 void cl_fe_pause(void);

@@ -16,15 +16,12 @@
 #include "../menu/menu_driver.h"
 #endif
 
-#include "../../command.h"
 #include "../../configuration.h"
 #include "../../core.h"
 #include "../../file_path_special.h"
-#include "../../msg_hash.h"
 #include "../../paths.h"
 #include "../../retroarch.h"
 
-#include "../../network/discord.h"
 #include "../../network/net_http_special.h"
 #include "../../tasks/tasks_internal.h"
 
