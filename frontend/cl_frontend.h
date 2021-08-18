@@ -14,6 +14,12 @@
 void cl_fe_display_error(const char *msg);
 
 /**
+ * Signals to the frontend to write memory bank data into the global "memory"
+ * struct.
+ **/
+bool cl_fe_install_membanks(void);
+
+/**
  * Signals to the frontend to stop processing new frames until unpaused.
  **/
 void cl_fe_pause(void);

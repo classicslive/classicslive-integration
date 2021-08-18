@@ -3,8 +3,13 @@
 
 #include <streams/file_stream.h>
 #include <streams/chd_stream.h>
-#include "../../core.h"
 #include <retro_timers.h>
+#include <streams/interface_stream.h>
+#include <string/stdstring.h>
+#include <file/file_path.h>
+
+#include "../../core.h"
+#include "../../retroarch.h"
 
 #include "cl_identify.h"
 
@@ -296,20 +301,17 @@ bool cl_identify_m3u(char *path, char *extension)
    return false;
 }
 
-bool cl_identify(struct retro_game_info *info, char *checksum, 
-   retro_task_callback_t callback)
+bool cl_identify(const void *info_data, const unsigned info_size,
+   const char *info_path, char *checksum, retro_task_callback_t callback)
 {
    struct retro_system_info system_info;
-   uint8_t     *data = NULL;
-   char         extension[16];
-   bool         from_file = false;
-   char         path[PATH_MAX_LENGTH];
-   uint32_t     size;
+   uint8_t  *data = NULL;
+   char      extension[16];
+   bool      from_file = false;
+   char      path[PATH_MAX_LENGTH];
+   uint32_t  size;
 
-   if (!info)
-      return false;
-
-   strcpy(path, info->path);
+   strcpy(path, info_path);
    strcpy(extension, path_get_extension(path));
    strcpy(extension, string_to_upper(extension));
    core_get_system_info(&system_info);
@@ -375,11 +377,11 @@ bool cl_identify(struct retro_game_info *info, char *checksum,
          File type wasn't recognized, we use the ROM already in memory
          if possible (most common case)
       */
-      if (info->data && info->size > 0)
+      if (info_data && info_size > 0)
       {
-         data = (uint8_t*)malloc(info->size);
-         size = info->size;
-         memcpy(data, info->data, size);
+         data = (uint8_t*)malloc(info_size);
+         size = info_size;
+         memcpy(data, info_data, size);
       }
       /* 
          Last case: File was unrecognizable and not already in memory.

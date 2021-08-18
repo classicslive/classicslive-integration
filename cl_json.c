@@ -2,6 +2,7 @@
 #define CL_JSON_C
 
 #include <formats/jsonsax.h>
+#include <string/stdstring.h>
 
 #include "cl_common.h"
 #include "cl_json.h"

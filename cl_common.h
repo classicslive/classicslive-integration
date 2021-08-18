@@ -1,29 +1,7 @@
 #ifndef CL_COMMON_H
 #define CL_COMMON_H
 
-#include <libretro.h>
-
-#include <file/file_path.h>
-#include <net/net_http.h>
-#include <streams/interface_stream.h>
-#include <streams/file_stream.h>
-#include <string/stdstring.h>
-
-#ifdef HAVE_CONFIG_H
-#include "../../config.h"
-#endif
-#ifdef HAVE_MENU
-#include "../menu/menu_driver.h"
-#endif
-
-#include "../../configuration.h"
-#include "../../core.h"
-#include "../../file_path_special.h"
-#include "../../paths.h"
-#include "../../retroarch.h"
-
-#include "../../network/net_http_special.h"
-#include "../../tasks/tasks_internal.h"
+#include "cl_types.h"
 
 #define CL_CONTENT_SIZE_LIMIT  256 * 1024 * 1024
 #define CL_GLOBALS_SIZE        3 * MAX_USERS

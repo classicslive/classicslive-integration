@@ -41,8 +41,8 @@
 #define CLE_CMPTYPE_ABOVE     7
 #define CLE_CMPTYPE_BELOW     8
 
+#include "cl_config.h"
 #include "cl_types.h"
-#define HAVE_CLASSICS_LIVE_EDITOR true//TODO: remove
 
 /**
  * A "memory bank" or "membank" is a region in emulated memory that has been
@@ -92,7 +92,7 @@ typedef struct cl_memnote_t
    int32_t  *pointer_offsets;
    uint32_t  pointer_passes;
 
-#ifdef HAVE_CLASSICS_LIVE_EDITOR
+#ifdef CL_HAVE_EDITOR
    /* Metadata for generated human-readable strings in Live Editor */
    /* TODO: Identifiers */
    char description [2048];
@@ -131,13 +131,14 @@ void cl_memory_free();
  **/
 void cl_free_memnote(cl_memnote_t *note);
 
+#if CL_LIBRETRO == true
 /**
  * Initializes memory banks from an array of libretro memory descriptors.
  * @param descs An array of libretro memory descriptors.
  * @param num_descs The count of elements in descs.
  * @return Whether or not memory banks could be initialized.
  **/
-#ifdef LIBRETRO_H__
+struct retro_memory_descriptor;
 bool cl_init_membanks_libretro(struct retro_memory_descriptor **descs, 
    const unsigned num_descs);
 #endif
@@ -200,7 +201,12 @@ void cl_update_memory();
 bool cl_write_memory(cl_membank_t *bank, uint32_t address, uint8_t size, 
    const void *value);
 
-/* Writes the value referenced by a memnote with the given data */
+/**
+ * Writes the value referenced by a memory note with a given value.
+ * @param key The unique key of a memory note.
+ * @param value A buffer containing the source value.
+ * @return Whether or not the write succeeded.
+ **/
 bool cl_write_memnote(uint32_t key, const void *value);
 
 extern cl_memory_t memory;

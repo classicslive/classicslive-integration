@@ -1,7 +1,9 @@
 #ifndef CL_SEARCH_C
 #define CL_SEARCH_C
 
+#include <math.h>
 #include <string.h>
+
 #include "cl_common.h"
 #include "cl_memory.h"
 #include "cl_search.h"
@@ -299,7 +301,7 @@ uint32_t cl_search_ascii(cl_search_t *search, const char *needle, uint8_t length
          {
             if (!memcmp(&haystack[j], needle, length))
             {
-               sbank->valid[j] = TRUE;
+               sbank->valid[j] = true;
                matches_this_bank++;
             }
          }

@@ -1,6 +1,9 @@
 #ifndef CL_SCRIPT_C
 #define CL_SCRIPT_C
 
+#include <stdarg.h>
+#include <string.h>
+
 #include "cl_script.h"
 #include "frontend/cl_frontend.h"
 

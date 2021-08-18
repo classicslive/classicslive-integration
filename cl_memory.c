@@ -1,6 +1,10 @@
 #ifndef CL_MEMORY_C
 #define CL_MEMORY_C
 
+#if CL_LIBRETRO == true
+#include <libretro.h>
+#endif
+
 #include "cl_common.h"
 #include "cl_memory.h"
 
@@ -12,12 +16,14 @@ cl_membank_t* cl_find_membank(uint32_t address)
       return NULL;
    else
    {
+      cl_membank_t *bank;
       uint8_t i;
 
       for (i = 0; i < memory.bank_count; i++)
       {
-         if (memory.banks[i].start <= address && address < memory.banks[i].start + memory.banks[i].size)
-            return &memory.banks[i];
+         bank = &memory.banks[i];
+         if (bank->start <= address && address < bank->start + bank->size)
+            return bank;
       }
    }
 
@@ -135,7 +141,7 @@ void cl_sort_membanks(cl_membank_t *banks, uint8_t count)
    }
 }
 
-#ifdef LIBRETRO_H__
+#if CL_LIBRETRO == true
 bool cl_init_membanks_libretro(struct retro_memory_descriptor **descs, 
    const unsigned num_descs)
 {

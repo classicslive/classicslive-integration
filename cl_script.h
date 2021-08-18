@@ -47,7 +47,7 @@ void      cl_free_script       ();
 uint32_t* cl_get_counter       (uint8_t counter_number);
 bool      cl_get_counter_value (uint32_t *buffer, uint8_t counter_num);
 bool      cl_init_script       (const char **pos);
-bool      cl_update_script     ();
+bool      cl_update_script     (void);
 
 /**
  * Signals to halt processing of the script and core. Used when debugging 

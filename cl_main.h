@@ -3,7 +3,7 @@
 
 #include "cl_types.h"
 
-bool cl_init(struct retro_game_info *info);
+bool cl_init(const void *data, const unsigned size, const char *info_path);
 bool cl_run();
 
 extern cl_session_t session;

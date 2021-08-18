@@ -1,6 +1,10 @@
 #ifndef CL_COMMON_C
 #define CL_COMMON_C
 
+#include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
+
 #include "cl_common.h"
 #include "frontend/cl_frontend.h"
 

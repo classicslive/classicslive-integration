@@ -1,7 +1,8 @@
 #ifndef CL_MAIN_C
 #define CL_MAIN_C
 
-#define CL_HAVE_EDITOR true
+#include <file/file_path.h>
+#include <string/stdstring.h>
 
 #include "cl_common.h"
 #include "cl_identify.h"
@@ -10,6 +11,9 @@
 #include "cl_memory.h"
 #include "cl_network.h"
 #include "cl_script.h"
+#include "frontend/cl_frontend.h"
+
+#include "../../configuration.h"
 
 /* Call C++ code only if the editor is built in */
 #ifdef CL_HAVE_EDITOR
@@ -18,58 +22,6 @@ void cle_run();
 #endif
 
 cl_session_t session;
-
-bool cl_init_membanks_retroarch()
-{
-   rarch_system_info_t* sys_info = runloop_get_system_info();
-   unsigned num_descs;
-
-   if (!sys_info)
-      return false;
-   num_descs = sys_info->mmaps.num_descriptors;
-
-   /* 
-      If a RetroArch mmap is available, copy it into a temporary array of 
-      libretro descriptors, then run the generic libretro initializer.
-   */
-   if (num_descs > 0)
-   {
-      struct retro_memory_descriptor **descs = (struct retro_memory_descriptor**)calloc(sizeof(struct retro_memory_descriptor*), num_descs);
-      bool success;
-      unsigned i;
-
-      for (i = 0; i < num_descs; i++)
-         descs[i] = &sys_info->mmaps.descriptors[i].core;
-      success = cl_init_membanks_libretro(descs, num_descs);
-      free(descs);
-
-      return success;
-   }
-   /* No mmaps; we try retro_get_memory_data instead */
-   else
-   {
-      retro_ctx_memory_info_t mem_info;
-
-      mem_info.id = RETRO_MEMORY_SYSTEM_RAM;
-      core_get_memory(&mem_info);
-
-      /* Nothing here either, let's give up */
-      if (!mem_info.data || !mem_info.size)
-         return false;
-
-      /* Copy RETRO_MEMORY_SYSTEM_RAM data into a single CL membank */
-      memory.banks = (cl_membank_t*)malloc(sizeof(cl_membank_t));
-      memory.banks[0].data = (uint8_t*)mem_info.data;
-      memory.banks[0].size = mem_info.size;
-      memory.banks[0].start = 0;
-      snprintf(memory.banks[0].title, sizeof(memory.banks[0].title), "%s", "RETRO_MEMORY_SYSTEM_RAM");
-      memory.bank_count = 1;
-
-      cl_log("Using RETRO_MEMORY_SYSTEM_RAM | %08X bytes\n", memory.banks[0].size);
-
-      return true;
-   }
-}
 
 bool cl_init_session(const char* json)
 {
@@ -95,7 +47,7 @@ bool cl_init_session(const char* json)
       return false;
    cl_json_get(&memory.endianness,   json, "endianness",   CL_JSON_NUMBER, sizeof(memory.endianness));
    cl_json_get(&memory.pointer_size, json, "pointer_size", CL_JSON_NUMBER, sizeof(memory.pointer_size));
-   cl_init_membanks_retroarch();
+   cl_fe_install_membanks();
    session.ready = true;
 
    /* Script-related */
@@ -171,7 +123,7 @@ static void cl_post_login()
    task_push_http_post_transfer(CL_REQUEST_URL, post_data, CL_TASK_MUTE, "POST", cl_cb_login, post_data);
 }
 
-bool cl_init(struct retro_game_info *info)
+bool cl_init(const void *data, const unsigned size, const char *path)
 {
    settings_t *settings = config_get_ptr();
 
@@ -186,9 +138,9 @@ bool cl_init(struct retro_game_info *info)
       session.checksum[0]        = '\0';
       session.last_status_update = time(0);
       session.ready              = true;
-      strncpy(session.content_name, path_basename(info->path), sizeof(session.content_name) - 1);
+      strncpy(session.content_name, path_basename(path), sizeof(session.content_name) - 1);
 
-      cl_identify(info, session.checksum, cl_post_login);
+      cl_identify(data, size, path, session.checksum, cl_post_login);
 
       return true;
    }
@@ -199,7 +151,7 @@ bool cl_run()
    if (session.ready)
    {
       cl_update_memory();
-      cl_update_script(&script);
+      cl_update_script();
 
       /* Pingback every X seconds to update rich presence */
       if (time(0) >= session.last_status_update + CL_PRESENCE_INTERVAL)
