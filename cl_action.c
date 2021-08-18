@@ -338,6 +338,15 @@ static bool cl_act_addition(cl_action_t *action)
    }
 }
 
+static bool cl_act_modulo(cl_action_t *action)
+{
+   CL_TEMPLATE_CTR_BINARY
+   {
+      script.current_page->counters[ctr] %= src;
+      return true;
+   }
+}
+
 static bool cl_act_subtraction(cl_action_t *action)
 {
    CL_TEMPLATE_CTR_BINARY
