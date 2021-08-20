@@ -16,13 +16,19 @@ enum
 
 #include "cl_action.h"
 
+typedef struct cl_counter_t
+{
+   uint32_t type;
+   uint32_t value;
+} cl_counter_t;
+
 typedef struct cl_page_t
 {
    cl_action_t *actions;
    uint16_t     action_count;
 
    /* Temporary values (bitflags, counters) we can use for logic */
-   uint32_t     counters[CL_COUNTERS_SIZE];
+   cl_counter_t counters[CL_COUNTERS_SIZE];
 
    uint32_t     flags;
 } cl_page_t;

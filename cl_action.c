@@ -1,6 +1,8 @@
 #ifndef CL_ACTION_C
 #define CL_ACTION_C
 
+#include <math.h>
+
 #include "cl_action.h"
 #include "cl_memory.h"
 #include "cl_network.h"
@@ -200,7 +202,7 @@ static bool cl_act_write(cl_action_t *action)
          case CL_SRCTYPE_CURRENT_RAM:
             return cl_write_memnote(action->arguments[1], &src);
          case CL_SRCTYPE_COUNTER:
-            script.current_page->counters[action->arguments[1]] = src;
+            script.current_page->counters[action->arguments[1]].value = src;
             break;
          default:
             return false;
@@ -245,7 +247,7 @@ static bool cl_act_bitwise_and(cl_action_t *action)
 {
    CL_TEMPLATE_CTR_BINARY
    {
-      script.current_page->counters[ctr] &= src;
+      script.current_page->counters[ctr].value &= src;
       return true;
    }
 }
@@ -254,7 +256,7 @@ static bool cl_act_bitwise_flip(cl_action_t *action)
 {
    CL_TEMPLATE_CTR_UNARY
    {
-      script.current_page->counters[ctr] = ~script.current_page->counters[ctr];
+      script.current_page->counters[ctr].value = ~script.current_page->counters[ctr].value;
       return true;
    }
 }
@@ -263,7 +265,7 @@ static bool cl_act_bitwise_or(cl_action_t *action)
 {
    CL_TEMPLATE_CTR_BINARY
    {
-      script.current_page->counters[ctr] |= src;
+      script.current_page->counters[ctr].value |= src;
       return true;
    }
 }
@@ -272,7 +274,7 @@ static bool cl_act_bitwise_xor(cl_action_t *action)
 {
    CL_TEMPLATE_CTR_BINARY
    {
-      script.current_page->counters[ctr] ^= src;
+      script.current_page->counters[ctr].value ^= src;
       return true;
    }
 }
@@ -281,12 +283,12 @@ static bool cl_act_shift_left(cl_action_t *action)
 {
    CL_TEMPLATE_CTR_BINARY
    {
-      if (src > sizeof(script.current_page->counters[ctr]))
+      if (src > sizeof(script.current_page->counters[ctr].value))
       {
          cl_script_break(false, "Attempted left shift past maximum length.");
          return false;
       }
-      script.current_page->counters[ctr] <<= src;
+      script.current_page->counters[ctr].value <<= src;
          
       return true;
    }
@@ -296,12 +298,12 @@ static bool cl_act_shift_right(cl_action_t *action)
 {
    CL_TEMPLATE_CTR_BINARY
    {
-      if (src > sizeof(script.current_page->counters[ctr]))
+      if (src > sizeof(script.current_page->counters[ctr].value))
       {
          cl_script_break(false, "Attempted right shift past maximum length.");
          return false;
       }
-      script.current_page->counters[ctr] >>= src;
+      script.current_page->counters[ctr].value >>= src;
          
       return true;
    }
@@ -314,7 +316,7 @@ static bool cl_act_multiplication(cl_action_t *action)
 {
    CL_TEMPLATE_CTR_BINARY
    {
-      script.current_page->counters[ctr] *= src;
+      script.current_page->counters[ctr].value *= src;
       return true;
    }
 }
@@ -323,16 +325,16 @@ static bool cl_act_addition(cl_action_t *action)
 {
    CL_TEMPLATE_CTR_BINARY
    {
-      uint32_t result = script.current_page->counters[ctr] + src;
-      bool overflow = result < script.current_page->counters[ctr];
+      uint32_t result = script.current_page->counters[ctr].value + src;
+      bool overflow = result < script.current_page->counters[ctr].value;
 
       if (overflow)
       {
          cl_script_break(false, "Addition overflow (%u + %u == %u)",
-            script.current_page->counters[ctr], src, result);
+            script.current_page->counters[ctr].value, src, result);
          return false;
       }
-      script.current_page->counters[ctr] = result;
+      script.current_page->counters[ctr].value = result;
       
       return true;
    }
@@ -342,7 +344,7 @@ static bool cl_act_modulo(cl_action_t *action)
 {
    CL_TEMPLATE_CTR_BINARY
    {
-      script.current_page->counters[ctr] %= src;
+      script.current_page->counters[ctr].value %= src;
       return true;
    }
 }
@@ -351,16 +353,16 @@ static bool cl_act_subtraction(cl_action_t *action)
 {
    CL_TEMPLATE_CTR_BINARY
    {
-      uint32_t result = script.current_page->counters[ctr] - src;
-      bool underflow = result > script.current_page->counters[ctr];
+      uint32_t result = script.current_page->counters[ctr].value - src;
+      bool underflow = result > script.current_page->counters[ctr].value;
 
       if (underflow)
       {
          cl_script_break(false, "Subtraction underflow (%u - %u == %u)",
-            script.current_page->counters[ctr], src, result);
+            script.current_page->counters[ctr].value, src, result);
          return false;
       }
-      script.current_page->counters[ctr] = result;
+      script.current_page->counters[ctr].value = result;
       
       return true;
    }

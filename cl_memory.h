@@ -5,6 +5,7 @@
    as well as on timed intervals to retrieve a play status string. */
 #define CL_MEMFLAG_RICH    0
 
+#define CL_MEMTYPE_NOT_SET 0
 #define CL_MEMTYPE_1BIT_A  1
 #define CL_MEMTYPE_1BIT_B  2
 #define CL_MEMTYPE_1BIT_C  3

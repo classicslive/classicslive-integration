@@ -30,7 +30,7 @@ uint32_t* cl_get_counter(uint8_t counter_num)
    if (!script.current_page || CL_COUNTERS_SIZE <= counter_num)
       return NULL;
    else
-      return &script.current_page->counters[counter_num];
+      return &script.current_page->counters[counter_num].value;
 }
 
 bool cl_get_counter_value(uint32_t *buffer, uint8_t counter_num)
@@ -38,7 +38,7 @@ bool cl_get_counter_value(uint32_t *buffer, uint8_t counter_num)
    if (!script.current_page || CL_COUNTERS_SIZE <= counter_num)
       return false;
    else
-      *buffer = script.current_page->counters[counter_num];
+      *buffer = script.current_page->counters[counter_num].value;
 
    return true;
 }
@@ -85,8 +85,9 @@ bool cl_init_page(const char **pos, cl_page_t *page)
       
       cl_log("\n");
    }
-   /* TODO: Arbitrary allocation */
+   /* Zero-init the page's counters */
    memset(&page->counters, 0, sizeof(page->counters));
+   
    cl_log("End of page.\n");
 
    return page->actions != 0;

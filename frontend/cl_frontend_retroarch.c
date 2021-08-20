@@ -23,7 +23,9 @@ bool cl_fe_install_membanks(void)
    */
    if (num_descs > 0)
    {
-      struct retro_memory_descriptor **descs = (struct retro_memory_descriptor**)calloc(sizeof(struct retro_memory_descriptor*), num_descs);
+      struct retro_memory_descriptor **descs = 
+         (struct retro_memory_descriptor**)calloc(
+            sizeof(struct retro_memory_descriptor*), num_descs);
       bool success;
       unsigned i;
 
