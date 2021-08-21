@@ -3,7 +3,7 @@
 #include "cl_frontend.h"
 #include "../cl_memory.h"
 
-void cl_fe_display_error(const char *msg)
+void cl_fe_display_message(unsigned level, const char *msg)
 {
    runloop_msg_queue_push(msg, 0, 2 * 60, false, NULL, 0, 0);
 }

@@ -8,10 +8,11 @@
  **/
 
 /**
- * Signals to the frontend to display an error message.
+ * Signals to the frontend to display a message.
+ * @param level The severity of the message. For example, CL_MSG_WARNING.
  * @param msg The message to be displayed.
  **/
-void cl_fe_display_error(const char *msg);
+void cl_fe_display_message(unsigned level, const char *msg);
 
 /**
  * Signals to the frontend to write memory bank data into the global "memory"

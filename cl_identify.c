@@ -198,7 +198,7 @@ uint8_t* cl_identify_ncch(const char *path)
    if (!read_bytes)
       free(data);
    else if (memcmp(&data[0x100], "NCCH", 4))
-      cl_error("Invalid NCCH header.");
+      cl_message(CL_MSG_ERROR, "Invalid NCCH header.");
    else
    {
       cl_log("Product code: %s\n", &data[0x150]);

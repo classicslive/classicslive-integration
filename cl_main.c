@@ -38,7 +38,7 @@ bool cl_init_session(const char* json)
    else
       return false;
    if (cl_json_get(&session.game_name, json, "title", CL_JSON_STRING, sizeof(session.game_name)))
-      cl_error("Game name: %s\n", session.game_name);
+      cl_message(CL_MSG_INFO, "Game name: %s\n", session.game_name);
    cl_json_get(&session.game_id, json, "game_id", CL_JSON_NUMBER, sizeof(session.game_id));
 
    /* Memory-related */
@@ -79,9 +79,9 @@ static void cl_cb_login(struct retro_task *task, void *task_data, void *user_dat
          char reason[256];
 
          if (cl_json_get(&reason, response->data, "reason", CL_JSON_STRING, 0))
-            cl_error(reason);
+            cl_message(CL_MSG_ERROR, reason);
          else
-            cl_error("Unknown error with login.");
+            cl_message(CL_MSG_ERROR, "Unknown error with login.");
       }
       else
       {
@@ -100,7 +100,7 @@ static void cl_cb_login(struct retro_task *task, void *task_data, void *user_dat
 
 bool cl_post_empty_login()
 {
-   cl_error("Please enter your password to sign in.");
+   cl_message(CL_MSG_ERROR, "Please enter your password to sign in.");
 
    return false;
 }

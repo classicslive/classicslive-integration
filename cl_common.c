@@ -8,7 +8,7 @@
 #include "cl_common.h"
 #include "frontend/cl_frontend.h"
 
-void cl_error(const char *format, ...)
+void cl_message(unsigned level, const char *format, ...)
 {
 #if CL_SHOW_ERRORS == true
    char msg[256];
@@ -17,7 +17,7 @@ void cl_error(const char *format, ...)
    va_start(argv, format);
    vsprintf(msg, format, argv);
    msg[sizeof(msg) - 1] = '\0';
-   cl_fe_display_error(msg);
+   cl_fe_display_message(level, msg);
    va_end(argv);
 #endif
 }

@@ -18,10 +18,14 @@
 #define CL_ENDIAN_LITTLE       0
 #define CL_ENDIAN_BIG          1
 
-void cl_error(const char *format, ...);
-void cl_log  (const char *format, ...);
-bool cl_read (uint32_t *dest, const uint8_t *src, uint32_t offset, uint8_t size, uint8_t endianness);
-bool cl_write(uint8_t *dest, const void *src, uint32_t offset, uint8_t size, uint8_t endianness);
-bool cl_strto(const char **pos, void *value, uint8_t size, bool is_signed);
+#define CL_MSG_INFO    1
+#define CL_MSG_WARNING 2
+#define CL_MSG_ERROR   3
+
+void cl_message(unsigned level, const char *format, ...);
+void cl_log    (const char *format, ...);
+bool cl_read   (uint32_t *dest, const uint8_t *src, uint32_t offset, uint8_t size, uint8_t endianness);
+bool cl_write  (uint8_t *dest, const void *src, uint32_t offset, uint8_t size, uint8_t endianness);
+bool cl_strto  (const char **pos, void *value, uint8_t size, bool is_signed);
 
 #endif
