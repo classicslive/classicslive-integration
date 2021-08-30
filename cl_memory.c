@@ -5,6 +5,8 @@
 #include <libretro.h>
 #endif
 
+#include <string.h>
+
 #include "cl_common.h"
 #include "cl_memory.h"
 
@@ -85,7 +87,59 @@ bool cl_get_memnote_flag_from_key(uint32_t key, uint8_t flag)
       return cl_get_memnote_flag(note, flag);
 }
 
-bool cl_get_memnote_value(uint32_t *value, cl_memnote_t *note, uint8_t type)
+bool cl_cast(void *dst, void *src, unsigned dst_type, unsigned src_type)
+{
+   if (!dst || !src)
+      return false;
+   else if (dst_type == CL_MEMTYPE_32BIT)
+   {
+      uint32_t result;
+
+      switch (src_type)
+      {
+      case CL_MEMTYPE_8BIT:
+         result = (uint32_t)(*((uint8_t*)src));
+         break;
+      case CL_MEMTYPE_16BIT:
+         result = (uint32_t)(*((uint16_t*)src));
+         break;
+      case CL_MEMTYPE_FLOAT:
+         result = (uint32_t)(*((float*)src));
+         break;
+      default:
+         return false;
+      }
+      *((uint32_t*)dst) = result;
+
+      return true;
+   }
+   else if (dst_type == CL_MEMTYPE_FLOAT)
+   {
+      float result;
+
+      switch (src_type)
+      {
+      case CL_MEMTYPE_8BIT:
+         result = (float)(*((uint8_t*)src));
+         break;
+      case CL_MEMTYPE_16BIT:
+         result = (float)(*((uint16_t*)src));
+         break;
+      case CL_MEMTYPE_32BIT:
+         result = (float)(*((uint32_t*)src));
+         break;
+      default:
+         return false;
+      }
+      *((float*)dst) = result;
+
+      return true;
+   }
+
+   return false;
+}
+
+bool cl_get_memnote_value(void *value, cl_memnote_t *note, uint8_t type)
 {
    if (!note)
       return false;
@@ -94,25 +148,18 @@ bool cl_get_memnote_value(uint32_t *value, cl_memnote_t *note, uint8_t type)
       switch (type)
       {
       case CL_SRCTYPE_CURRENT_RAM:
-         *value = note->value_current;
-         break;
+         return cl_cast(value, note->value_current, type, note->type);
       case CL_SRCTYPE_PREVIOUS_RAM:
-         *value = note->value_previous;
-         break;
+         return cl_cast(value, note->value_previous, type, note->type);
       case CL_SRCTYPE_LAST_UNIQUE_RAM:
-         *value = note->value_last_unique;
-         break;
-      default:
-         return false;
+         return cl_cast(value, note->value_last_unique, type, note->type);
       }
+
+      return false;
    }
-   if (note->type == CL_MEMTYPE_FLOAT)
-      *value = *((float*)value);
-   
-   return true;
 }
 
-bool cl_get_memnote_value_from_key(uint32_t *value, uint32_t key, uint8_t type)
+bool cl_get_memnote_value_from_key(void *value, uint32_t key, uint8_t type)
 {
    cl_memnote_t *note = cl_find_memnote(key);
 
@@ -238,7 +285,7 @@ bool cl_init_memory(const char **pos)
    return true;
 }
 
-bool cl_read_memory(uint32_t *value, cl_membank_t *bank, uint32_t address, uint8_t size)
+bool cl_read_memory(void *value, cl_membank_t *bank, uint32_t address, uint8_t size)
 {
    uint8_t i;
 
@@ -311,7 +358,7 @@ bool cl_memnote_resolve_ptrs(uint32_t *address, const cl_memnote_t *note)
    return true;
 }
 
-void cl_update_memory()
+void cl_update_memory(void)
 {
    uint32_t      address;
    bool          error;
@@ -333,7 +380,7 @@ void cl_update_memory()
       value   = 0;
 
       /* The "previous" value is the value from the previous frame */
-      note->value_previous = note->value_current;
+      memcpy(note->value_previous, note->value_current, cl_sizeof_memtype(note->type));
 
       /* Handle values that require pointer follows */
       for (j = 0; j < note->pointer_passes; j++)
@@ -351,12 +398,11 @@ void cl_update_memory()
          continue;
 
       /* Update memnote values based on their reported size */
-      if (cl_read_memory(&value, NULL, address, cl_sizeof_memtype(note->type)))
-         note->value_current = value;
+      cl_read_memory(note->value_current, NULL, address, cl_sizeof_memtype(note->type));
 
       /* Logic for "last unique" values; the previous value will persist */
-      if (note->value_previous != note->value_current)
-         note->value_last_unique = note->value_previous;
+      if (memcmp(note->value_previous, note->value_current, cl_sizeof_memtype(note->type)))
+         memcpy(note->value_last_unique, note->value_previous, cl_sizeof_memtype(note->type));
    }
 }
 

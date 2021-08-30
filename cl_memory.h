@@ -76,18 +76,18 @@ typedef struct cl_membank_t
 **/
 typedef struct cl_memnote_t
 {
-   uint32_t  key;
-   uint32_t  order;
-   uint32_t  address;
+   uint32_t key;
+   uint32_t order;
+   uint32_t address;
 
    /* TODO: Set these back to correct sizes */
-   uint32_t  flags;
-   uint32_t  type;
+   uint32_t flags;
+   uint32_t type;
 
    /* Stored values */
-   uint32_t  value_current;
-   uint32_t  value_previous;
-   uint32_t  value_last_unique;
+   void *value_current;
+   void *value_previous;
+   void *value_last_unique;
 
    /* For following pointers to get RAM values */
    int32_t  *pointer_offsets;
@@ -160,8 +160,8 @@ bool cl_get_memnote_flag_from_key(uint32_t key, uint8_t flag);
  * @param key A memory note key to be looked up automatically.
  * @param flag The memory note flag to check. For example, CL_MEMFLAG_RICH.
  **/
-bool cl_get_memnote_value(uint32_t *value, cl_memnote_t *note, uint8_t type);
-bool cl_get_memnote_value_from_key(uint32_t *value, uint32_t key, uint8_t type);
+bool cl_get_memnote_value(void *value, cl_memnote_t *note, uint8_t type);
+bool cl_get_memnote_value_from_key(void *value, uint32_t key, uint8_t type);
 
 /* Populate a memory holder with values returned by the web API */
 bool cl_init_memory(const char **pos);
@@ -174,7 +174,7 @@ bool cl_init_memory(const char **pos);
  * @param address The virtual memory address to read from.
  * @param size The number of bytes to read.
  **/
-bool cl_read_memory(uint32_t *value, cl_membank_t *bank, uint32_t address, 
+bool cl_read_memory(void *value, cl_membank_t *bank, uint32_t address, 
    uint8_t size);
 
 /**
@@ -188,7 +188,7 @@ unsigned cl_sizeof_memtype(const unsigned type);
  * Steps through all memory notes and updates their values. Should be called 
  * once per frame.
  **/
-void cl_update_memory();
+void cl_update_memory(void);
 
 /**
  * Writes the given data to a location in emulated virtual memory.

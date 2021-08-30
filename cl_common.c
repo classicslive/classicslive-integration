@@ -33,22 +33,33 @@ void cl_log(const char *format, ...)
 #endif
 }
 
-bool cl_read(uint32_t *dest, const uint8_t *src, uint32_t offset, 
+bool cl_read(void *dest, const uint8_t *src, uint32_t offset, 
    uint8_t size, uint8_t endianness)
 {
    if (src && size > 0)
    {
-      *dest = 0;
       memcpy(dest, &src[offset], size);
 
       /* Byte swap if necessary */
-#ifdef MSB_FIRST
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
       if (endianness == CL_ENDIAN_LITTLE)
-         *dest = __builtin_bswap32(*dest) << ((4 - size) * 8);
 #else
       if (endianness == CL_ENDIAN_BIG)
-         *dest = __builtin_bswap32(*dest) >> ((4 - size) * 8);
 #endif
+      {
+         switch (size)
+         {
+         case 2:
+            *((uint16_t*)dest) = __builtin_bswap16(*((uint16_t*)dest));
+            break;
+         case 4:
+            *((uint32_t*)dest) = __builtin_bswap32(*((uint32_t*)dest));
+            break;
+         case 8:
+            *((uint64_t*)dest) = __builtin_bswap64(*((uint64_t*)dest));
+            break;
+         }
+      }
 
       return true;
    }
@@ -58,7 +69,7 @@ bool cl_read(uint32_t *dest, const uint8_t *src, uint32_t offset,
 
 bool cl_strto(const char **pos, void *value, uint8_t size, bool is_signed)
 {
-   char* end = NULL;
+   char *end = NULL;
 
    if (**pos == '\0')
       return false;
