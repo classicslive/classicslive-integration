@@ -12,7 +12,7 @@
 
 cl_memory_t memory;
 
-cl_membank_t* cl_find_membank(uint32_t address)
+cl_membank_t* cl_find_membank(cl_addr_t address)
 {
    if (!memory.bank_count)
       return NULL;
@@ -252,7 +252,7 @@ bool cl_init_memory(const char **pos)
       new_memnote = &memory.notes[i];
 
       if (!(cl_strto(pos, &new_memnote->key,            4, false) &&
-            cl_strto(pos, &new_memnote->address,        4, false) &&
+            cl_strto(pos, &new_memnote->address, sizeof(cl_addr_t), false) &&
             cl_strto(pos, &new_memnote->type,           1, false) &&
             cl_strto(pos, &new_memnote->flags,          1, false) &&
             cl_strto(pos, &new_memnote->pointer_passes, 1, false)))
@@ -293,7 +293,7 @@ bool cl_init_memory(const char **pos)
    return true;
 }
 
-bool cl_read_memory(void *value, cl_membank_t *bank, uint32_t address, uint8_t size)
+bool cl_read_memory(void *value, cl_membank_t *bank, cl_addr_t address, uint8_t size)
 {
    uint8_t i;
 
@@ -350,10 +350,10 @@ unsigned cl_sizeof_memtype(const unsigned type)
  * @param note A pointer to the memory note to have its address resolved.
  * @return Whether or not the final address could be inferred from the note.
  **/
-bool cl_memnote_resolve_ptrs(uint32_t *address, const cl_memnote_t *note)
+bool cl_memnote_resolve_ptrs(cl_addr_t *address, const cl_memnote_t *note)
 {
-   uint32_t final_addr = note->address;
-   unsigned i;
+   cl_addr_t final_addr = note->address;
+   unsigned  i;
 
    for (i = 0; i < note->pointer_passes; i++)
    {
@@ -368,7 +368,7 @@ bool cl_memnote_resolve_ptrs(uint32_t *address, const cl_memnote_t *note)
 
 void cl_update_memory(void)
 {
-   uint32_t      address;
+   cl_addr_t     address;
    bool          error;
    cl_memnote_t *note;
    uint32_t      value;
@@ -414,7 +414,7 @@ void cl_update_memory(void)
    }
 }
 
-bool cl_write_memory(cl_membank_t *bank, uint32_t address, uint8_t size, 
+bool cl_write_memory(cl_membank_t *bank, cl_addr_t address, uint8_t size, 
    const void *value)
 {
    uint8_t i;
@@ -440,7 +440,7 @@ bool cl_write_memnote(uint32_t key, const void *value)
       return false;
    else
    {
-      uint32_t address;
+      cl_addr_t     address;
       cl_memnote_t *note = cl_find_memnote(key);
 
       if (!note)

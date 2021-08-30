@@ -76,9 +76,9 @@ typedef struct cl_membank_t
 **/
 typedef struct cl_memnote_t
 {
-   uint32_t key;
-   uint32_t order;
-   uint32_t address;
+   uint32_t  key;
+   uint32_t  order;
+   cl_addr_t address;
 
    /* TODO: Set these back to correct sizes */
    uint32_t flags;
@@ -119,7 +119,7 @@ typedef struct cl_memory_t
  * @param address A virtual memory address.
  * @return A pointer to the memory bank, or NULL if one is not found.
  **/
-cl_membank_t* cl_find_membank(uint32_t address);
+cl_membank_t* cl_find_membank(cl_addr_t address);
 
 /**
  * Frees all values contained within the global memory context.
@@ -174,7 +174,7 @@ bool cl_init_memory(const char **pos);
  * @param address The virtual memory address to read from.
  * @param size The number of bytes to read.
  **/
-bool cl_read_memory(void *value, cl_membank_t *bank, uint32_t address, 
+bool cl_read_memory(void *value, cl_membank_t *bank, cl_addr_t address, 
    uint8_t size);
 
 /**
@@ -199,7 +199,7 @@ void cl_update_memory(void);
  * @param value A pointer to the source data.
  * @return Whether or not the write succeeded.
  **/
-bool cl_write_memory(cl_membank_t *bank, uint32_t address, uint8_t size, 
+bool cl_write_memory(cl_membank_t *bank, cl_addr_t address, uint8_t size, 
    const void *value);
 
 /**

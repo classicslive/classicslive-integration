@@ -24,8 +24,8 @@
 
 void cl_message(unsigned level, const char *format, ...);
 void cl_log    (const char *format, ...);
-bool cl_read   (void *dest, const uint8_t *src, uint32_t offset, unsigned size, unsigned endianness);
-bool cl_write  (uint8_t *dest, const void *src, uint32_t offset, uint8_t size, uint8_t endianness);
+bool cl_read   (void *dest, const uint8_t *src, cl_addr_t offset, unsigned size, unsigned endianness);
+bool cl_write  (uint8_t *dest, const void *src, cl_addr_t offset, uint8_t size, uint8_t endianness);
 bool cl_strto  (const char **pos, void *value, uint8_t size, bool is_signed);
 
 #endif

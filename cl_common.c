@@ -33,7 +33,7 @@ void cl_log(const char *format, ...)
 #endif
 }
 
-bool cl_read(void *dest, const uint8_t *src, uint32_t offset, unsigned size, 
+bool cl_read(void *dest, const uint8_t *src, cl_addr_t offset, unsigned size, 
    unsigned endianness)
 {
    if (src && size > 0)
@@ -102,7 +102,7 @@ bool cl_strto(const char **pos, void *value, uint8_t size, bool is_signed)
    return true;
 }
 
-bool cl_write(uint8_t *dest, const void *src, uint32_t offset, uint8_t size, uint8_t endianness)
+bool cl_write(uint8_t *dest, const void *src, cl_addr_t offset, uint8_t size, uint8_t endianness)
 {
    uint8_t i;
 

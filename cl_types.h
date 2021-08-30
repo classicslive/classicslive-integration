@@ -24,4 +24,10 @@ typedef struct cl_session_t
    bool     ready;
 } cl_session_t;
 
+/*
+   A virtual address for the emulated system. This will need to be bumped to 64
+   bits at some point.
+*/
+typedef uint32_t cl_addr_t;
+
 #endif
