@@ -53,6 +53,9 @@ cl_memnote_t* cl_find_memnote(uint32_t key)
 
 void cl_free_memnote(cl_memnote_t *note)
 {
+   free(note->value_current);
+   free(note->value_previous);
+   free(note->value_last_unique);
    free(note->pointer_offsets);
    note->pointer_passes  = 0;
    note->pointer_offsets = NULL;
@@ -260,6 +263,11 @@ bool cl_init_memory(const char **pos)
        cl_sizeof_memtype(new_memnote->type),
        new_memnote->pointer_passes,
        new_memnote->address);
+
+      /* Allocate the tracked values based on the data type of the memnote */
+      new_memnote->value_current     = calloc(1, cl_sizeof_memtype(new_memnote->type));
+      new_memnote->value_previous    = calloc(1, cl_sizeof_memtype(new_memnote->type));
+      new_memnote->value_last_unique = calloc(1, cl_sizeof_memtype(new_memnote->type));
 
       /* Initialize offsets for pointer-chain variables */
       if (new_memnote->pointer_passes > 0)

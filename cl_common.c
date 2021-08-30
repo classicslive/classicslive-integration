@@ -33,8 +33,8 @@ void cl_log(const char *format, ...)
 #endif
 }
 
-bool cl_read(void *dest, const uint8_t *src, uint32_t offset, 
-   uint8_t size, uint8_t endianness)
+bool cl_read(void *dest, const uint8_t *src, uint32_t offset, unsigned size, 
+   unsigned endianness)
 {
    if (src && size > 0)
    {
