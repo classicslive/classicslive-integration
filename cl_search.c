@@ -9,7 +9,7 @@
 #include "cl_search.h"
 
 cl_searchbank_t* cl_searchbank_from_address(cl_search_t *search, 
-   uint32_t address)
+   cl_addr_t address)
 {
    if (!search)
       return NULL;
@@ -79,7 +79,7 @@ bool cl_search_init(cl_search_t *search)
    }
 }
 
-bool cl_read_search(uint32_t *value, cl_search_t *search, cl_searchbank_t *sbank, uint32_t address)
+bool cl_read_search(uint32_t *value, cl_search_t *search, cl_searchbank_t *sbank, cl_addr_t address)
 {
    if (!sbank)
    {
@@ -111,7 +111,7 @@ bool cl_read_search(uint32_t *value, cl_search_t *search, cl_searchbank_t *sbank
    return false;
 }
 
-bool cl_search_remove(cl_search_t *search, uint32_t address)
+bool cl_search_remove(cl_search_t *search, cl_addr_t address)
 {
    cl_searchbank_t *sbank = cl_searchbank_from_address(search, address);
    bool removed;
@@ -259,11 +259,11 @@ bool compare_to_value_float(uint32_t previous, uint32_t current, uint8_t type,
    return false;
 }
 
-bool resolve_pointerresult(uint32_t *final_address, const cl_pointerresult_t *result, 
+bool resolve_pointerresult(cl_addr_t *final_address, const cl_pointerresult_t *result, 
    const uint8_t passes)
 {
-   uint32_t address = result->address_initial;
-   uint8_t i;
+   cl_addr_t address = result->address_initial;
+   uint8_t   i;
 
    for (i = 0; i < passes; i++)
    {
@@ -475,7 +475,7 @@ bool add_pass(cl_pointersearch_t* search, uint32_t range, uint32_t max_results)
 }
 
 bool cl_pointersearch_init(cl_pointersearch_t *search, 
-   uint32_t address, uint8_t val_type, uint8_t passes, uint32_t range, 
+   cl_addr_t address, uint8_t val_type, uint8_t passes, uint32_t range, 
    uint32_t max_results)
 {
    if (!search || address == 0 || passes == 0)
@@ -570,7 +570,8 @@ uint32_t cl_pointersearch_step(cl_pointersearch_t *search, void *value)
    else
    {
       cl_pointerresult_t *result;
-      uint32_t address, matches, final_value, valid_pointers;
+      cl_addr_t address;
+      uint32_t matches, final_value, valid_pointers;
       bool compare_result;
       uint8_t cmp_type = search->params.compare_type;
       uint32_t i, j;
