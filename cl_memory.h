@@ -25,6 +25,7 @@
 #define CL_MEMTYPE_32BIT   17
 #define CL_MEMTYPE_FLOAT   18
 #define CL_MEMTYPE_DOUBLE  19
+#define CL_MEMTYPE_64BIT   20
 
 #define CL_SRCTYPE_IMMEDIATE       0
 #define CL_SRCTYPE_CURRENT_RAM     1
@@ -56,10 +57,10 @@ typedef struct cl_membank_t
    uint8_t *data;
 
    /* The number of bytes this bank contains */
-   uint32_t size;
+   cl_addr_t size;
 
    /* The virtual location of the first byte of this bank's data */
-   uint32_t start;
+   cl_addr_t start;
 
    char title[256];
 } cl_membank_t;
@@ -128,7 +129,7 @@ void cl_memory_free();
 
 /**
  * Frees a memory note. Called automatically as part of cl_free_memory.
- * @param memnote The memory note to be freed
+ * @param note The memory note to be freed.
  **/
 void cl_free_memnote(cl_memnote_t *note);
 
