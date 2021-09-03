@@ -103,16 +103,23 @@ typedef struct cl_memnote_t
 #endif
 } cl_memnote_t;
 
+/**
+ * The global struct that contains information related to the content's memory,
+ * including user-defined memory notes.
+ **/
 typedef struct cl_memory_t
 {
    cl_memnote_t *notes;
-   cl_membank_t *banks;
    unsigned      note_count;
+
+   cl_membank_t *banks;
    unsigned      bank_count;
 
-   /* Metadata about the core that tells us how to read its values */
-   uint8_t       endianness;
-   uint8_t       pointer_size;
+   /* The endianness of the content's memory. For example, CL_ENDIAN_LITTLE. */
+   uint8_t endianness;
+
+   /* How many bytes the content uses for virtual addresses. */
+   uint8_t pointer_size;
 } cl_memory_t;
 
 /**
@@ -125,7 +132,7 @@ cl_membank_t* cl_find_membank(cl_addr_t address);
 /**
  * Frees all values contained within the global memory context.
  **/
-void cl_memory_free();
+void cl_memory_free(void);
 
 /**
  * Frees a memory note. Called automatically as part of cl_free_memory.
@@ -159,7 +166,7 @@ bool cl_get_memnote_flag_from_key(uint32_t key, uint8_t flag);
  * @param value A buffer for the value to be copied into. Should not be NULL.
  * @param note A pointer to a memory note.
  * @param key A memory note key to be looked up automatically.
- * @param flag The memory note flag to check. For example, CL_MEMFLAG_RICH.
+ * @param type The data type of the buffer. For example, CL_MEMTYPE_32BIT.
  **/
 bool cl_get_memnote_value(void *value, cl_memnote_t *note, uint8_t type);
 bool cl_get_memnote_value_from_key(void *value, uint32_t key, uint8_t type);

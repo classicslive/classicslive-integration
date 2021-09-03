@@ -336,6 +336,7 @@ unsigned cl_sizeof_memtype(const unsigned type)
    case CL_MEMTYPE_32BIT:
    case CL_MEMTYPE_FLOAT:
       return 4;
+   case CL_MEMTYPE_64BIT:
    case CL_MEMTYPE_DOUBLE:
       return 8;
    }
@@ -368,12 +369,11 @@ bool cl_memnote_resolve_ptrs(cl_addr_t *address, const cl_memnote_t *note)
 
 void cl_update_memory(void)
 {
-   cl_addr_t     address;
-   bool          error;
    cl_memnote_t *note;
-   uint32_t      value;
-   uint32_t      i;
-   uint8_t       j;
+   cl_addr_t     address, address_tmp;
+   unsigned      size;
+   bool          error;
+   unsigned      i, j;
 
    /* Have memory banks not been set up yet? */
    /* TODO: Maybe we should attempt to set up membanks here, like before */
@@ -382,43 +382,42 @@ void cl_update_memory(void)
 
    for (i = 0; i < memory.note_count; i++)
    {
-      note    = &memory.notes[i];
-      address = note->address;
-      error   = false;
-      value   = 0;
+      note        = &memory.notes[i];
+      address     = note->address;
+      address_tmp = 0;
+      size        = cl_sizeof_memtype(note->type);
+      error       = false;
 
       /* The "previous" value is the value from the previous frame */
-      memcpy(note->value_previous, note->value_current, cl_sizeof_memtype(note->type));
+      memcpy(note->value_previous, note->value_current, size);
 
       /* Handle values that require pointer follows */
       for (j = 0; j < note->pointer_passes; j++)
       {
-         if (!cl_read_memory(&value, NULL, address, memory.pointer_size))
+         if (!cl_read_memory(&address_tmp, NULL, address, memory.pointer_size))
          {
             /* Pointer leads to an invalid location */
             error = true;
             break;
          }
          else
-            address = value + note->pointer_offsets[j];
+            address = address_tmp + note->pointer_offsets[j];
       }
       if (error)
          continue;
 
       /* Update memnote values based on their reported size */
-      cl_read_memory(note->value_current, NULL, address, cl_sizeof_memtype(note->type));
+      cl_read_memory(note->value_current, NULL, address, size);
 
       /* Logic for "last unique" values; the previous value will persist */
-      if (memcmp(note->value_previous, note->value_current, cl_sizeof_memtype(note->type)))
-         memcpy(note->value_last_unique, note->value_previous, cl_sizeof_memtype(note->type));
+      if (memcmp(note->value_previous, note->value_current, size))
+         memcpy(note->value_last_unique, note->value_previous, size);
    }
 }
 
 bool cl_write_memory(cl_membank_t *bank, cl_addr_t address, uint8_t size, 
    const void *value)
 {
-   uint8_t i;
-
    if (!bank)
    {
       bank = cl_find_membank(address);

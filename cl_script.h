@@ -18,8 +18,8 @@ enum
 
 typedef struct cl_counter_t
 {
-   uint32_t type;
-   uint32_t value;
+   unsigned type;
+   uint64_t value;
 } cl_counter_t;
 
 typedef struct cl_page_t
