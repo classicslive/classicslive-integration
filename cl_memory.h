@@ -212,11 +212,13 @@ bool cl_write_memory(cl_membank_t *bank, cl_addr_t address, uint8_t size,
 
 /**
  * Writes the value referenced by a memory note with a given value.
+ * @param note A pointer to a memory note.
  * @param key The unique key of a memory note.
  * @param value A buffer containing the source value.
  * @return Whether or not the write succeeded.
  **/
-bool cl_write_memnote(uint32_t key, const void *value);
+bool cl_write_memnote(cl_memnote_t *note, const void *value);
+bool cl_write_memnote_from_key(uint32_t key, const void *value);
 
 extern cl_memory_t memory;
 

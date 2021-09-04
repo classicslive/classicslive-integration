@@ -418,7 +418,9 @@ void cl_update_memory(void)
 bool cl_write_memory(cl_membank_t *bank, cl_addr_t address, uint8_t size, 
    const void *value)
 {
-   if (!bank)
+   if (!size || !value)
+      return false;
+   else if (!bank)
    {
       bank = cl_find_membank(address);
       if (!bank)
@@ -433,22 +435,26 @@ bool cl_write_memory(cl_membank_t *bank, cl_addr_t address, uint8_t size,
    return false;
 }
 
-bool cl_write_memnote(uint32_t key, const void *value)
+bool cl_write_memnote(cl_memnote_t *note, const void *value)
 {
-   if (!value)
+   if (!note || !value)
       return false;
    else
    {
-      cl_addr_t     address;
-      cl_memnote_t *note = cl_find_memnote(key);
+      cl_addr_t address;
 
-      if (!note)
-         return false;
-      else if (cl_memnote_resolve_ptrs(&address, note))
+      if (cl_memnote_resolve_ptrs(&address, note))
          return cl_write_memory(NULL, address, cl_sizeof_memtype(note->type), value);
    }
-   
+
    return false;
+}
+
+bool cl_write_memnote_from_key(uint32_t key, const void *value)
+{
+   cl_memnote_t *note = cl_find_memnote(key);
+
+   return note ? cl_write_memnote(note, value) : false;
 }
 
 #endif
