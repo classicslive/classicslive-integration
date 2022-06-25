@@ -2,8 +2,8 @@
 #include <network/net_http_special.h>
 #include <tasks/tasks_internal.h>
 
-#include "cl_frontend.h"
-#include "../cl_memory.h"
+#include <frontend/cl_frontend.h>
+#include <cl_memory.h>
 
 void cl_fe_display_message(unsigned level, const char *msg)
 {
