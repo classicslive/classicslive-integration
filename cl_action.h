@@ -6,7 +6,6 @@
 #define CL_ACTTYPE_NO_PROCESS         '0'
 #define CL_ACTTYPE_BITS               'b'
 #define CL_ACTTYPE_COMPARE            'c'
-#define CL_ACTTYPE_HIT_COMPARE        'h'
 #define CL_ACTTYPE_CHANGED            'n'
 #define CL_ACTTYPE_POST_ACHIEVEMENT   'A'
 #define CL_ACTTYPE_ADDITION           'D'

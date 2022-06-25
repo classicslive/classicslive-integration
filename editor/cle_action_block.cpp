@@ -1,6 +1,3 @@
-#ifndef CLE_ACTION_BLOCK_CPP
-#define CLE_ACTION_BLOCK_CPP
-
 #include <QComboBox>
 #include <QLabel>
 #include <QLineEdit>
@@ -44,7 +41,8 @@ void CleActionBlock::mousePressEvent(QMouseEvent *event)
     m_DragPos.parent = mapToParent(event->pos());
     m_DragPos.self   = event->pos();
   }
-  else if (event->button() == Qt::RightButton)
+  /* Delete self if right-clicked, unless this is a bookend. */
+  else if (event->button() == Qt::RightButton && !isStart() && !isEnd())
     close();
 }
 
@@ -162,5 +160,3 @@ void CleActionBlock::setPosition(QPoint pos)
     CLE_BLOCK_HEIGHT * 1.5
   );
 }
-
-#endif

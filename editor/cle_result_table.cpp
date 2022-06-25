@@ -1,9 +1,12 @@
-#ifndef CLE_RESULT_TABLE_CPP
-#define CLE_RESULT_TABLE_CPP
-
 #include <QHeaderView>
 
+#include "cle_common.h"
 #include "cle_result_table.h"
+
+extern "C"
+{
+   #include "../cl_common.h"
+}
 
 QTableWidget* CleResultTable::getTable()
 {
@@ -38,4 +41,23 @@ void CleResultTable::init()
    m_CurrentEditedRow = -1;
 }
 
-#endif
+void CleResultTable::writeMemory(const cl_addr_t address,
+   const cl_search_params_t& params, const QString& string)
+{
+   void *value;
+   bool  ok;
+
+   if (params.value_type == CL_MEMTYPE_FLOAT)
+      value = new float(string.toFloat(&ok));
+   else if (params.value_type == CL_MEMTYPE_DOUBLE)
+      value = new double(string.toDouble(&ok));
+   else
+      value = new uint64_t(stringToValue(string, &ok));
+
+   if (ok)
+   {
+      cl_write_memory(NULL, address, params.size, value);
+      cl_log("Wrote %s to 0x%08X.\n", string.toStdString().c_str(), address);
+   }
+   free(value);
+}

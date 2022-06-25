@@ -1,8 +1,8 @@
-#ifndef CL_MAIN_C
-#define CL_MAIN_C
-
+#include <configuration.h>
+#include <core.h>
 #include <file/file_path.h>
 #include <string/stdstring.h>
+#include <tasks/tasks_internal.h>
 
 #include "cl_common.h"
 #include "cl_identify.h"
@@ -12,8 +12,6 @@
 #include "cl_network.h"
 #include "cl_script.h"
 #include "frontend/cl_frontend.h"
-
-#include "../../configuration.h"
 
 /* Call C++ code only if the editor is built in */
 #ifdef CL_HAVE_EDITOR
@@ -53,7 +51,7 @@ bool cl_init_session(const char* json)
    /* Script-related */
    iterator = &script_str[0];
    if (cl_json_get(script_str, json, "script", CL_JSON_STRING, sizeof(script_str)))
-      cl_init_script(&iterator);
+      cl_script_init(&iterator);
    else
       return false; // TODO
 
@@ -113,14 +111,14 @@ static void cl_post_login()
    snprintf
    (
       post_data, sizeof(post_data), 
-      "request=login&hash=%.32s&username=%s&password=%s&filename=%s", 
+      "hash=%.32s&username=%s&password=%s&filename=%s", 
       session.checksum,
       settings->CL_SETTINGS_USERNAME,
       settings->CL_SETTINGS_LOGIN_INFO,
       session.content_name
    );
 
-   task_push_http_post_transfer(CL_REQUEST_URL, post_data, CL_TASK_MUTE, "POST", cl_cb_login, post_data);
+   cl_network_post(CL_REQUEST_LOGIN, post_data, cl_cb_login);
 }
 
 bool cl_init(const void *data, const unsigned size, const char *path)
@@ -135,12 +133,20 @@ bool cl_init(const void *data, const unsigned size, const char *path)
       return cl_post_empty_login();
    else
    {
+      struct retro_system_info system_info;
+
+      core_get_system_info(&system_info);
+
+      /* Init session values */
       session.checksum[0]        = '\0';
       session.last_status_update = time(0);
       session.ready              = true;
-      strncpy(session.content_name, path_basename(path), sizeof(session.content_name) - 1);
+      strncpy(session.content_name, path_basename(path), 
+         sizeof(session.content_name) - 1);
 
-      cl_identify(data, size, path, session.checksum, cl_post_login);
+      /* Pass information off to content identification code */
+      cl_identify(data, size, path, system_info.library_name, session.checksum,
+         cl_post_login);
 
       return true;
    }
@@ -157,7 +163,7 @@ bool cl_run()
       if (time(0) >= session.last_status_update + CL_PRESENCE_INTERVAL)
       {
          session.last_status_update = time(0);
-         cl_network_post(CL_REQUEST_PING, "", NULL, NULL);
+         cl_network_post(CL_REQUEST_PING, "", NULL);
       }
 
    #ifdef CL_HAVE_EDITOR
@@ -172,9 +178,7 @@ bool cl_run()
 
 void cl_free()
 {
-   cl_network_post(CL_REQUEST_CLOSE, NULL, NULL, NULL);
+   cl_network_post(CL_REQUEST_CLOSE, "", NULL);
    cl_memory_free();
-   cl_free_script(&script);
+   cl_script_free();
 }
-
-#endif

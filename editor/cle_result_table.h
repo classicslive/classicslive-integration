@@ -22,7 +22,7 @@ public:
    /*
       Return an address representing the last clicked row.
    */
-   virtual uint32_t getClickedResultAddress() = 0;
+   virtual cl_addr_t getClickedResultAddress() = 0;
 
    /* 
       Return a pointer to the relevant search data.
@@ -76,6 +76,15 @@ protected:
       Set up the table. Should only be called once.
    */
    void init();
+
+   /**
+    * Writes user input from a result entry into emulated memory.
+    * @param address The address to write to.
+    * @param params The params of the search type.
+    * @param string The string the user entered into the result entry.
+    **/
+   void writeMemory(const cl_addr_t address, const cl_search_params_t& params,
+      const QString& string);
 };
 
 #endif

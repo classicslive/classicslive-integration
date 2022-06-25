@@ -23,11 +23,8 @@
 #define CL_POST_DATA_SIZE 2048
 #define CL_URL_SIZE       256
 
-#include "../../network/net_http_special.h"
-#include "../../tasks/tasks_internal.h"
-
 void cl_network_init(const char *new_session_id);
-void cl_network_post(const char *request, const char *post_data, retro_task_callback_t cb, void *user_data);
+void cl_network_post(const char *request, const char *post_data, void *callback);
 void cl_network_discord();
 
 #endif

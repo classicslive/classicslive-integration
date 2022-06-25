@@ -1,6 +1,3 @@
-#ifndef CL_MEMORY_C
-#define CL_MEMORY_C
-
 #if CL_LIBRETRO == true
 #include <libretro.h>
 #endif
@@ -456,5 +453,3 @@ bool cl_write_memnote_from_key(uint32_t key, const void *value)
 
    return note ? cl_write_memnote(note, value) : false;
 }
-
-#endif

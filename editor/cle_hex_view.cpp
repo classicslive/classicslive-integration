@@ -1,6 +1,3 @@
-#ifndef CLE_HEX_VIEW_CPP
-#define CLE_HEX_VIEW_CPP
-
 #include <string>
 
 #include <QBrush>
@@ -203,7 +200,7 @@ void CleHexWidget::onClickPointerSearch()
    emit requestPointerSearch(m_CursorOffset);
 }
 
-void CleHexWidget::onRightClick(uint32_t address, QPoint& pos)
+void CleHexWidget::onRightClick(cl_addr_t address, QPoint& pos)
 {
    if (address < m_Position || pos.isNull())
       return;
@@ -299,20 +296,28 @@ void CleHexWidget::repaintRect(const void *buffer, uint8_t index)
             *((uint8_t*)(buffer) + index));
          break;
       case 2:
-         {
-            uint16_t value = *((uint16_t*)(buffer) + index);
+      {
+         uint16_t value = *((uint16_t*)(buffer) + index);
 
-            snprintf(m_Texts[index], 16, "%04X", 
-               m_UseByteSwap ? __builtin_bswap16(value) : value);
-         }
+         snprintf(m_Texts[index], 16, "%04X", 
+            m_UseByteSwap ? __builtin_bswap16(value) : value);
+      }
          break;
       case 4:
-         {
-            uint32_t value = *((uint32_t*)(buffer) + index);
+      {
+         uint32_t value = *((uint32_t*)(buffer) + index);
 
-            snprintf(m_Texts[index], 16, "%08X", 
-               m_UseByteSwap ? __builtin_bswap32(value) : value);
-         }
+         snprintf(m_Texts[index], 16, "%08X", 
+            m_UseByteSwap ? __builtin_bswap32(value) : value);
+      }
+         break;
+      case 8:
+      {
+         uint64_t value = *((uint64_t*)(buffer) + index);
+         snprintf(m_Texts[index], 16, "%016llX", 
+            m_UseByteSwap ? __builtin_bswap64(value) : value);
+      }
+      break;
       }
    }
 
@@ -367,7 +372,7 @@ void CleHexWidget::setCursorOffset(uint32_t offset)
    update();
 }
 
-void CleHexWidget::setOffset(uint32_t offset)
+void CleHexWidget::setOffset(cl_addr_t offset)
 {
    uint8_t i;
 
@@ -395,7 +400,7 @@ void CleHexWidget::setOffset(uint32_t offset)
    emit offsetEdited(offset);
 }
 
-void CleHexWidget::setRange(uint32_t min, uint32_t max)
+void CleHexWidget::setRange(cl_addr_t min, cl_addr_t max)
 {
    m_PositionMin = min;
    m_PositionMax = max;
@@ -476,5 +481,3 @@ void CleHexWidget::wheelEvent(QWheelEvent* event)
    movePosition(amount * steps);
    event->accept();
 }
-
-#endif

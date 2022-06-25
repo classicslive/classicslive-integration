@@ -1,6 +1,3 @@
-#ifndef CLE_MEMORY_INSPECTOR_CPP
-#define CLE_MEMORY_INSPECTOR_CPP
-
 #include <QMessageBox>
 
 #include "cle_memory_inspector.h"
@@ -91,14 +88,14 @@ CleMemoryInspector::CleMemoryInspector()
    m_HexWidget = new CleHexWidget(this, 1);
    m_BufferPrevious = (uint8_t*)malloc(256);
    m_BufferCurrent  = (uint8_t*)malloc(256);
-   connect(m_HexWidget, SIGNAL(offsetEdited(uint32_t)), 
-      this, SLOT(onAddressChanged(uint32_t)));
+   connect(m_HexWidget, SIGNAL(offsetEdited(cl_addr_t)), 
+      this, SLOT(onAddressChanged(cl_addr_t)));
    connect(m_HexWidget, SIGNAL(valueEdited(uint32_t, uint8_t)), 
       this, SLOT(onHexWidgetValueEdited(uint32_t, uint8_t)));
-   connect(m_HexWidget, SIGNAL(requestAddMemoryNote(uint32_t)),
-      this, SLOT(requestAddMemoryNote(uint32_t)));
-   connect(m_HexWidget, SIGNAL(requestPointerSearch(uint32_t)),
-      this, SLOT(requestPointerSearch(uint32_t)));
+   connect(m_HexWidget, SIGNAL(requestAddMemoryNote(cl_addr_t)),
+      this, SLOT(requestAddMemoryNote(cl_addr_t)));
+   connect(m_HexWidget, SIGNAL(requestPointerSearch(cl_addr_t)),
+      this, SLOT(requestPointerSearch(cl_addr_t)));
    m_HexWidget->setByteSwapEnabled(memory.endianness);
    m_HexWidget->setOffset(memory.banks[0].start);
    m_HexWidget->setRange(memory.banks[0].start, memory.banks[0].start + memory.banks[0].size + 1);
@@ -354,5 +351,3 @@ void CleMemoryInspector::run()
    m_HexWidget->refresh(m_BufferCurrent, m_BufferPrevious);
    memcpy(m_BufferPrevious, m_BufferCurrent, 256);
 }
-
-#endif

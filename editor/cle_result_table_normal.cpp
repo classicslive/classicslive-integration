@@ -1,6 +1,3 @@
-#ifndef CLE_RESULT_TABLE_NORMAL_CPP
-#define CLE_RESULT_TABLE_NORMAL_CPP
-
 #include <QMenu>
 #include <QScrollBar>
 #include <QStringList>
@@ -45,7 +42,7 @@ CleResultTableNormal::~CleResultTableNormal()
    cl_search_free(&m_Search);
 }
 
-uint32_t CleResultTableNormal::getClickedResultAddress()
+cl_addr_t CleResultTableNormal::getClickedResultAddress()
 {
    return m_Table->item(m_Table->currentRow(), COL_ADDRESS)->text().split(" ")[0].toULong(NULL, 16);
 }
@@ -79,27 +76,7 @@ void CleResultTableNormal::onResultEdited(QTableWidgetItem *result)
    if (result->row() == m_CurrentEditedRow && result->column() == COL_CURRENT_VALUE)
    {
       if (result->isSelected())
-      {
-         uint32_t  address;
-         QString   new_value_text;
-         bool      ok = true;
-         void     *value;
-
-         address = getClickedResultAddress();
-         new_value_text = m_Table->item(m_CurrentEditedRow, COL_CURRENT_VALUE)->text();
-
-         if (m_Search.params.value_type == CL_MEMTYPE_FLOAT)
-            value = new float(new_value_text.toFloat(&ok));
-         else
-            value = new uint32_t(stringToValue(new_value_text, &ok));
-
-         if (ok)
-         {
-            cl_write_memory(NULL, address, m_Search.params.size, value);
-            cl_log("Wrote %s to 0x%08X.\n", new_value_text.toStdString().c_str(), address);
-         }
-         free(value);
-      }
+         writeMemory(getClickedResultAddress(), m_Search.params, result->text());
       m_CurrentEditedRow = -1;
    }
 }
@@ -304,5 +281,3 @@ bool CleResultTableNormal::step(const QString& text)
 
    return true;
 }
-
-#endif

@@ -1,6 +1,3 @@
-#ifndef CLE_SCRIPT_EDITOR_CPP
-#define CLE_SCRIPT_EDITOR_CPP
-
 #include <QGridLayout>
 #include <QHeaderView>
 
@@ -81,5 +78,3 @@ void CleScriptEditor::run()
    else
       m_Label->setText("Counter 0: " + QString::number(script.pages[0].counters[0].value));
 }
-
-#endif

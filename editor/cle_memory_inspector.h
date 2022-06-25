@@ -69,7 +69,7 @@ private:
    void    rebuildLayout(void);
 
 private slots:
-   void onAddressChanged(uint32_t address);
+   void onAddressChanged(cl_addr_t address);
    void onChangeCompareType();
    void onChangeScrollbar(int value);
    void onChangeSizeType();
@@ -78,13 +78,13 @@ private slots:
    void onClickSearch();
    void onClickTabRename();
 
-   void onHexWidgetValueEdited(uint32_t address, uint8_t value);
+   void onHexWidgetValueEdited(cl_addr_t address, uint8_t value);
 
    void onRightClickTabs(const QPoint &pos);
 
    void requestAddMemoryNote(cl_memnote_t note);
-   void requestAddMemoryNote(uint32_t address);
-   void requestPointerSearch(uint32_t address);
+   void requestAddMemoryNote(cl_addr_t address);
+   void requestPointerSearch(cl_addr_t address);
 };
 
 #endif

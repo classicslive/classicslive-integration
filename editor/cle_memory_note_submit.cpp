@@ -1,6 +1,3 @@
-#ifndef CLE_MEMORY_NOTE_SUBMIT_CPP
-#define CLE_MEMORY_NOTE_SUBMIT_CPP
-
 #include "cle_memory_note_submit.h"
 
 CleMemoryNoteSubmit::CleMemoryNoteSubmit(cl_memnote_t note)
@@ -78,10 +75,8 @@ void CleMemoryNoteSubmit::onClickSubmit(void)
          title,
          strlen(description) ? "&description=" : "",
          strlen(description) ? description : "");
-      cl_network_post(CL_REQUEST_ADD_MEMNOTE, post_data, NULL, NULL);
+      cl_network_post(CL_REQUEST_ADD_MEMNOTE, post_data, NULL);
 
       close();
    }
 }
-
-#endif

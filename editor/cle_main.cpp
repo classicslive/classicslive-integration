@@ -1,6 +1,3 @@
-#ifndef CLE_MAIN_CPP
-#define CLE_MAIN_CPP
-
 #include <QtWidgets/QStyleFactory>
 
 #include "cle_main.h"
@@ -45,5 +42,3 @@ extern "C" void cle_run()
 {
    /* TODO */
 }
-
-#endif

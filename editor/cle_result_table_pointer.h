@@ -12,7 +12,7 @@ public:
       uint8_t passes, uint32_t range, uint32_t max_results);
    ~CleResultTablePointer();
 
-   uint32_t getClickedResultAddress() override;
+   cl_addr_t getClickedResultAddress() override;
    void* getSearchData() override;
    bool isInitted() { return true; }
    void rebuild() override;
@@ -41,7 +41,7 @@ public slots:
    void onResultRightClick(const QPoint&) override;
 
 signals:
-   void addressChanged(uint32_t address);
+   void addressChanged(cl_addr_t address);
    void requestAddMemoryNote(cl_memnote_t note);
    void requestRemove(uint32_t index);
 

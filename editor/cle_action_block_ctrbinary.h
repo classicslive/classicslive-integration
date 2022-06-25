@@ -13,7 +13,7 @@ class CleActionBlockCtrBinary : public CleActionBlock
   Q_OBJECT
 
 public:
-  CleActionBlockCtrBinary(QWidget* parent);
+  CleActionBlockCtrBinary(uint8_t type, QWidget* parent);
 
   virtual void setType(uint8_t type) override;
   virtual QString toString() override;

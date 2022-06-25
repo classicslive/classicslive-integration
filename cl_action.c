@@ -1,6 +1,3 @@
-#ifndef CL_ACTION_C
-#define CL_ACTION_C
-
 #include <math.h>
 
 #include "cl_action.h"
@@ -60,7 +57,7 @@ static bool cl_act_post_achievement(cl_action_t *action)
       char     data[CL_POST_DATA_SIZE];
 
       snprintf(data, CL_POST_DATA_SIZE, "ach_id=%u", key);
-      cl_network_post(CL_REQUEST_POST_ACHIEVEMENT, data, NULL, NULL);
+      cl_network_post(CL_REQUEST_POST_ACHIEVEMENT, data, NULL);
 
       /* Clear this action so we don't re-submit the achievement */
       cl_free_action(action);
@@ -79,7 +76,7 @@ static bool cl_act_post_achievement_progress(cl_action_t *action)
       char     data[CL_POST_DATA_SIZE];
 
       snprintf(data, CL_POST_DATA_SIZE, "ach_id=%u", key);
-      cl_network_post(CL_REQUEST_POST_PROGRESS, data, NULL, NULL);
+      cl_network_post(CL_REQUEST_POST_PROGRESS, data, NULL);
    }
    
    return true;
@@ -95,7 +92,7 @@ static bool cl_act_post_leaderboard(cl_action_t *action)
       char     data[CL_POST_DATA_SIZE];
 
       snprintf(data, CL_POST_DATA_SIZE, "ldb_id=%u", key);
-      cl_network_post(CL_REQUEST_POST_LEADERBOARD, data, NULL, NULL);
+      cl_network_post(CL_REQUEST_POST_LEADERBOARD, data, NULL);
    }
    
    return true;
@@ -130,19 +127,6 @@ static bool cl_act_compare(cl_action_t *action)
       default:
          return cl_free_action(action);
       }
-   }
-}
-
-static bool cl_act_hit_compare(cl_action_t *action)
-{
-   if (action->argument_count != 7)
-      return cl_free_action(action);
-   else
-   {
-      if (cl_act_compare(action))
-         action->arguments[5]++;
-
-      return (action->arguments[5] >= action->arguments[6]);
    }
 }
 
@@ -252,7 +236,7 @@ static bool cl_act_bitwise_and(cl_action_t *action)
    }
 }
 
-static bool cl_act_bitwise_flip(cl_action_t *action)
+static bool cl_act_bitwise_complement(cl_action_t *action)
 {
    CL_TEMPLATE_CTR_UNARY
    {
@@ -384,9 +368,6 @@ bool cl_init_action(cl_action_t *action)
    case CL_ACTTYPE_BITS:
       action->function = cl_act_bits;
       break;
-   case CL_ACTTYPE_HIT_COMPARE:
-      action->function = cl_act_hit_compare;
-      break;
    case CL_ACTTYPE_POST_ACHIEVEMENT:
       action->function = cl_act_post_achievement;
       break;
@@ -427,7 +408,8 @@ bool cl_process_action(cl_action_t *action)
    if (!action)
       cl_script_break(true, "Attempted to process a NULL action.");
    else if (!action->function)
-      cl_script_break(true, "Attempted to process an action with NULL implementation (action type %04X).", action->type);
+      cl_script_break(true, "Attempted to process an action with NULL "
+         "implementation (action type %04X).", action->type);
    else if (action->function(action))
    {
       action->executions++;
@@ -436,5 +418,3 @@ bool cl_process_action(cl_action_t *action)
 
    return false;
 }
-
-#endif

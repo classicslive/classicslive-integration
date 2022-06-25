@@ -1,6 +1,3 @@
-#ifndef CL_SCRIPT_C
-#define CL_SCRIPT_C
-
 #include <stdarg.h>
 #include <string.h>
 
@@ -9,7 +6,7 @@
 
 cl_script_t script;
 
-void cl_free_page(cl_page_t *page)
+void cl_page_free(cl_page_t *page)
 {
    uint32_t i;
 
@@ -17,12 +14,12 @@ void cl_free_page(cl_page_t *page)
       cl_free_action(&page->actions[i]);
 }
 
-void cl_free_script()
+void cl_script_free(void)
 {
    uint32_t i;
 
    for (i = 0; i < script.page_count; i++)
-      cl_free_page(&script.pages[i]);
+      cl_page_free(&script.pages[i]);
 }
 
 uint32_t* cl_get_counter(uint8_t counter_num)
@@ -33,12 +30,13 @@ uint32_t* cl_get_counter(uint8_t counter_num)
       return &script.current_page->counters[counter_num].value;
 }
 
-bool cl_get_counter_value(uint32_t *buffer, uint8_t counter_num)
+bool cl_get_counter_value(void *buffer, uint8_t counter_num)
 {
-   if (!script.current_page || CL_COUNTERS_SIZE <= counter_num)
+   if (!buffer || !script.current_page || CL_COUNTERS_SIZE <= counter_num)
       return false;
    else
-      *buffer = script.current_page->counters[counter_num].value;
+      memcpy(buffer, &script.current_page->counters[counter_num].value, 
+         sizeof(script.current_page->counters[counter_num].value));
 
    return true;
 }
@@ -47,8 +45,7 @@ bool cl_init_page(const char **pos, cl_page_t *page)
 {
    cl_action_t *action      = NULL;
    cl_action_t *prev_action = NULL;
-   uint32_t     i;
-   uint8_t      j;
+   unsigned     i, j;
    
    if (!cl_strto(pos, &page->action_count, sizeof(page->action_count), false))
       return false;
@@ -93,7 +90,7 @@ bool cl_init_page(const char **pos, cl_page_t *page)
    return page->actions != 0;
 }
 
-bool cl_init_script(const char **pos)
+bool cl_script_init(const char **pos)
 {
    script.status = CL_SCRSTATUS_INACTIVE;
 
@@ -101,7 +98,7 @@ bool cl_init_script(const char **pos)
       return false;
    else
    {
-      uint32_t i;
+      unsigned i;
 
       script.pages = (cl_page_t*)calloc(script.page_count, sizeof(cl_page_t));
       for (i = 0; i < script.page_count; i++)
@@ -213,5 +210,3 @@ void cl_script_break(bool fatal, const char *format, ...)
    vsprintf(script.error_msg, format, args);
    va_end(args);
 }
-
-#endif

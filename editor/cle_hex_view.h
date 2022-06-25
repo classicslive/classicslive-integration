@@ -5,6 +5,11 @@
 
 #include <QWidget>
 
+extern "C"
+{
+   #include "../cl_common.h"
+}
+
 class CleHexWidget : public QWidget
 {
    Q_OBJECT
@@ -14,17 +19,17 @@ public:
 
    void refresh(const void *newbuffer, const void *oldbuffer);
    void setByteSwapEnabled(bool enabled);
-   void setOffset(uint32_t offset);
-   void setRange(uint32_t min, uint32_t max);
+   void setOffset(cl_addr_t offset);
+   void setRange(cl_addr_t min, cl_addr_t max);
    void setSize(uint8_t size);
 
    QSize sizeHint() const override;
 
 signals:
-   void offsetEdited(uint32_t offset);
-   void requestAddMemoryNote(uint32_t address);
-   void requestPointerSearch(uint32_t address);
-   void valueEdited(uint32_t address, uint8_t value);
+   void offsetEdited(cl_addr_t offset);
+   void requestAddMemoryNote(cl_addr_t address);
+   void requestPointerSearch(cl_addr_t address);
+   void valueEdited(cl_addr_t address, uint8_t value);
 
 protected:
    void keyPressEvent(QKeyEvent *event) override;
@@ -62,10 +67,10 @@ private:
    void repaintRect(const void *buffer, uint8_t index);
 
    void resetColors();
-   void setCursorOffset(uint32_t offset);
+   void setCursorOffset(cl_addr_t offset);
    void typeNybble(uint8_t value);
 
-   void onRightClick(uint32_t address, QPoint& pos);
+   void onRightClick(cl_addr_t address, QPoint& pos);
 
    QRect   m_Rects[256];
    QColor  m_RectColors[256];
@@ -86,9 +91,9 @@ private:
    bool     m_UseByteSwap;
 
    /* Values that define the area being viewed. */
-   uint32_t m_Position;
-   uint32_t m_PositionMax;
-   uint32_t m_PositionMin;
+   cl_addr_t m_Position;
+   cl_addr_t m_PositionMax;
+   cl_addr_t m_PositionMin;
 
    QRect    m_Cursor;
    uint8_t  m_CursorNybble;

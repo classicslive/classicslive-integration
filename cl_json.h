@@ -16,6 +16,7 @@ typedef struct cl_json_t
    uint8_t     type;
 } cl_json_t;
 
-bool cl_json_get(void *data, const char *json, const char *key, uint8_t type, uint32_t size);
+bool cl_json_get(void *data, const char *json, const char *key, uint8_t type,
+   uint32_t size);
 
 #endif

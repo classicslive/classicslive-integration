@@ -1,6 +1,3 @@
-#ifndef CLE_ACTION_BLOCK_BOOKEND_CPP
-#define CLE_ACTION_BLOCK_BOOKEND_CPP
-
 #include "cle_action_block_bookend.h"
 
 #include <QPainter>
@@ -29,5 +26,3 @@ void CleActionBlockBookend::paintEvent(QPaintEvent *e)
   painter.setPen(Qt::white);
   painter.drawText(16, m_IsEnd ? 20 : 36, m_IsEnd ? "End CLScript" : "Begin CLScript");
 }
-
-#endif

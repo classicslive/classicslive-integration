@@ -1,6 +1,3 @@
-#ifndef CL_SEARCH_C
-#define CL_SEARCH_C
-
 #include <math.h>
 #include <string.h>
 
@@ -642,5 +639,3 @@ void cl_pointersearch_update(cl_pointersearch_t *search)
       }
    }
 }
-
-#endif

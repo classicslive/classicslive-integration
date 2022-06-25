@@ -1,6 +1,3 @@
-#ifndef CL_COMMON_C
-#define CL_COMMON_C
-
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
@@ -119,5 +116,3 @@ bool cl_write(uint8_t *dest, const void *src, cl_addr_t offset, uint8_t size, ui
 
    return false;
 }
-
-#endif

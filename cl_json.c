@@ -1,6 +1,3 @@
-#ifndef CL_JSON_C
-#define CL_JSON_C
-
 #include <formats/jsonsax.h>
 #include <string/stdstring.h>
 
@@ -118,5 +115,3 @@ bool cl_json_get(void *data, const char *json, const char *key, uint8_t type, ui
    else
       return false;
 }
-
-#endif

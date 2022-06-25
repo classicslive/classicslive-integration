@@ -1,16 +1,8 @@
-#ifndef CLE_RESULT_TABLE_POINTER_CPP
-#define CLE_RESULT_TABLE_POINTER_CPP
-
 #include <QMenu>
 #include <QScrollBar>
 
 #include "cle_result_table_pointer.h"
 #include "cle_common.h"
-
-extern "C" 
-{
-   #include "../cl_common.h"
-}
 
 CleResultTablePointer::CleResultTablePointer(QWidget *parent, uint32_t address,
    uint8_t size, uint8_t passes, uint32_t range, uint32_t max_results)
@@ -39,12 +31,12 @@ CleResultTablePointer::CleResultTablePointer(QWidget *parent, uint32_t address,
    m_ColValueCurr = passes + 2;
 
    /* Qt connections to parent */
-   connect(this, SIGNAL(addressChanged(uint32_t)),
-      parent, SLOT(onAddressChanged(uint32_t)));
+   connect(this, SIGNAL(addressChanged(cl_addr_t)),
+      parent, SLOT(onAddressChanged(cl_addr_t)));
    connect(this, SIGNAL(requestAddMemoryNote(cl_memnote_t)),
       parent, SLOT(requestAddMemoryNote(cl_memnote_t)));
-   connect(this, SIGNAL(requestPointerSearch(uint32_t)),
-      parent, SLOT(requestPointerSearch(uint32_t)));
+   connect(this, SIGNAL(requestPointerSearch(cl_addr_t)),
+      parent, SLOT(requestPointerSearch(cl_addr_t)));
 
    cl_pointersearch_init(&m_Search, address, size, passes, range, max_results);
    rebuild();
@@ -55,7 +47,7 @@ CleResultTablePointer::~CleResultTablePointer()
    cl_pointersearch_free(&m_Search);
 }
 
-uint32_t CleResultTablePointer::getClickedResultAddress()
+cl_addr_t CleResultTablePointer::getClickedResultAddress()
 {
    return m_Search.results[m_Table->currentRow()].address_final;
 }
@@ -133,25 +125,8 @@ void CleResultTablePointer::onResultEdited(QTableWidgetItem *item)
    {
       if (item->isSelected())
       {
-         uint32_t  address;
-         QString   new_value_text;
-         bool      ok = true;
-         void     *value;
-
-         address = m_Search.results[item->row()].address_final;
-         new_value_text = item->text();
-
-         if (m_Search.params.value_type == CL_MEMTYPE_FLOAT)
-            value = new float(new_value_text.toFloat(&ok));
-         else
-            value = new uint32_t(stringToValue(new_value_text, &ok));
-
-         if (ok)
-         {
-            cl_write_memory(NULL, address, m_Search.params.size, value);
-            cl_log("Wrote %s to 0x%08X.\n", new_value_text.toStdString().c_str(), address);
-         }
-         free(value);
+         writeMemory(m_Search.results[item->row()].address_final, 
+            m_Search.params, item->text());
       }
       m_CurrentEditedRow = -1;
    }
@@ -266,5 +241,3 @@ bool CleResultTablePointer::step(const QString& text)
 
    return true;
 }
-
-#endif

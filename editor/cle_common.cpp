@@ -1,6 +1,3 @@
-#ifndef CLE_COMMON_CPP
-#define CLE_COMMON_CPP
-
 #include "cle_common.h"
 
 uint32_t stringToValue(QString string, bool *ok)
@@ -74,5 +71,3 @@ void valueToString(char *string, uint8_t length, uint32_t value,
       break;
    }
 }
-
-#endif

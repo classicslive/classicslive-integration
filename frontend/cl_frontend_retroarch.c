@@ -1,4 +1,6 @@
 #include <command.h>
+#include <network/net_http_special.h>
+#include <tasks/tasks_internal.h>
 
 #include "cl_frontend.h"
 #include "../cl_memory.h"
@@ -37,6 +39,7 @@ bool cl_fe_install_membanks(void)
       return success;
    }
    /* No mmaps; we try retro_get_memory_data instead */
+   /* TODO: Supporting this makes Dolphin misbehave... */
    else
    {
       retro_ctx_memory_info_t mem_info;
@@ -59,11 +62,47 @@ bool cl_fe_install_membanks(void)
 
       return true;
    }
+
+   return false;
 }
 
 void cl_fe_pause(void)
 {
    command_event(CMD_EVENT_PAUSE, NULL);
+}
+
+static void cl_retroarch_callback(retro_task_t *ra_task, void *task_data,
+   void *user_data, const char *error)
+{
+   cl_task_t *cl_task = (cl_task_t*)ra_task->state;
+
+   if (cl_task->callback)
+      cl_task->callback(cl_task);
+}
+
+static void cl_retroarch_task(retro_task_t *ra_task)
+{
+   cl_task_t *cl_task = (cl_task_t*)ra_task->state;
+
+   cl_task->handler(cl_task);
+
+   task_set_finished(ra_task, true);
+}
+
+void cl_fe_network_post(const char *url, const char *data, void *callback)
+{
+   task_push_http_post_transfer(url, data, true, "POST", callback, NULL);
+}
+
+void cl_fe_thread(cl_task_t *cl_task)
+{
+   retro_task_t *ra_task = task_init();
+
+   ra_task->handler  = cl_retroarch_task;
+   ra_task->state    = cl_task;
+   ra_task->callback = cl_retroarch_callback;
+
+   task_queue_push(ra_task);
 }
 
 void cl_fe_unpause(void)

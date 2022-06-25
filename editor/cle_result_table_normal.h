@@ -22,7 +22,7 @@ public:
    CleResultTableNormal(QWidget* parent);
    ~CleResultTableNormal();
 
-   uint32_t getClickedResultAddress() override;
+   cl_addr_t getClickedResultAddress() override;
    void* getSearchData() override;
    bool isInitted() { return true; }
    void rebuild() override;
@@ -47,9 +47,9 @@ public slots:
    void onResultSelectionChanged(void) override;
 
 signals:
-   void addressChanged(uint32_t address);
+   void addressChanged(cl_addr_t address);
    void requestAddMemoryNote(cl_memnote_t note);
-   void requestPointerSearch(uint32_t address);
+   void requestPointerSearch(cl_addr_t address);
    //void requestRemove(uint32_t index) override;
 
 private:
