@@ -43,7 +43,8 @@ void cl_network_init(const char *new_session_id)
    logged_in = true;
 }
 
-void cl_network_post(const char *request, const char *post_data, void *callback)
+void cl_network_post(const char *request, const char *post_data,
+   cl_network_cb_t callback)
 {
    char new_post_data[CL_POST_DATA_SIZE];
    

@@ -1,6 +1,15 @@
 #ifndef CL_FRONTEND_H
 #define CL_FRONTEND_H
 
+typedef struct
+{
+   const char *data;
+   unsigned    error_code;
+   const char *error_msg;
+} cl_network_response_t;
+
+typedef void (*cl_network_cb_t)(cl_network_response_t);
+
 typedef struct cl_task_t
 {
    void  *state;
@@ -8,6 +17,19 @@ typedef struct cl_task_t
    void (*callback)(struct cl_task_t*);
    char  *error;
 } cl_task_t;
+
+typedef struct
+{
+  const char *username;
+  const char *password;
+  const char *token;
+  const char *language;
+} cl_user_t;
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
 /**
  * @file cl_frontend.h
@@ -29,10 +51,19 @@ void cl_fe_display_message(unsigned level, const char *msg);
 bool cl_fe_install_membanks(void);
 
 /**
+ * Has the frontend return a string representing the name of the program that
+ * is having its memory inspected.
+ * This could be the name of a dynamically linked library, an external process
+ * name, or the name of a program CL has been statically compiled into.
+ * @return The library name, or NULL if unavailable.
+ **/
+const char* cl_fe_library_name(void);
+
+/**
  * Sends an HTTP POST request.
  * For internal use. cl_network_post should be used instead.
  **/
-void cl_fe_network_post(const char *url, const char *data, void *callback);
+void cl_fe_network_post(const char *url, const char *data, void(*callback)(cl_network_response_t));
 
 /**
  * Signals to the frontend to stop processing new frames until unpaused.
@@ -48,5 +79,17 @@ void cl_fe_thread(cl_task_t *task);
  * Signals to the frontend to resume processing new frames.
  **/
 void cl_fe_unpause(void);
+
+/**
+ * Requests known user data from the frontend, used for retrieving login
+ * information and settings data.
+ * @param user A pointer to the user data being written to.
+ * @param index The user index being requested; ie. P1, P2, P3. Zero-indexed.
+ **/
+bool cl_fe_user_data(cl_user_t *user, unsigned index);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

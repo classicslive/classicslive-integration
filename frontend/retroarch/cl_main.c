@@ -1,8 +1,5 @@
-#include <configuration.h>
-#include <core.h>
 #include <file/file_path.h>
 #include <string/stdstring.h>
-#include <tasks/tasks_internal.h>
 
 #include "cl_common.h"
 #include "cl_identify.h"
@@ -20,6 +17,7 @@ void cle_run();
 #endif
 
 cl_session_t session;
+static cl_user_t user;
 
 bool cl_init_session(const char* json)
 {
@@ -58,32 +56,30 @@ bool cl_init_session(const char* json)
    return true;
 }
 
-static void cl_cb_login(struct retro_task *task, void *task_data, void *user_data, const char *error)
+static void cl_cb_login(cl_network_response_t response)
 {
-   char        msg[256];
-   char       *server_data;
-   const char *server_data_iterator;
-   bool        success = false;
-   http_transfer_data_t *response = (http_transfer_data_t*)task_data;
+   bool success = false;
    
-   if (error || !response->data)
-      cl_log("CL: %s", error);
+   if (response.error_code || !response.data)
+      cl_log("Network error on login: %u (%s)\n", 
+         response.error_code, 
+         response.error_msg);
    else
    {
-      if (!cl_json_get(&success, response->data, "success", CL_JSON_BOOLEAN, 0))
+      if (!cl_json_get(&success, response.data, "success", CL_JSON_BOOLEAN, 0))
          cl_log("Malformed JSON output on login.\n");
       else if (!success)
       {
          char reason[256];
 
-         if (cl_json_get(&reason, response->data, "reason", CL_JSON_STRING, 0))
+         if (cl_json_get(&reason, response.data, "reason", CL_JSON_STRING, 0))
             cl_message(CL_MSG_ERROR, reason);
          else
             cl_message(CL_MSG_ERROR, "Unknown error with login.");
       }
       else
       {
-         success = cl_init_session(response->data);
+         success = cl_init_session(response.data);
 
       #ifdef CL_HAVE_EDITOR
          if (session.ready)
@@ -105,17 +101,18 @@ bool cl_post_empty_login()
 
 static void cl_post_login()
 {
-   settings_t *settings = config_get_ptr();
    char post_data[2048];
 
    snprintf
    (
       post_data, sizeof(post_data), 
-      "hash=%.32s&username=%s&password=%s&filename=%s", 
+      "hash=%.32s&username=%s&password=%s&filename=%s%s%s", 
       session.checksum,
-      settings->CL_SETTINGS_USERNAME,
-      settings->CL_SETTINGS_LOGIN_INFO,
-      session.content_name
+      user.username,
+      user.password,
+      session.content_name,
+      user.language ? "&lang=" : "",
+      user.language ? user.language : ""
    );
 
    cl_network_post(CL_REQUEST_LOGIN, post_data, cl_cb_login);
@@ -123,20 +120,18 @@ static void cl_post_login()
 
 bool cl_init(const void *data, const unsigned size, const char *path)
 {
-   settings_t *settings = config_get_ptr();
-
    cl_log("Init CL\n");
+
+   /* Retrieve user login info */
+   cl_fe_user_data(&user, 0);
+
    /* If the user hasn't entered a username, they probably aren't using CL */
-   if (!settings->CL_SETTINGS_USERNAME || string_is_empty(settings->CL_SETTINGS_USERNAME))
+   if (!user.username || string_is_empty(user.username))
       return false;
-   else if (!settings->CL_SETTINGS_LOGIN_INFO || string_is_empty(settings->CL_SETTINGS_LOGIN_INFO))
+   else if (!user.password || string_is_empty(user.password))
       return cl_post_empty_login();
    else
    {
-      struct retro_system_info system_info;
-
-      core_get_system_info(&system_info);
-
       /* Init session values */
       session.checksum[0]        = '\0';
       session.last_status_update = time(0);
@@ -145,7 +140,7 @@ bool cl_init(const void *data, const unsigned size, const char *path)
          sizeof(session.content_name) - 1);
 
       /* Pass information off to content identification code */
-      cl_identify(data, size, path, system_info.library_name, session.checksum,
+      cl_identify(data, size, path, cl_fe_library_name(), session.checksum,
          cl_post_login);
 
       return true;

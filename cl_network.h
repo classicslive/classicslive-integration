@@ -1,6 +1,8 @@
 #ifndef CL_NETWORK_H
 #define CL_NETWORK_H
 
+#include "frontend/cl_frontend.h"
+
 #ifdef HAVE_SSL
 #define CL_URL_SITE "http://127.0.0.1/"
 #else
@@ -24,7 +26,7 @@
 #define CL_URL_SIZE       256
 
 void cl_network_init(const char *new_session_id);
-void cl_network_post(const char *request, const char *post_data, void *callback);
+void cl_network_post(const char *request, const char *post_data, cl_network_cb_t callback);
 void cl_network_discord();
 
 #endif
