@@ -59,16 +59,28 @@ bool cl_fe_install_membanks(void);
  **/
 const char* cl_fe_library_name(void);
 
+bool cl_fe_memory_read(cl_memory_t *memory, void *dest, cl_addr_t address,
+   unsigned size);
+
+bool cl_fe_memory_write(cl_memory_t *memory, void *src, cl_addr_t address,
+   unsigned size);
+
 /**
  * Sends an HTTP POST request.
  * For internal use. cl_network_post should be used instead.
  **/
-void cl_fe_network_post(const char *url, const char *data, void(*callback)(cl_network_response_t));
+void cl_fe_network_post(const char *url, const char *data,
+   void(*callback)(cl_network_response_t));
 
 /**
  * Signals to the frontend to stop processing new frames until unpaused.
  **/
 void cl_fe_pause(void);
+
+/**
+ * Requests a deep copy of host memory into a search struct.
+ **/
+bool cl_fe_search_deep_copy(cl_search_t *search);
 
 /**
  * Instructs the frontend to spin a function into a seperate thread.

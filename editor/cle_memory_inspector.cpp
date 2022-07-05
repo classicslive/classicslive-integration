@@ -8,6 +8,7 @@
 extern "C" 
 {
    #include "../cl_common.h"
+   #include "../cl_main.h"
 }
 
 void CleMemoryInspector::rebuildLayout()

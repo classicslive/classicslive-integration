@@ -6,6 +6,7 @@
 
 #include "cl_common.h"
 #include "cl_memory.h"
+#include "frontend/cl_frontend.h"
 
 cl_memory_t memory;
 
@@ -292,6 +293,9 @@ bool cl_init_memory(const char **pos)
 
 bool cl_read_memory(void *value, cl_membank_t *bank, cl_addr_t address, uint8_t size)
 {
+#if CL_EXTERNAL_MEMORY == true
+   return cl_fe_memory_read(&memory, value, address, size);
+#else
    uint8_t i;
 
    if (!bank)
@@ -306,6 +310,7 @@ bool cl_read_memory(void *value, cl_membank_t *bank, cl_addr_t address, uint8_t 
       return cl_read(value, bank->data, address, size, memory.endianness);
    
    return false;
+#endif
 }
 
 unsigned cl_sizeof_memtype(const unsigned type)
@@ -415,6 +420,9 @@ void cl_update_memory(void)
 bool cl_write_memory(cl_membank_t *bank, cl_addr_t address, uint8_t size, 
    const void *value)
 {
+#if CL_EXTERNAL_MEMORY == true
+   return cl_fe_memory_write(&memory, value, address, size);
+#else
    if (!size || !value)
       return false;
    else if (!bank)
@@ -430,6 +438,7 @@ bool cl_write_memory(cl_membank_t *bank, cl_addr_t address, uint8_t size,
       return cl_write(bank->data, value, address, size, memory.endianness);
    
    return false;
+#endif
 }
 
 bool cl_write_memnote(cl_memnote_t *note, const void *value)
