@@ -46,7 +46,7 @@ void cl_network_init(const char *new_session_id)
 void cl_network_post(const char *request, const char *post_data,
    cl_network_cb_t callback)
 {
-   char new_post_data[CL_POST_DATA_SIZE];
+   char *new_post_data = malloc(CL_POST_DATA_SIZE);
    
    if (logged_in)
       cl_update_generic_post_data();
