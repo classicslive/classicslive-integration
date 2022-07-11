@@ -91,6 +91,12 @@ bool cl_strto(const char **pos, void *value, uint8_t size, bool is_signed)
       else
          *(uint32_t*)value = (uint32_t)strtoul(*pos, &end, CL_RADIX);
       break;
+   case 8:
+      if (is_signed)
+         *(int64_t*) value = (int64_t) strtol (*pos, &end, CL_RADIX);
+      else
+         *(uint64_t*)value = (uint64_t)strtoul(*pos, &end, CL_RADIX);
+      break;
    default:
       return false;
    }
