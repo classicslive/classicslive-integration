@@ -291,11 +291,8 @@ bool cl_init_memory(const char **pos)
    return true;
 }
 
-bool cl_read_memory(void *value, cl_membank_t *bank, cl_addr_t address, uint8_t size)
+bool cl_read_memory_internal(void *value, cl_membank_t *bank, cl_addr_t address, unsigned size)
 {
-#if CL_EXTERNAL_MEMORY == true
-   return cl_fe_memory_read(&memory, value, address, size);
-#else
    uint8_t i;
 
    if (!bank)
@@ -309,6 +306,14 @@ bool cl_read_memory(void *value, cl_membank_t *bank, cl_addr_t address, uint8_t 
    if (bank->data && address < bank->size)
       return cl_read(value, bank->data, address, size, memory.endianness);
    
+   return false;
+}
+
+bool cl_read_memory_external(void *value, cl_membank_t *bank, cl_addr_t address, unsigned size)
+{
+#if CL_EXTERNAL_MEMORY == true
+   return cl_fe_memory_read(&memory, value, address, size);
+#else
    return false;
 #endif
 }

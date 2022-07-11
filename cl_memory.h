@@ -175,15 +175,34 @@ bool cl_get_memnote_value_from_key(void *value, uint32_t key, uint8_t type);
 bool cl_init_memory(const char **pos);
 
 /** 
- * Reads a value from a virtual memory address into a buffer.
+ * Reads a value at a virtual memory address into a buffer by using the memory
+ * bank data pointer.
  * @param value The buffer to be read into.
  * @param bank A pointer to a specific memory bank, or NULL to have it be 
  * looked up automatically.
  * @param address The virtual memory address to read from.
  * @param size The number of bytes to read.
  **/
-bool cl_read_memory(void *value, cl_membank_t *bank, cl_addr_t address, 
-   uint8_t size);
+bool cl_read_memory_internal(void *value, cl_membank_t *bank, cl_addr_t address, 
+   unsigned size);
+
+/** 
+ * Reads a value at a virtual memory address into a buffer by reading external
+ * process memory.
+ * @param value The buffer to be read into.
+ * @param bank A pointer to a specific memory bank, or NULL to have it be 
+ * looked up automatically.
+ * @param address The virtual memory address to read from.
+ * @param size The number of bytes to read.
+ **/
+bool cl_read_memory_external(void *value, cl_membank_t *bank, cl_addr_t address, 
+   unsigned size);
+
+#if CL_EXTERNAL_MEMORY != true
+#define cl_read_memory cl_read_memory_internal
+#else
+#define cl_read_memory cl_read_memory_external
+#endif
 
 /**
  * Returns the size (in bytes) of a given memory type ID.

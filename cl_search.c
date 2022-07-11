@@ -4,6 +4,7 @@
 #include "cl_common.h"
 #include "cl_memory.h"
 #include "cl_search.h"
+#include <frontend/cl_frontend.h>
 
 cl_searchbank_t* cl_searchbank_from_address(cl_search_t *search, 
    cl_addr_t address)
@@ -65,10 +66,12 @@ bool cl_search_init(cl_search_t *search)
       
       for (i = 0; i < search->searchbank_count; i++)
       {
-         search->searchbanks[i].any_valid = true;
-         search->searchbanks[i].bank   = &memory.banks[i];
-         search->searchbanks[i].backup = (uint8_t*)malloc(memory.banks[i].size);
-         search->searchbanks[i].valid  = (uint8_t*)malloc(memory.banks[i].size);
+         cl_searchbank_t *sbank = &search->searchbanks[i];
+
+         sbank->any_valid = true;
+         sbank->bank = &memory.banks[i];
+         sbank->backup = (uint8_t*)malloc(memory.banks[i].size);
+         sbank->valid = (uint8_t*)malloc(memory.banks[i].size);
       }
       cl_search_reset(search);
 
@@ -133,12 +136,17 @@ bool cl_search_reset(cl_search_t *search)
       cl_searchbank_t *sbank;
       uint8_t i;
 
+#if CL_EXTERNAL_MEMORY == true
+      cl_fe_search_deep_copy(search);
+#endif
       for (i = 0; i < search->searchbank_count; i++)
       {
          sbank = &search->searchbanks[i];
          memcpy(sbank->backup, sbank->bank->data, sbank->bank->size);
          memset(sbank->valid, 1, sbank->bank->size);
          sbank->any_valid = true;
+         sbank->first_valid = sbank->bank->start;
+         sbank->last_valid = sbank->bank->size - 1;
       }
       search->matches = 0;
 
@@ -329,7 +337,7 @@ uint32_t cl_search_step(cl_search_t *search, void *value)
       uint8_t  size     = search->params.size;
       uint8_t  val_type = search->params.value_type;
       uint8_t  i;
-      uint32_t j;
+      cl_addr_t j;
 
       if (!value)
          cl_log("Comparing to nothing...");
@@ -337,23 +345,29 @@ uint32_t cl_search_step(cl_search_t *search, void *value)
          cl_log("Comparing to %f...", *((float*)value));
       else
          cl_log("Comparing to %u...", *((uint32_t*)value));
+
+#if CL_EXTERNAL_MEMORY == true
+      cl_fe_search_deep_copy(search);
+#endif
       
       for (i = 0; i < search->searchbank_count; i++)
       {
-         uint32_t matches_this_bank = 0;
+         cl_addr_t matches_this_bank = 0;
+         cl_addr_t last_valid = 0;
+         bool first_found = false;
 
          sbank = &search->searchbanks[i];
          if (!sbank->any_valid)
             continue;
 
-         for (j = 0; j < sbank->bank->size; j += size)
+         for (j = sbank->first_valid; j <= sbank->last_valid; j += size)
          {
             /* This address has been weeded out already */
             if (!sbank->valid[j])
                continue;
 
             cl_read_search(&left, search, sbank, j);
-            cl_read_memory(&right, sbank->bank, j, size);
+            cl_read_memory_internal(&right, NULL, j, size);
 
             if (!value)
             {
@@ -383,6 +397,13 @@ uint32_t cl_search_step(cl_search_t *search, void *value)
                sbank->valid[j] = 0;
             else
             {
+               /* Set our new first valid offset */
+               if (!first_found)
+               {
+                  sbank->first_valid = j;
+                  first_found = true;
+               }
+               last_valid = j;
                sbank->valid[j] = 1;
                matches_this_bank++;
             }
@@ -393,6 +414,7 @@ uint32_t cl_search_step(cl_search_t *search, void *value)
          else
             matches += matches_this_bank;
          memcpy(sbank->backup, sbank->bank->data, sbank->bank->size);
+         sbank->last_valid = last_valid;
       }
       search->matches = matches;
       cl_log(" %u matches.\n", matches);

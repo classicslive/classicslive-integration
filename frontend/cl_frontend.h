@@ -59,28 +59,18 @@ bool cl_fe_install_membanks(void);
  **/
 const char* cl_fe_library_name(void);
 
-bool cl_fe_memory_read(cl_memory_t *memory, void *dest, cl_addr_t address,
-   unsigned size);
-
-bool cl_fe_memory_write(cl_memory_t *memory, void *src, cl_addr_t address,
-   unsigned size);
-
 /**
- * Sends an HTTP POST request.
- * For internal use. cl_network_post should be used instead.
+ * Instructs the frontend to send an HTTP POST request. Implementation of this
+ * function needs to explicitly free the POST data.
+ * For internal use. User code should call cl_network_post instead.
  **/
-void cl_fe_network_post(const char *url, const char *data,
+void cl_fe_network_post(const char *url, char *data,
    void(*callback)(cl_network_response_t));
 
 /**
  * Signals to the frontend to stop processing new frames until unpaused.
  **/
 void cl_fe_pause(void);
-
-/**
- * Requests a deep copy of host memory into a search struct.
- **/
-bool cl_fe_search_deep_copy(cl_search_t *search);
 
 /**
  * Instructs the frontend to spin a function into a seperate thread.
@@ -99,6 +89,27 @@ void cl_fe_unpause(void);
  * @param index The user index being requested; ie. P1, P2, P3. Zero-indexed.
  **/
 bool cl_fe_user_data(cl_user_t *user, unsigned index);
+
+/**
+ * These frontend functions are only used for frontends that nned to interface
+ * with external memory.
+ **/
+#if CL_EXTERNAL_MEMORY == true
+
+#include <cl_memory.h>
+#include <cl_search.h>
+
+bool cl_fe_memory_read(cl_memory_t *memory, void *dest, cl_addr_t address,
+   unsigned size);
+
+bool cl_fe_memory_write(cl_memory_t *memory, void *src, cl_addr_t address,
+   unsigned size);
+
+/**
+ * Requests a deep copy of host memory into a search struct.
+ **/
+bool cl_fe_search_deep_copy(cl_search_t *search);
+#endif
 
 #ifdef __cplusplus
 }

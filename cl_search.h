@@ -18,6 +18,8 @@ typedef struct cl_searchbank_t
    uint8_t *backup;
    uint8_t *valid;
    bool any_valid;
+   cl_addr_t first_valid;
+   cl_addr_t last_valid;
 } cl_searchbank_t;
 
 typedef struct cl_search_t
