@@ -27,12 +27,12 @@ CleResultTableNormal::CleResultTableNormal(QWidget *parent)
    m_Table->setHorizontalHeaderLabels(TableHeader);
 
    /* Qt connections to parent */
-   connect(this, SIGNAL(addressChanged(uint32_t)),
-      parent, SLOT(onAddressChanged(uint32_t)));
+   connect(this, SIGNAL(addressChanged(cl_addr_t)),
+      parent, SLOT(onAddressChanged(cl_addr_t)));
    connect(this, SIGNAL(requestAddMemoryNote(cl_memnote_t)),
       parent, SLOT(requestAddMemoryNote(cl_memnote_t)));
-   connect(this, SIGNAL(requestPointerSearch(uint32_t)),
-      parent, SLOT(requestPointerSearch(uint32_t)));
+   connect(this, SIGNAL(requestPointerSearch(cl_addr_t)),
+      parent, SLOT(requestPointerSearch(cl_addr_t)));
 
    cl_search_init(&m_Search);
 }

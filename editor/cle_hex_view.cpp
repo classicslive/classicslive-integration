@@ -345,7 +345,7 @@ void CleHexWidget::setByteSwapEnabled(bool enabled)
    m_UseByteSwap = enabled;
 }
 
-void CleHexWidget::setCursorOffset(uint32_t offset)
+void CleHexWidget::setCursorOffset(cl_addr_t offset)
 {
    uint8_t cursor = (m_CursorOffset - m_Position) & 0xFF;
 

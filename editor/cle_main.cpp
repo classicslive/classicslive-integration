@@ -7,7 +7,9 @@ static int app_argc = 1;
 static char app_name[] = "retroarch";
 static char *app_argv[] = { app_name, NULL };
 
-extern "C" void cle_init()
+extern "C"
+{
+void cle_init()
 {
    m_Application = new QApplication(app_argc, app_argv);
 
@@ -38,7 +40,8 @@ extern "C" void cle_init()
    m_ScriptEditor->show();
 }
 
-extern "C" void cle_run()
+void cle_run()
 {
    /* TODO */
+}
 }

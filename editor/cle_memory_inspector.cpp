@@ -91,8 +91,8 @@ CleMemoryInspector::CleMemoryInspector()
    m_BufferCurrent  = (uint8_t*)malloc(256);
    connect(m_HexWidget, SIGNAL(offsetEdited(cl_addr_t)), 
       this, SLOT(onAddressChanged(cl_addr_t)));
-   connect(m_HexWidget, SIGNAL(valueEdited(uint32_t, uint8_t)), 
-      this, SLOT(onHexWidgetValueEdited(uint32_t, uint8_t)));
+   connect(m_HexWidget, SIGNAL(valueEdited(cl_addr_t, uint8_t)),
+      this, SLOT(onHexWidgetValueEdited(cl_addr_t, uint8_t)));
    connect(m_HexWidget, SIGNAL(requestAddMemoryNote(cl_addr_t)),
       this, SLOT(requestAddMemoryNote(cl_addr_t)));
    connect(m_HexWidget, SIGNAL(requestPointerSearch(cl_addr_t)),
@@ -135,7 +135,7 @@ uint8_t CleMemoryInspector::getCurrentSizeType(void)
    return m_SizeDropdown->itemData(m_SizeDropdown->currentIndex()).toUInt();
 }
 
-void CleMemoryInspector::onAddressChanged(uint32_t address)
+void CleMemoryInspector::onAddressChanged(cl_addr_t address)
 {
    cl_membank_t *new_bank = cl_find_membank(address);
 
@@ -251,7 +251,7 @@ void CleMemoryInspector::onClickSearch()
    }
 }
 
-void CleMemoryInspector::onHexWidgetValueEdited(uint32_t address, uint8_t value)
+void CleMemoryInspector::onHexWidgetValueEdited(cl_addr_t address, uint8_t value)
 {
    cl_write_memory(NULL, address, cl_sizeof_memtype(getCurrentSizeType()), &value);
 }
@@ -307,7 +307,7 @@ void CleMemoryInspector::requestAddMemoryNote(cl_memnote_t note)
    }
 }
 
-void CleMemoryInspector::requestAddMemoryNote(uint32_t address)
+void CleMemoryInspector::requestAddMemoryNote(cl_addr_t address)
 {
    cl_memnote_t note;
 
@@ -319,7 +319,7 @@ void CleMemoryInspector::requestAddMemoryNote(uint32_t address)
    requestAddMemoryNote(note);
 }
 
-void CleMemoryInspector::requestPointerSearch(uint32_t address)
+void CleMemoryInspector::requestPointerSearch(cl_addr_t address)
 {
    if (!address)
       return;
@@ -348,7 +348,7 @@ void CleMemoryInspector::requestPointerSearch(uint32_t address)
 void CleMemoryInspector::run()
 {
    m_CurrentSearch->run();
-   memcpy(m_BufferCurrent, &m_CurrentMembank->data[m_AddressOffset], 256);
+   cl_read_memory(m_BufferCurrent, nullptr, m_AddressOffset, 256);
    m_HexWidget->refresh(m_BufferCurrent, m_BufferPrevious);
    memcpy(m_BufferPrevious, m_BufferCurrent, 256);
 }

@@ -52,8 +52,10 @@ void CleMemoryNoteSubmit::onClickSubmit(void)
    {
       char post_data[2048];
       char pointer_data[256] = {0};
-      const char *description = m_Description->toPlainText().toLocal8Bit().data();
-      const char *title = m_Title->text().toLocal8Bit().data();
+      std::string stdtitle = m_Title->text().toStdString();
+      std::string stddescription = m_Description->toPlainText().toStdString();
+      const char *title = stdtitle.c_str();
+      const char *description = stddescription.c_str();
 
       /* Implode offset array into space-separated string */
       if (m_MemoryNote.pointer_passes)
