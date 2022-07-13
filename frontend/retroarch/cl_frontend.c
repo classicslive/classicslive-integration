@@ -103,8 +103,7 @@ static void cl_retroarch_network_callback(struct retro_task *task,
       ((cl_network_cb_t)user_data)(cl_response);
 }
 
-void cl_fe_network_post(const char *url, const char *data,
-   cl_network_cb_t callback)
+void cl_fe_network_post(const char *url, char *data, cl_network_cb_t callback)
 {
    task_push_http_post_transfer(url, data, true, "POST",
       cl_retroarch_network_callback, callback);
