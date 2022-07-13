@@ -348,7 +348,7 @@ void CleMemoryInspector::requestPointerSearch(cl_addr_t address)
 void CleMemoryInspector::run()
 {
    m_CurrentSearch->run();
-   cl_read_memory(m_BufferCurrent, nullptr, m_AddressOffset, 256);
+   cl_read_memory(m_BufferCurrent, nullptr, m_AddressOffset + m_CurrentMembank->start, 256);
    m_HexWidget->refresh(m_BufferCurrent, m_BufferPrevious);
    memcpy(m_BufferPrevious, m_BufferCurrent, 256);
 }

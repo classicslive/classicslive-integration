@@ -145,7 +145,7 @@ bool cl_search_reset(cl_search_t *search)
          memcpy(sbank->backup, sbank->bank->data, sbank->bank->size);
          memset(sbank->valid, 1, sbank->bank->size);
          sbank->any_valid = true;
-         sbank->first_valid = sbank->bank->start;
+         sbank->first_valid = 0;
          sbank->last_valid = sbank->bank->size - 1;
       }
       search->matches = 0;
@@ -367,7 +367,7 @@ uint32_t cl_search_step(cl_search_t *search, void *value)
                continue;
 
             cl_read_search(&left, search, sbank, j);
-            cl_read_memory_internal(&right, NULL, j, size);
+            cl_read_memory_internal(&right, NULL, j + sbank->bank->start, size);
 
             if (!value)
             {

@@ -179,7 +179,7 @@ void CleResultTableNormal::rebuild()
          valueToString(temp_string, sizeof(temp_string), temp_value, val_type);
          m_Table->setItem(current_row, 1, new QTableWidgetItem(QString(temp_string)));
          /* Current value */
-         cl_read_memory(&temp_value, &memory.banks[i], j, size);
+         cl_read_memory(&temp_value, /*&memory.banks[i]*/nullptr, j + memory.banks[i].start, size);
          valueToString(temp_string, sizeof(temp_string), temp_value, val_type);
          m_Table->setItem(current_row, 2, new QTableWidgetItem(QString(temp_string)));
          current_row++;
