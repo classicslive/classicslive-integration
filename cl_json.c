@@ -74,6 +74,7 @@ int cl_json_string(void *userdata, const char *string, size_t length)
          break;
       case CL_JSON_STRING:
          snprintf(ud->data, length + 1, "%s", string);
+         ((char*)ud->data)[length] = '\0';
          break;
       default:
          return 1;
