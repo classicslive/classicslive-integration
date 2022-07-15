@@ -205,7 +205,7 @@ void CleResultTableNormal::run()
    QTableWidgetItem *item;
    char     temp_string[32];
    uint8_t  size, val_type;
-   uint32_t address, curr_value, prev_value, i, j;
+   uint32_t address, curr_value = 0, prev_value = 0, i, j;
 
    size     = m_Search.params.size;
    val_type = m_Search.params.value_type;
