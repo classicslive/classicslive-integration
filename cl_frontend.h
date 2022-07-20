@@ -1,30 +1,7 @@
 #ifndef CL_FRONTEND_H
 #define CL_FRONTEND_H
 
-typedef struct
-{
-   const char *data;
-   unsigned    error_code;
-   const char *error_msg;
-} cl_network_response_t;
-
-typedef void (*cl_network_cb_t)(cl_network_response_t);
-
-typedef struct cl_task_t
-{
-   void  *state;
-   void (*handler)(struct cl_task_t*);
-   void (*callback)(struct cl_task_t*);
-   char  *error;
-} cl_task_t;
-
-typedef struct
-{
-  const char *username;
-  const char *password;
-  const char *token;
-  const char *language;
-} cl_user_t;
+#include "cl_types.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -95,7 +72,6 @@ bool cl_fe_user_data(cl_user_t *user, unsigned index);
  * with external memory.
  **/
 #if CL_EXTERNAL_MEMORY == true
-
 #include <cl_memory.h>
 #include <cl_search.h>
 

@@ -1,8 +1,8 @@
 #include <stdarg.h>
 #include <string.h>
 
+#include "cl_frontend.h"
 #include "cl_script.h"
-#include "frontend/cl_frontend.h"
 
 cl_script_t script;
 

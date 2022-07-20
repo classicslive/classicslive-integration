@@ -3,7 +3,7 @@
 #include <string.h>
 
 #include "cl_common.h"
-#include "frontend/cl_frontend.h"
+#include "cl_frontend.h"
 
 void cl_message(unsigned level, const char *format, ...)
 {

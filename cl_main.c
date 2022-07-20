@@ -2,16 +2,16 @@
 #include <string/stdstring.h>
 
 #include "cl_common.h"
+#include "cl_frontend.h"
 #include "cl_identify.h"
 #include "cl_json.h"
 #include "cl_main.h"
 #include "cl_memory.h"
 #include "cl_network.h"
 #include "cl_script.h"
-#include "frontend/cl_frontend.h"
 
 /* Call C++ code only if the editor is built in */
-#ifdef CL_HAVE_EDITOR
+#if CL_HAVE_EDITOR == true
 void cle_init();
 void cle_run();
 #endif
@@ -43,7 +43,9 @@ bool cl_init_session(const char* json)
       return false;
    cl_json_get(&memory.endianness,   json, "endianness",   CL_JSON_NUMBER, sizeof(memory.endianness));
    cl_json_get(&memory.pointer_size, json, "pointer_size", CL_JSON_NUMBER, sizeof(memory.pointer_size));
-   cl_fe_install_membanks();
+
+   if (!cl_fe_install_membanks())
+     return false;
    session.ready = true;
 
    /* Script-related */
@@ -59,10 +61,10 @@ bool cl_init_session(const char* json)
 static void cl_cb_login(cl_network_response_t response)
 {
    bool success = false;
-   
+
    if (response.error_code || !response.data)
-      cl_log("Network error on login: %u (%s)\n", 
-         response.error_code, 
+      cl_log("Network error on login: %u (%s)\n",
+         response.error_code,
          response.error_msg);
    else
    {
@@ -81,13 +83,13 @@ static void cl_cb_login(cl_network_response_t response)
       {
          success = cl_init_session(response.data);
 
-      #ifdef CL_HAVE_EDITOR
+#if CL_HAVE_EDITOR == true
          if (session.ready)
          {
             cl_update_memory();
             cle_init();
          }
-      #endif
+#endif
       }
    }
 }
@@ -105,8 +107,8 @@ static void cl_post_login()
 
    snprintf
    (
-      post_data, sizeof(post_data), 
-      "hash=%.32s&username=%s&password=%s&filename=%s%s%s", 
+      post_data, sizeof(post_data),
+      "hash=%.32s&username=%s&password=%s&filename=%s%s%s",
       session.checksum,
       user.username,
       user.password,
@@ -136,7 +138,7 @@ bool cl_init(const void *data, const unsigned size, const char *path)
       session.checksum[0]        = '\0';
       session.last_status_update = time(0);
       session.ready              = true;
-      strncpy(session.content_name, path_basename(path), 
+      strncpy(session.content_name, path_basename(path),
          sizeof(session.content_name) - 1);
 
       /* Pass information off to content identification code */
@@ -161,9 +163,9 @@ bool cl_run()
          cl_network_post(CL_REQUEST_PING, "", NULL);
       }
 
-   #ifdef CL_HAVE_EDITOR
+#if CL_HAVE_EDITOR == true
       cle_run();
-   #endif
+#endif
 
       return true;
    }

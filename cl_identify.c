@@ -5,9 +5,9 @@
 #include <string/stdstring.h>
 #include <file/file_path.h>
 
+#include "cl_frontend.h"
 #include "cl_identify.h"
 #include "cl_memory.h"
-#include "frontend/cl_frontend.h"
 
 typedef struct cl_md5_ctx_t
 {

@@ -2,9 +2,9 @@
 #include <string.h>
 
 #include "cl_common.h"
+#include "cl_frontend.h"
 #include "cl_memory.h"
 #include "cl_search.h"
-#include <frontend/cl_frontend.h>
 
 cl_searchbank_t* cl_searchbank_from_address(cl_search_t *search, 
    cl_addr_t address)

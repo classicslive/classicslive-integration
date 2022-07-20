@@ -5,8 +5,8 @@
 #include <string.h>
 
 #include "cl_common.h"
+#include "cl_frontend.h"
 #include "cl_memory.h"
-#include "frontend/cl_frontend.h"
 
 cl_memory_t memory;
 

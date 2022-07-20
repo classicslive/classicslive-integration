@@ -1,7 +1,7 @@
 #ifndef CL_NETWORK_H
 #define CL_NETWORK_H
 
-#include "frontend/cl_frontend.h"
+#include "cl_frontend.h"
 
 #ifdef HAVE_SSL
 #define CL_URL_SITE "http://127.0.0.1/"
