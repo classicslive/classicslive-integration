@@ -23,7 +23,7 @@ CleActionBlockCtrBinary::CleActionBlockCtrBinary(uint8_t type, QWidget* parent)
 
   /* Right operand type */
   m_ModifierType = new QComboBox(this);
-  m_ModifierType->addItem("constant",    CL_SRCTYPE_IMMEDIATE);
+  m_ModifierType->addItem("constant",    CL_SRCTYPE_IMMEDIATE_INT);
   m_ModifierType->addItem("current",     CL_SRCTYPE_CURRENT_RAM);
   m_ModifierType->addItem("previous",    CL_SRCTYPE_PREVIOUS_RAM);
   m_ModifierType->addItem("last unique", CL_SRCTYPE_LAST_UNIQUE_RAM);
@@ -54,7 +54,7 @@ uint32_t CleActionBlockCtrBinary::getModifierValue()
 {
   switch (m_ModifierType->currentData().toUInt())
   {
-  case CL_SRCTYPE_IMMEDIATE:
+  case CL_SRCTYPE_IMMEDIATE_INT:
   case CL_SRCTYPE_COUNTER:
     return stringToValue(m_ModifierValueLineEdit->text(), nullptr);
   case CL_SRCTYPE_CURRENT_RAM:
@@ -72,7 +72,7 @@ void CleActionBlockCtrBinary::onChangeModifierType(int index)
   switch (m_ModifierType->currentData().toUInt())
   {
   /* Use the QLineEdit */
-  case CL_SRCTYPE_IMMEDIATE:
+  case CL_SRCTYPE_IMMEDIATE_INT:
   case CL_SRCTYPE_COUNTER:
     m_ModifierStack->setCurrentIndex(0);
     break;
@@ -102,7 +102,7 @@ void CleActionBlockCtrBinary::setType(uint8_t type)
     m_LabelA->setText("Bitwise XOR counter");
     m_LabelB->setText("with");
     break;*/
-  case CL_ACTTYPE_MULTIPLY:
+  case CL_ACTTYPE_MULTIPLICATION:
     m_LabelA->setText("Multiply counter");
     m_LabelB->setText("by");
     break;

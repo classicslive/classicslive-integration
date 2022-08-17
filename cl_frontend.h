@@ -68,17 +68,31 @@ void cl_fe_unpause(void);
 bool cl_fe_user_data(cl_user_t *user, unsigned index);
 
 /**
- * These frontend functions are only used for frontends that nned to interface
+ * These frontend functions are only used for frontends that need to interface
  * with external memory.
  **/
 #if CL_EXTERNAL_MEMORY == true
 #include <cl_memory.h>
 #include <cl_search.h>
 
-bool cl_fe_memory_read(cl_memory_t *memory, void *dest, cl_addr_t address,
+/**
+ * Instructs the frontend to copy a portion of external memory into a buffer.
+ * @param dest The destination buffer.
+ * @param address The source virtual address.
+ * @param size The number of bytes to copy.
+ * @return The number of bytes successfully read.
+ **/
+unsigned cl_fe_memory_read(cl_memory_t *memory, void *dest, cl_addr_t address,
    unsigned size);
 
-bool cl_fe_memory_write(cl_memory_t *memory, void *src, cl_addr_t address,
+/**
+ * Instructs the frontend to copy data to external memory.
+ * @param src The source buffer.
+ * @param address The destination virtual address.
+ * @param size The number of bytes to copy.
+ * @return The number of bytes successfully written.
+ **/
+unsigned cl_fe_memory_write(cl_memory_t *memory, void *src, cl_addr_t address,
    unsigned size);
 
 /**

@@ -62,7 +62,7 @@ bool cl_search_init(cl_search_t *search)
 
       search->params.compare_type = CLE_CMPTYPE_EQUAL;
       search->params.size         = 1;
-      search->params.value_type   = CL_MEMTYPE_8BIT;
+      search->params.value_type   = CL_MEMTYPE_UINT8;
       
       for (i = 0; i < search->searchbank_count; i++)
       {
@@ -114,7 +114,6 @@ bool cl_read_search(uint32_t *value, cl_search_t *search, cl_searchbank_t *sbank
 bool cl_search_remove(cl_search_t *search, cl_addr_t address)
 {
    cl_searchbank_t *sbank = cl_searchbank_from_address(search, address);
-   bool removed;
 
    if (!sbank || sbank->valid[address - sbank->bank->start] == 0)
       return false;
@@ -533,7 +532,8 @@ bool cl_pointersearch_init(cl_pointersearch_t *search,
       /* Do a quick scan to see how many results we start with */
       for (i = 0; i < memory.bank_count; i++)
       {
-         uint32_t target = exact_only ? bank->start + address : address; //ADD VERY TEMPORARY HACKS HERE
+         /* This is where per-console hacks were being inserted */
+         uint32_t target = exact_only ? bank->start + address : address;
 
          bank = &memory.banks[i];
 

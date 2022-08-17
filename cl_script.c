@@ -22,25 +22,6 @@ void cl_script_free(void)
       cl_page_free(&script.pages[i]);
 }
 
-uint32_t* cl_get_counter(uint8_t counter_num)
-{
-   if (!script.current_page || CL_COUNTERS_SIZE <= counter_num)
-      return NULL;
-   else
-      return &script.current_page->counters[counter_num].value;
-}
-
-bool cl_get_counter_value(void *buffer, uint8_t counter_num)
-{
-   if (!buffer || !script.current_page || CL_COUNTERS_SIZE <= counter_num)
-      return false;
-   else
-      memcpy(buffer, &script.current_page->counters[counter_num].value, 
-         sizeof(script.current_page->counters[counter_num].value));
-
-   return true;
-}
-
 bool cl_init_page(const char **pos, cl_page_t *page)
 {
    cl_action_t *action      = NULL;
@@ -83,7 +64,12 @@ bool cl_init_page(const char **pos, cl_page_t *page)
       cl_log("\n");
    }
    /* Zero-init the page's counters */
-   memset(&page->counters, 0, sizeof(page->counters));
+   for (i = 0; i < CL_COUNTERS_SIZE; i++)
+   {
+      page->counters[i].floatval = 0;
+      page->counters[i].intval = 0;
+      page->counters[i].type = CL_MEMTYPE_INT64;
+   }
    
    cl_log("End of page.\n");
 
@@ -110,11 +96,6 @@ bool cl_script_init(const char **pos)
    }
 }
 
-bool cl_is_if_statement(uint8_t type)
-{
-   return type > 0x60;
-}
-
 uint32_t cl_process_if_statements(cl_page_t *page, uint32_t pos)
 {
    uint8_t  current_indent = page->actions[pos].indentation;
@@ -124,7 +105,7 @@ uint32_t cl_process_if_statements(cl_page_t *page, uint32_t pos)
    for (i = pos; i < page->action_count; i++)
    {
       /* Make sure all if statements on the current indentation level are true */
-      if (cl_is_if_statement(page->actions[i].type) && page->actions[i].indentation == current_indent)
+      if (page->actions[i].if_type && page->actions[i].indentation == current_indent)
       {
          if (evaluation)
             evaluation = cl_process_action(&page->actions[i]);
@@ -164,7 +145,7 @@ bool cl_process_actions(cl_page_t *page)
 
       if (script.status != CL_SRCSTATUS_ACTIVE)
          break;
-      else if (cl_is_if_statement(page->actions[i].type))
+      else if (page->actions[i].if_type)
          i = cl_process_if_statements(page, i);
       else
       {

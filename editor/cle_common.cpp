@@ -54,13 +54,22 @@ void valueToString(char *string, uint8_t length, uint32_t value,
 {
    switch (memtype)
    {
-   case CL_MEMTYPE_8BIT:
+   case CL_MEMTYPE_INT8:
+      snprintf(string, length, "%02X (%i)", value, value);
+      break;
+   case CL_MEMTYPE_UINT8:
       snprintf(string, length, "%02X (%u)", value, value);
       break;
-   case CL_MEMTYPE_16BIT:
+   case CL_MEMTYPE_INT16:
+      snprintf(string, length, "%04X (%i)", value, value);
+      break;
+   case CL_MEMTYPE_UINT16:
       snprintf(string, length, "%04X (%u)", value, value);
       break;
-   case CL_MEMTYPE_32BIT:
+   case CL_MEMTYPE_INT32:
+      snprintf(string, length, "%08X (%i)", value, value);
+      break;
+   case CL_MEMTYPE_UINT32:
       snprintf(string, length, "%08X (%u)", value, value);
       break;
    case CL_MEMTYPE_FLOAT:

@@ -54,11 +54,11 @@ CleMemoryInspector::CleMemoryInspector()
       this, SLOT(onChangeCompareType()));
 
    m_SizeDropdown = new QComboBox();
-   m_SizeDropdown->addItem(tr("1-byte values"), CL_MEMTYPE_8BIT);
-   m_SizeDropdown->addItem(tr("2-byte values"), CL_MEMTYPE_16BIT);
-   m_SizeDropdown->addItem(tr("4-byte values"), CL_MEMTYPE_32BIT);
+   m_SizeDropdown->addItem(tr("1-byte values"), CL_MEMTYPE_UINT8);
+   m_SizeDropdown->addItem(tr("2-byte values"), CL_MEMTYPE_UINT16);
+   m_SizeDropdown->addItem(tr("4-byte values"), CL_MEMTYPE_INT32);
    m_SizeDropdown->addItem(tr("float values"),  CL_MEMTYPE_FLOAT);
-   connect(m_SizeDropdown, SIGNAL(activated(int)), 
+   connect(m_SizeDropdown, SIGNAL(activated(int)),
       this, SLOT(onChangeSizeType()));
 
    /* Initialize text entry box for comparison value */

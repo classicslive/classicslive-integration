@@ -53,7 +53,7 @@ bool cl_init_session(const char* json)
    if (cl_json_get(script_str, json, "script", CL_JSON_STRING, sizeof(script_str)))
       cl_script_init(&iterator);
    else
-      return false; // TODO
+      return false; /* TODO */
 
    return true;
 }

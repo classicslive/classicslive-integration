@@ -1,6 +1,7 @@
 #ifndef CL_SEARCH_H
 #define CL_SEARCH_H
 
+#include "cl_memory.h"
 #include "cl_types.h"
 
 #define CL_POINTER_MAX_PASSES 4
@@ -26,8 +27,8 @@ typedef struct cl_search_t
 {
    cl_searchbank_t    *searchbanks;
    cl_search_params_t  params;
-   uint8_t             searchbank_count;
-   uint32_t            matches;
+   unsigned            searchbank_count;
+   cl_addr_t           matches;
 } cl_search_t;
 
 typedef struct cl_pointerresult_t

@@ -253,7 +253,7 @@ bool cl_identify_cue(char *path, char *extension)
          end = strstr(beginning, "\"") + 1;
          if (end)
          {
-            uint16_t filename_length;
+            unsigned filename_length;
             char final[CL_MAX_PATH];
             char path_temp[CL_MAX_PATH];
 
@@ -314,9 +314,8 @@ bool cl_identify(const void *info_data, const unsigned info_size,
 {
    uint8_t  *data = NULL;
    char      extension[16];
-   bool      from_file = false;
    char      path[CL_MAX_PATH];
-   unsigned  size;
+   unsigned  size = 0;
 
    strcpy(path, info_path);
    strcpy(extension, path_get_extension(path));

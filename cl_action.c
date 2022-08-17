@@ -1,4 +1,5 @@
 #include <math.h>
+#include <string.h>
 
 #include "cl_action.h"
 #include "cl_memory.h"
@@ -18,33 +19,40 @@ bool cl_free_action(cl_action_t *action)
    return false;
 }
 
-bool cl_get_compare_value(uint32_t *buffer, uint32_t source, uint32_t offset)
+cl_counter_t cl_get_compare_value(cl_src_t source, int64_t offset)
 {
-   if (!buffer)
-      return false;
-   else
-   {
-      bool success = true;
+  cl_counter_t counter;
 
-      switch (source)
-      {
-      case CL_SRCTYPE_IMMEDIATE:
-         *buffer = offset;
-         break;
-      case CL_SRCTYPE_CURRENT_RAM:
-      case CL_SRCTYPE_PREVIOUS_RAM:
-      case CL_SRCTYPE_LAST_UNIQUE_RAM:
-         success = cl_get_memnote_value_from_key(buffer, offset, source);
-         break;
-      case CL_SRCTYPE_COUNTER:
-         success = cl_get_counter_value(buffer, offset);
-         break;
-      default:
-         return false;
-      }
+  switch (source)
+  {
+  case CL_SRCTYPE_IMMEDIATE_INT:
+    counter.type = CL_MEMTYPE_INT64;
+    cl_ctr_store(&counter, &offset, CL_MEMTYPE_INT64);
+    break;
+  case CL_SRCTYPE_IMMEDIATE_FLOAT:
+    counter.type = CL_MEMTYPE_DOUBLE;
+    cl_ctr_store(&counter, &offset, CL_MEMTYPE_DOUBLE);
+    break;
+  case CL_SRCTYPE_CURRENT_RAM:
+  case CL_SRCTYPE_PREVIOUS_RAM:
+  case CL_SRCTYPE_LAST_UNIQUE_RAM:
+  {
+    cl_memnote_t *memnote = cl_find_memnote(*(uint32_t*)offset);
 
-      return success;
-   }
+    if (source == CL_SRCTYPE_CURRENT_RAM)
+      counter = memnote->current;
+    else if (source == CL_SRCTYPE_PREVIOUS_RAM)
+      counter = memnote->previous;
+    else /* if (source == CL_SRCTYPE_LAST_UNIQUE_RAM) warning silence */
+      counter = memnote->last_unique;
+
+    break;
+  }
+  default:
+    counter.type = CL_MEMTYPE_NOT_SET;
+  }
+
+  return counter;
 }
 
 static bool cl_act_post_achievement(cl_action_t *action)
@@ -100,73 +108,68 @@ static bool cl_act_post_leaderboard(cl_action_t *action)
 
 static bool cl_act_compare(cl_action_t *action)
 {
-   if (action->argument_count < 5)
-      return cl_free_action(action);
-   else
-   {
-      uint32_t left  = 0;
-      uint32_t right = 0;
+  if (action->argument_count < 5)
+    return cl_free_action(action);
+  else
+  {
+    cl_counter_t left = cl_get_compare_value(action->arguments[0], action->arguments[1]);
+    cl_counter_t right = cl_get_compare_value(action->arguments[2], action->arguments[3]);
 
-      if (!cl_get_compare_value(&left,  action->arguments[0], action->arguments[1]) ||
-          !cl_get_compare_value(&right, action->arguments[2], action->arguments[3]))
-         return cl_free_action(action);
-      switch (action->arguments[4])
-      {
-      case CL_CMPTYPE_IFEQUAL:
-         return left == right;
-         break;
-      case CL_CMPTYPE_IFGREATER:
-         return left > right;
-         break;
-      case CL_CMPTYPE_IFLESS:
-         return left < right;
-         break;
-      case CL_CMPTYPE_IFNEQUAL:
-         return left != right;
-         break;
-      default:
-         return cl_free_action(action);
-      }
-   }
+    if (left.type == CL_MEMTYPE_NOT_SET || right.type == CL_MEMTYPE_NOT_SET)
+      return cl_free_action(action);
+
+    switch (action->arguments[4])
+    {
+    case CL_CMPTYPE_IFEQUAL:
+      return cl_ctr_equal(&left, &right);
+    case CL_CMPTYPE_IFGREATER:
+      return cl_ctr_greater(&left, &right);
+    case CL_CMPTYPE_IFLESS:
+      return cl_ctr_lesser(&left, &right);
+    case CL_CMPTYPE_IFNEQUAL:
+      return cl_ctr_not_equal(&left, &right);
+    default:
+      return cl_free_action(action);
+    }
+  }
 }
 
 static bool cl_act_no_process(cl_action_t *action)
 {
-   return false;
+  return false;
 }
 
 static bool cl_act_changed(cl_action_t *action)
 {
-   if (action->argument_count != 3)
+  if (action->argument_count != 3)
+    return cl_free_action(action);
+  else
+  {
+    cl_counter_t left = cl_get_compare_value(action->arguments[0], action->arguments[1]);
+    cl_counter_t right = cl_get_compare_value(action->arguments[2], action->arguments[3]);
+
+    if (left.type == CL_MEMTYPE_NOT_SET || right.type == CL_MEMTYPE_NOT_SET)
       return cl_free_action(action);
-   else
-   {
-      uint32_t left  = 0;
-      uint32_t right = 0;
-
-      if (!cl_get_compare_value(&left,  CL_SRCTYPE_PREVIOUS_RAM, action->arguments[0]) ||
-          !cl_get_compare_value(&right, action->arguments[1], action->arguments[2]))
-         return cl_free_action(action);
-
-      return left == right;
-   }
+    else
+      return cl_ctr_not_equal(&left, &right);
+  }
 }
 
 static bool cl_act_bits(cl_action_t *action)
 {
-   if (action->argument_count != 4)
+  if (action->argument_count != 4)
+    return cl_free_action(action);
+  else
+  {
+    cl_counter_t left = cl_get_compare_value(action->arguments[0], action->arguments[1]);
+    cl_counter_t right = cl_get_compare_value(action->arguments[2], action->arguments[3]);
+
+    if (left.type == CL_MEMTYPE_NOT_SET || right.type == CL_MEMTYPE_NOT_SET)
       return cl_free_action(action);
-   else
-   {
-      uint32_t value = 0;
-      uint32_t bits  = 0;
 
-      if (!cl_get_compare_value(&value, action->arguments[0], action->arguments[1]) ||
-          !cl_get_compare_value(&bits,  action->arguments[2], action->arguments[3]))
-         return cl_free_action(action);
-
-      return (value & bits) == bits;
-   }
+    /* TODO: Not exactly what we want */
+    return (left.intval & right.intval) == right.intval;
+  }
 }
 
 static bool cl_act_write(cl_action_t *action)
@@ -175,19 +178,17 @@ static bool cl_act_write(cl_action_t *action)
       return cl_free_action(action);
    else
    {
-      uint32_t src;
+       cl_counter_t left = cl_get_compare_value(action->arguments[0], action->arguments[1]);
+       cl_counter_t right = cl_get_compare_value(action->arguments[2], action->arguments[3]);
 
-      if (!cl_get_compare_value(&src, action->arguments[2], action->arguments[3]))
-         return false;
+       if (left.type == CL_MEMTYPE_NOT_SET || right.type == CL_MEMTYPE_NOT_SET)
+         return cl_free_action(action);
       else
       {
-         switch (action->arguments[0])
+         switch (left.type)
          {
          case CL_SRCTYPE_CURRENT_RAM:
-            return cl_write_memnote_from_key(action->arguments[1], &src);
-         case CL_SRCTYPE_COUNTER:
-            script.current_page->counters[action->arguments[1]].value = src;
-            break;
+            return cl_write_memnote_from_key(action->arguments[1], &right);
          default:
             return false;
          }
@@ -202,219 +203,172 @@ static bool cl_act_write(cl_action_t *action)
    index that operates on itself.
 */
 #define CL_TEMPLATE_CTR_UNARY \
-   uint32_t ctr; \
-   if (action->argument_count != 1) \
-      return false; \
-   ctr = action->arguments[0]; \
-   if (ctr >= CL_COUNTERS_SIZE) \
-      return false; \
-   else
+  cl_counter_t ctr = cl_get_compare_value(CL_SRCTYPE_COUNTER, action->arguments[0]); \
+  if (ctr.type == CL_MEMTYPE_NOT_SET) \
+    return false; \
+  else
 
 /*
    A template for command actions that use one argument for a counter index and
    two for a compare value lookup.
 */
 #define CL_TEMPLATE_CTR_BINARY \
-   uint32_t ctr, src, src_type, src_val; \
-   if (action->argument_count != 3) \
-      return false; \
-   ctr      = action->arguments[0]; \
-   src_type = action->arguments[1]; \
-   src_val  = action->arguments[2]; \
-   if (!cl_get_compare_value(&src, src_type, src_val)) \
-      return false; \
-   else if (ctr >= CL_COUNTERS_SIZE) \
-      return false; \
-   else
+  cl_counter_t ctr, src; \
+  if (action->argument_count != 3) \
+    return false; \
+  ctr = cl_get_compare_value(CL_SRCTYPE_COUNTER, action->arguments[0]); \
+  src = cl_get_compare_value(action->arguments[1], action->arguments[2]); \
+  if (ctr.type == CL_MEMTYPE_NOT_SET || src.type == CL_MEMTYPE_NOT_SET) \
+    return false; \
+  else
 
 static bool cl_act_bitwise_and(cl_action_t *action)
 {
-   CL_TEMPLATE_CTR_BINARY
-   {
-      script.current_page->counters[ctr].value &= src;
-      return true;
-   }
+  CL_TEMPLATE_CTR_BINARY
+  {
+    return cl_ctr_and(&ctr, &src.intval);
+  }
 }
 
 static bool cl_act_bitwise_complement(cl_action_t *action)
 {
-   CL_TEMPLATE_CTR_UNARY
-   {
-      script.current_page->counters[ctr].value = ~script.current_page->counters[ctr].value;
-      return true;
-   }
+  CL_TEMPLATE_CTR_UNARY
+  {
+    return cl_ctr_complement(&ctr);
+  }
 }
 
 static bool cl_act_bitwise_or(cl_action_t *action)
 {
-   CL_TEMPLATE_CTR_BINARY
-   {
-      script.current_page->counters[ctr].value |= src;
-      return true;
-   }
+  CL_TEMPLATE_CTR_BINARY
+  {
+    return cl_ctr_or(&ctr, &src.intval);
+  }
 }
 
 static bool cl_act_bitwise_xor(cl_action_t *action)
 {
-   CL_TEMPLATE_CTR_BINARY
-   {
-      script.current_page->counters[ctr].value ^= src;
-      return true;
-   }
+  CL_TEMPLATE_CTR_BINARY
+  {
+    return cl_ctr_xor(&ctr, &src.intval);
+  }
 }
 
 static bool cl_act_shift_left(cl_action_t *action)
 {
-   CL_TEMPLATE_CTR_BINARY
-   {
-      if (src > sizeof(script.current_page->counters[ctr].value))
-      {
-         cl_script_break(false, "Attempted left shift past maximum length.");
-         return false;
-      }
-      script.current_page->counters[ctr].value <<= src;
-         
-      return true;
-   }
+  CL_TEMPLATE_CTR_BINARY
+  {
+    return cl_ctr_shift_left(&ctr, &src.intval);
+  }
 }
 
 static bool cl_act_shift_right(cl_action_t *action)
 {
-   CL_TEMPLATE_CTR_BINARY
-   {
-      if (src > sizeof(script.current_page->counters[ctr].value))
-      {
-         cl_script_break(false, "Attempted right shift past maximum length.");
-         return false;
-      }
-      script.current_page->counters[ctr].value >>= src;
-         
-      return true;
-   }
+  CL_TEMPLATE_CTR_BINARY
+  {
+    return cl_ctr_shift_right(&ctr, &src.intval);
+  }
 }
 
-/*
-   TODO: Support float values, catch overflows (?)
-*/
 static bool cl_act_multiplication(cl_action_t *action)
 {
-   CL_TEMPLATE_CTR_BINARY
-   {
-      script.current_page->counters[ctr].value *= src;
-      return true;
-   }
+  CL_TEMPLATE_CTR_BINARY
+  {
+    return cl_ctr_multiply(&ctr, &src);
+  }
+}
+
+static bool cl_act_division(cl_action_t *action)
+{
+  CL_TEMPLATE_CTR_BINARY
+  {
+    return cl_ctr_divide(&ctr, &src);
+  }
 }
 
 static bool cl_act_addition(cl_action_t *action)
 {
-   CL_TEMPLATE_CTR_BINARY
-   {
-      uint32_t result = script.current_page->counters[ctr].value + src;
-      bool overflow = result < script.current_page->counters[ctr].value;
-
-      if (overflow)
-      {
-         cl_script_break(false, "Addition overflow (%u + %u == %u)",
-            script.current_page->counters[ctr].value, src, result);
-         return false;
-      }
-      script.current_page->counters[ctr].value = result;
-      
-      return true;
-   }
+  CL_TEMPLATE_CTR_BINARY
+  {
+    return cl_ctr_add(&ctr, &src);
+  }
 }
 
 static bool cl_act_modulo(cl_action_t *action)
 {
-   CL_TEMPLATE_CTR_BINARY
-   {
-      script.current_page->counters[ctr].value %= src;
-      return true;
-   }
+  CL_TEMPLATE_CTR_BINARY
+  {
+    return cl_ctr_modulo(&ctr, &src);
+  }
 }
 
 static bool cl_act_subtraction(cl_action_t *action)
 {
-   CL_TEMPLATE_CTR_BINARY
-   {
-      uint32_t result = script.current_page->counters[ctr].value - src;
-      bool underflow = result > script.current_page->counters[ctr].value;
-
-      if (underflow)
-      {
-         cl_script_break(false, "Subtraction underflow (%u - %u == %u)",
-            script.current_page->counters[ctr].value, src, result);
-         return false;
-      }
-      script.current_page->counters[ctr].value = result;
-      
-      return true;
-   }
+  CL_TEMPLATE_CTR_BINARY
+  {
+    return cl_ctr_subtract(&ctr, &src);
+  }
 }
+
+static const cl_acttype_t action_types[] =
+{
+  { CL_ACTTYPE_NO_PROCESS, false, 0, 0, cl_act_no_process },
+/*{ CL_ACTTYPE_BITS,       true,  4, 4, cl_act_bits },*/
+  { CL_ACTTYPE_COMPARE,    true,  5, 5, cl_act_compare },
+
+  /* Counter math */
+  { CL_ACTTYPE_ADDITION,       false, 3, 3, cl_act_addition },
+  { CL_ACTTYPE_SUBTRACTION,    false, 3, 3, cl_act_subtraction },
+  { CL_ACTTYPE_MULTIPLICATION, false, 3, 3, cl_act_multiplication },
+/*{ CL_ACTTYPE_DIVISION,       false, 3, 3, cl_act_division },*/
+  { CL_ACTTYPE_ADDITION,       false, 3, 3, cl_act_modulo },
+
+  /* Website API calls */
+  { CL_ACTTYPE_POST_ACHIEVEMENT, false, 1, 1, cl_act_post_achievement },
+  { CL_ACTTYPE_POST_LEADERBOARD, false, 1, 15, cl_act_post_leaderboard },
+
+  { 0, false, 0, 0, NULL }
+};
 
 bool cl_init_action(cl_action_t *action)
 {
-   switch (action->type)
-   {
-   case CL_ACTTYPE_NO_PROCESS:
-      action->function = cl_act_no_process;
-      break;
-   case CL_ACTTYPE_CHANGED:
-      action->function = cl_act_changed;
-      break;
-   case CL_ACTTYPE_COMPARE:
-      action->function = cl_act_compare;
-      break;
-   case CL_ACTTYPE_BITS:
-      action->function = cl_act_bits;
-      break;
-   case CL_ACTTYPE_POST_ACHIEVEMENT:
-      action->function = cl_act_post_achievement;
-      break;
-   case CL_ACTTYPE_ADDITION:
-      action->function = cl_act_addition;
-      break;
-   case CL_ACTTYPE_POST_LEADERBOARD:
-      action->function = cl_act_post_leaderboard;
-      break;
-   case CL_ACTTYPE_MULTIPLY:
-      action->function = cl_act_multiplication;
-      break;
-   case CL_ACTTYPE_AND:
-      action->function = cl_act_bitwise_and;
-      break;
-   case CL_ACTTYPE_OR:
-      action->function = cl_act_bitwise_or;
-      break;
-   case CL_ACTTYPE_POST_PROGRESS:
-      action->function = cl_act_post_achievement_progress;
-      break;
-   case CL_ACTTYPE_SUBTRACTION:
-      action->function = cl_act_subtraction;
-      break;
-   case CL_ACTTYPE_WRITE:
-      action->function = cl_act_write;
-      break;
-   default:
-      action->function = cl_act_no_process;
-      return false;
-   }
+  const cl_acttype_t *acttype = &action_types[0];
 
-   return true;
+  while (acttype->function)
+  {
+    if (action->type == acttype->id)
+    {
+      if (action->argument_count > acttype->maximum_args)
+        action->function = cl_act_no_process;
+      else if (action->argument_count < acttype->minimum_args)
+        action->function = cl_act_no_process;
+      else
+      {
+        action->if_type = acttype->if_type;
+        action->function = acttype->function;
+
+        return true;
+      }
+    }
+    else
+      acttype++;
+  }
+
+  return false;
 }
 
 bool cl_process_action(cl_action_t *action)
 {
-   if (!action)
-      cl_script_break(true, "Attempted to process a NULL action.");
-   else if (!action->function)
-      cl_script_break(true, "Attempted to process an action with NULL "
-         "implementation (action type %04X).", action->type);
-   else if (action->function(action))
-   {
-      action->executions++;
-      return true;
-   }
+  if (!action)
+    cl_script_break(true, "Attempted to process a NULL action.");
+  else if (!action->function)
+    cl_script_break(true, "Attempted to process an action with NULL "
+      "implementation (action type %04X).", action->type);
+  else if (action->function(action))
+  {
+    action->executions++;
+    return true;
+  }
 
-   return false;
+  return false;
 }

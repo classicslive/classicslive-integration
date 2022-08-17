@@ -1,6 +1,9 @@
 #ifndef CL_SCRIPT_H
 #define CL_SCRIPT_H
 
+#include "cl_action.h"
+#include "cl_counter.h"
+
 enum
 {
    CL_SCRSTATUS_INACTIVE = 0,
@@ -13,14 +16,6 @@ enum
 
 /* TODO: Arbitrary! Have pages allocate more/less depending on need */
 #define CL_COUNTERS_SIZE 16
-
-#include "cl_action.h"
-
-typedef struct cl_counter_t
-{
-   unsigned type;
-   uint32_t value;
-} cl_counter_t;
 
 typedef struct cl_page_t
 {
@@ -60,16 +55,6 @@ typedef struct cl_script_t
  * Frees the current script and all associated values.
  */
 void cl_script_free(void);
-
-uint32_t* cl_get_counter(uint8_t counter_number);
-
-/**
- * Copies the value of a counter into a given buffer.
- * @param buffer The destination buffer.
- * @param counter_num The index of the source counter.
- * @return Whether the copy succeeded.
- */
-bool cl_get_counter_value(void *buffer, uint8_t counter_num);
 
 bool cl_script_init(const char **pos);
 

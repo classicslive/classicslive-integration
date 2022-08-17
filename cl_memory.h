@@ -5,34 +5,36 @@
    as well as on timed intervals to retrieve a play status string. */
 #define CL_MEMFLAG_RICH    0
 
-#define CL_MEMTYPE_NOT_SET 0
-#define CL_MEMTYPE_1BIT_A  1
-#define CL_MEMTYPE_1BIT_B  2
-#define CL_MEMTYPE_1BIT_C  3
-#define CL_MEMTYPE_1BIT_D  4
-#define CL_MEMTYPE_1BIT_E  5
-#define CL_MEMTYPE_1BIT_F  6
-#define CL_MEMTYPE_1BIT_G  7
-#define CL_MEMTYPE_1BIT_H  8
-#define CL_MEMTYPE_2BIT_A  9
-#define CL_MEMTYPE_2BIT_B  10
-#define CL_MEMTYPE_2BIT_C  11
-#define CL_MEMTYPE_2BIT_D  12
-#define CL_MEMTYPE_4BIT_LO 13
-#define CL_MEMTYPE_4BIT_HI 14
-#define CL_MEMTYPE_8BIT    15
-#define CL_MEMTYPE_16BIT   16
-#define CL_MEMTYPE_32BIT   17
-#define CL_MEMTYPE_FLOAT   18
-#define CL_MEMTYPE_DOUBLE  19
-#define CL_MEMTYPE_64BIT   20
+enum
+{
+  CL_MEMTYPE_NOT_SET = 0,
 
-#define CL_SRCTYPE_IMMEDIATE       0
-#define CL_SRCTYPE_CURRENT_RAM     1
-#define CL_SRCTYPE_PREVIOUS_RAM    2
-#define CL_SRCTYPE_LAST_UNIQUE_RAM 3
-#define CL_SRCTYPE_ROM             4
-#define CL_SRCTYPE_COUNTER         5
+  CL_MEMTYPE_INT64,
+  CL_MEMTYPE_DOUBLE,
+
+  CL_MEMTYPE_INT8,
+  CL_MEMTYPE_UINT8,
+  CL_MEMTYPE_INT16,
+  CL_MEMTYPE_UINT16,
+  CL_MEMTYPE_INT32,
+  CL_MEMTYPE_UINT32,
+  CL_MEMTYPE_FLOAT,
+
+  CL_MEMTYPE_SIZE
+};
+
+typedef enum
+{
+  CL_SRCTYPE_IMMEDIATE_INT = 0,
+  CL_SRCTYPE_CURRENT_RAM,
+  CL_SRCTYPE_PREVIOUS_RAM,
+  CL_SRCTYPE_LAST_UNIQUE_RAM,
+  CL_SRCTYPE_ROM,
+  CL_SRCTYPE_COUNTER,
+  CL_SRCTYPE_IMMEDIATE_FLOAT,
+
+  CL_SRCTYPE_SIZE
+} cl_src_t;
 
 #define CLE_CMPTYPE_EQUAL     1
 #define CLE_CMPTYPE_GREATER   2
@@ -44,6 +46,7 @@
 #define CLE_CMPTYPE_BELOW     8
 
 #include "cl_config.h"
+#include "cl_counter.h"
 #include "cl_types.h"
 
 /**
@@ -80,15 +83,16 @@ typedef struct cl_memnote_t
    uint32_t  key;
    uint32_t  order;
    cl_addr_t address;
+   cl_addr_t address_initial;
 
    /* TODO: Set these back to correct sizes */
    uint32_t flags;
    uint32_t type;
 
    /* Stored values */
-   void *value_current;
-   void *value_previous;
-   void *value_last_unique;
+   cl_counter_t current;
+   cl_counter_t previous;
+   cl_counter_t last_unique;
 
    /* For following pointers to get RAM values */
    int32_t  *pointer_offsets;
@@ -168,8 +172,8 @@ bool cl_get_memnote_flag_from_key(uint32_t key, uint8_t flag);
  * @param key A memory note key to be looked up automatically.
  * @param type The data type of the buffer. For example, CL_MEMTYPE_32BIT.
  **/
-bool cl_get_memnote_value(void *value, cl_memnote_t *note, uint8_t type);
-bool cl_get_memnote_value_from_key(void *value, uint32_t key, uint8_t type);
+bool cl_get_memnote_value(cl_counter_t *value, cl_memnote_t *note, unsigned type);
+bool cl_get_memnote_value_from_key(cl_counter_t *value, unsigned key, unsigned type);
 
 /* Populate a memory holder with values returned by the web API */
 bool cl_init_memory(const char **pos);
@@ -236,8 +240,16 @@ bool cl_write_memory(cl_membank_t *bank, cl_addr_t address, uint8_t size,
  * @param value A buffer containing the source value.
  * @return Whether or not the write succeeded.
  **/
-bool cl_write_memnote(cl_memnote_t *note, const void *value);
-bool cl_write_memnote_from_key(uint32_t key, const void *value);
+bool cl_write_memnote(cl_memnote_t *note, const cl_counter_t *value);
+bool cl_write_memnote_from_key(unsigned key, const cl_counter_t *value);
+
+/**
+ * Looks up a memory note based on its key.
+ * @param key The memory note key to look up. Currently a value between 0-999.
+ * @return A pointer to the appropriate memory note, or NULL if one with the
+ * given key does not exist.
+ **/
+cl_memnote_t* cl_find_memnote(uint32_t key);
 
 extern cl_memory_t memory;
 
