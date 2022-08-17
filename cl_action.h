@@ -3,21 +3,6 @@
 
 #include "cl_common.h"
 
-/*#define CL_ACTTYPE_NO_PROCESS         '0'
-#define CL_ACTTYPE_BITS               'b'
-#define CL_ACTTYPE_COMPARE            'c'
-#define CL_ACTTYPE_CHANGED            'n'
-#define CL_ACTTYPE_POST_ACHIEVEMENT   'A'
-#define CL_ACTTYPE_ADDITION           'D'
-#define CL_ACTTYPE_POST_LEADERBOARD   'L'
-#define CL_ACTTYPE_MULTIPLY           'M'
-#define CL_ACTTYPE_AND                'N'
-#define CL_ACTTYPE_OR                 'O'
-#define CL_ACTTYPE_POST_PROGRESS      'P'
-#define CL_ACTTYPE_RESET_HITS         'R'
-#define CL_ACTTYPE_SUBTRACTION        'S'
-#define CL_ACTTYPE_WRITE              'W'*/
-
 enum
 {
   CL_ACTTYPE_NO_PROCESS = 0,

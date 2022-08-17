@@ -30,7 +30,7 @@ cl_membank_t* cl_find_membank(cl_addr_t address)
    return NULL;
 }
 
-cl_memnote_t* cl_find_memnote(uint32_t key)
+cl_memnote_t* cl_find_memnote(unsigned key)
 {
    uint32_t i;
 
@@ -69,7 +69,7 @@ bool cl_get_memnote_flag(cl_memnote_t *note, uint8_t flag)
       return (note->flags & (1 << flag)) != 0;
 }
 
-bool cl_get_memnote_flag_from_key(uint32_t key, uint8_t flag)
+bool cl_get_memnote_flag_from_key(unsigned key, uint8_t flag)
 {
    cl_memnote_t *note = cl_find_memnote(key);
 

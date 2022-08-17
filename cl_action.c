@@ -2,6 +2,7 @@
 #include <string.h>
 
 #include "cl_action.h"
+#include "cl_common.h"
 #include "cl_memory.h"
 #include "cl_network.h"
 #include "cl_script.h"
@@ -37,7 +38,7 @@ cl_counter_t cl_get_compare_value(cl_src_t source, int64_t offset)
   case CL_SRCTYPE_PREVIOUS_RAM:
   case CL_SRCTYPE_LAST_UNIQUE_RAM:
   {
-    cl_memnote_t *memnote = cl_find_memnote(*(uint32_t*)offset);
+    cl_memnote_t *memnote = cl_find_memnote((unsigned)offset);
 
     if (source == CL_SRCTYPE_CURRENT_RAM)
       counter = memnote->current;
