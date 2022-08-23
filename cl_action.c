@@ -49,11 +49,47 @@ cl_counter_t cl_get_compare_value(cl_src_t source, int64_t offset)
 
     break;
   }
+  case CL_SRCTYPE_COUNTER:
+    if (offset > CL_COUNTERS_SIZE || offset < 0)
+      counter = script.current_page->counters[offset];
+    else
+      counter.type = CL_MEMTYPE_NOT_SET;
+    break;
+  case CL_SRCTYPE_ROM: /* TODO */
   default:
     counter.type = CL_MEMTYPE_NOT_SET;
   }
 
   return counter;
+}
+
+/**
+ * @brief Returns a pointer to a counter that can be mutated. Currently, this
+ *   only includes the counters stored within script pages.
+ * @param source The source type of the requested counter.
+ * @param offset An address or index relevant to the source type.
+ * @return A mutable counter, or NULL if unavailable.
+ **/
+static cl_counter_t *cl_get_mutable_value(cl_src_t source, int64_t offset)
+{
+  switch (source)
+  {
+  case CL_SRCTYPE_COUNTER:
+    if (offset > CL_COUNTERS_SIZE || offset < 0)
+      return &script.current_page->counters[offset];
+    else
+      return NULL;
+  case CL_SRCTYPE_IMMEDIATE_INT:
+  case CL_SRCTYPE_IMMEDIATE_FLOAT:
+  case CL_SRCTYPE_CURRENT_RAM:
+  case CL_SRCTYPE_PREVIOUS_RAM:
+  case CL_SRCTYPE_LAST_UNIQUE_RAM:
+  case CL_SRCTYPE_ROM:
+  default:
+    return NULL;
+  }
+
+  return NULL;
 }
 
 static bool cl_act_post_achievement(cl_action_t *action)
@@ -199,27 +235,28 @@ static bool cl_act_write(cl_action_t *action)
    }
 }
 
-/*
-   A template for command actions that only use one argument, for a counter 
-   index that operates on itself.
-*/
+/**
+ * A template for command actions that only use one argument, for a counter
+ * index that operates on itself.
+ **/
 #define CL_TEMPLATE_CTR_UNARY \
-  cl_counter_t ctr = cl_get_compare_value(CL_SRCTYPE_COUNTER, action->arguments[0]); \
-  if (ctr.type == CL_MEMTYPE_NOT_SET) \
+  cl_counter_t *ctr = cl_get_mutable_value(CL_SRCTYPE_COUNTER, action->arguments[0]); \
+  if (!ctr || ctr->type == CL_MEMTYPE_NOT_SET) \
     return false; \
   else
 
-/*
-   A template for command actions that use one argument for a counter index and
-   two for a compare value lookup.
-*/
+/**
+ * A template for command actions that use one argument for a mutable counter
+ * index and two for a compare value lookup.
+ **/
 #define CL_TEMPLATE_CTR_BINARY \
-  cl_counter_t ctr, src; \
+  cl_counter_t *ctr; \
+  cl_counter_t src; \
   if (action->argument_count != 3) \
     return false; \
-  ctr = cl_get_compare_value(CL_SRCTYPE_COUNTER, action->arguments[0]); \
+  ctr = cl_get_mutable_value(CL_SRCTYPE_COUNTER, action->arguments[0]); \
   src = cl_get_compare_value(action->arguments[1], action->arguments[2]); \
-  if (ctr.type == CL_MEMTYPE_NOT_SET || src.type == CL_MEMTYPE_NOT_SET) \
+  if (!ctr || ctr->type == CL_MEMTYPE_NOT_SET || src.type == CL_MEMTYPE_NOT_SET) \
     return false; \
   else
 
@@ -227,7 +264,7 @@ static bool cl_act_bitwise_and(cl_action_t *action)
 {
   CL_TEMPLATE_CTR_BINARY
   {
-    return cl_ctr_and(&ctr, &src.intval);
+    return cl_ctr_and(ctr, &src.intval);
   }
 }
 
@@ -235,7 +272,7 @@ static bool cl_act_bitwise_complement(cl_action_t *action)
 {
   CL_TEMPLATE_CTR_UNARY
   {
-    return cl_ctr_complement(&ctr);
+    return cl_ctr_complement(ctr);
   }
 }
 
@@ -243,7 +280,7 @@ static bool cl_act_bitwise_or(cl_action_t *action)
 {
   CL_TEMPLATE_CTR_BINARY
   {
-    return cl_ctr_or(&ctr, &src.intval);
+    return cl_ctr_or(ctr, &src.intval);
   }
 }
 
@@ -251,7 +288,7 @@ static bool cl_act_bitwise_xor(cl_action_t *action)
 {
   CL_TEMPLATE_CTR_BINARY
   {
-    return cl_ctr_xor(&ctr, &src.intval);
+    return cl_ctr_xor(ctr, &src.intval);
   }
 }
 
@@ -259,7 +296,7 @@ static bool cl_act_shift_left(cl_action_t *action)
 {
   CL_TEMPLATE_CTR_BINARY
   {
-    return cl_ctr_shift_left(&ctr, &src.intval);
+    return cl_ctr_shift_left(ctr, &src.intval);
   }
 }
 
@@ -267,7 +304,7 @@ static bool cl_act_shift_right(cl_action_t *action)
 {
   CL_TEMPLATE_CTR_BINARY
   {
-    return cl_ctr_shift_right(&ctr, &src.intval);
+    return cl_ctr_shift_right(ctr, &src.intval);
   }
 }
 
@@ -275,7 +312,7 @@ static bool cl_act_multiplication(cl_action_t *action)
 {
   CL_TEMPLATE_CTR_BINARY
   {
-    return cl_ctr_multiply(&ctr, &src);
+    return cl_ctr_multiply(ctr, &src);
   }
 }
 
@@ -283,7 +320,7 @@ static bool cl_act_division(cl_action_t *action)
 {
   CL_TEMPLATE_CTR_BINARY
   {
-    return cl_ctr_divide(&ctr, &src);
+    return cl_ctr_divide(ctr, &src);
   }
 }
 
@@ -291,7 +328,7 @@ static bool cl_act_addition(cl_action_t *action)
 {
   CL_TEMPLATE_CTR_BINARY
   {
-    return cl_ctr_add(&ctr, &src);
+    return cl_ctr_add(ctr, &src);
   }
 }
 
@@ -299,7 +336,7 @@ static bool cl_act_modulo(cl_action_t *action)
 {
   CL_TEMPLATE_CTR_BINARY
   {
-    return cl_ctr_modulo(&ctr, &src);
+    return cl_ctr_modulo(ctr, &src);
   }
 }
 
@@ -307,7 +344,7 @@ static bool cl_act_subtraction(cl_action_t *action)
 {
   CL_TEMPLATE_CTR_BINARY
   {
-    return cl_ctr_subtract(&ctr, &src);
+    return cl_ctr_subtract(ctr, &src);
   }
 }
 
@@ -317,12 +354,20 @@ static const cl_acttype_t action_types[] =
 /*{ CL_ACTTYPE_BITS,       true,  4, 4, cl_act_bits },*/
   { CL_ACTTYPE_COMPARE,    true,  5, 5, cl_act_compare },
 
-  /* Counter math */
+  /* Counter arithmetic */
   { CL_ACTTYPE_ADDITION,       false, 3, 3, cl_act_addition },
   { CL_ACTTYPE_SUBTRACTION,    false, 3, 3, cl_act_subtraction },
   { CL_ACTTYPE_MULTIPLICATION, false, 3, 3, cl_act_multiplication },
-/*{ CL_ACTTYPE_DIVISION,       false, 3, 3, cl_act_division },*/
-  { CL_ACTTYPE_ADDITION,       false, 3, 3, cl_act_modulo },
+  { CL_ACTTYPE_DIVISION,       false, 3, 3, cl_act_division },
+  { CL_ACTTYPE_MODULO,         false, 3, 3, cl_act_modulo },
+
+  /* Counter bitwise arithmetic */
+  { CL_ACTTYPE_AND,         false, 3, 3, cl_act_bitwise_and },
+  { CL_ACTTYPE_OR,          false, 3, 3, cl_act_bitwise_or },
+  { CL_ACTTYPE_XOR,         false, 3, 3, cl_act_bitwise_xor },
+  { CL_ACTTYPE_COMPLEMENT,  false, 1, 1, cl_act_bitwise_complement },
+  { CL_ACTTYPE_SHIFT_LEFT,  false, 3, 3, cl_act_shift_left },
+  { CL_ACTTYPE_SHIFT_RIGHT, false, 3, 3, cl_act_shift_right },
 
   /* Website API calls */
   { CL_ACTTYPE_POST_ACHIEVEMENT, false, 1, 1, cl_act_post_achievement },
