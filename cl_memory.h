@@ -230,7 +230,7 @@ void cl_update_memory(void);
  * @param value A pointer to the source data.
  * @return Whether or not the write succeeded.
  **/
-bool cl_write_memory(cl_membank_t *bank, cl_addr_t address, uint8_t size, 
+bool cl_write_memory(cl_membank_t *bank, cl_addr_t address, unsigned size,
    const void *value);
 
 /**

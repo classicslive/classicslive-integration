@@ -347,11 +347,12 @@ void cl_update_memory(void)
   }
 }
 
-bool cl_write_memory(cl_membank_t *bank, cl_addr_t address, uint8_t size, 
+bool cl_write_memory(cl_membank_t *bank, cl_addr_t address, unsigned size,
    const void *value)
 {
 #if CL_EXTERNAL_MEMORY == true
-   return cl_fe_memory_write(&memory, value, address, size);
+  CL_UNUSED(bank);
+  return cl_fe_memory_write(&memory, value, address, size);
 #else
    if (!size || !value)
       return false;

@@ -28,13 +28,13 @@ bool cl_init_page(const char **pos, cl_page_t *page)
    cl_action_t *action      = NULL;
    cl_action_t *prev_action = NULL;
    unsigned     i, j;
-   
+
    if (!cl_strto(pos, &page->action_count, sizeof(page->action_count), false))
       return false;
    page->actions = (cl_action_t*)calloc(page->action_count, sizeof(cl_action_t));
 
    cl_log("Actions: %u\n", page->action_count);
-   
+
    for (i = 0; i < page->action_count; i++)
    {
       action = &page->actions[i];
@@ -61,7 +61,7 @@ bool cl_init_page(const char **pos, cl_page_t *page)
       action->next_action = NULL;
       if (prev_action)
          prev_action->next_action = action;
-      
+
       cl_log("\n");
    }
    /* Zero-init the page's counters */
@@ -71,7 +71,7 @@ bool cl_init_page(const char **pos, cl_page_t *page)
       page->counters[i].intval = 0;
       page->counters[i].type = CL_MEMTYPE_INT64;
    }
-   
+
    cl_log("End of page.\n");
 
    return page->actions != 0;
@@ -139,7 +139,7 @@ bool cl_process_actions(cl_page_t *page)
 {
    bool     success = true;
    uint32_t i       = 0;
-   
+
    while (i < page->action_count)
    {
       script.current_action = &page->actions[i];

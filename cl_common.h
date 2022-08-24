@@ -16,6 +16,8 @@
 #define CL_ENDIAN_LITTLE       0
 #define CL_ENDIAN_BIG          1
 
+#define CL_UNUSED(a) (void)(a)
+
 enum
 {
   CL_MSG_DEBUG = 0,
