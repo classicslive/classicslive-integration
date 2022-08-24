@@ -209,7 +209,7 @@ bool cl_init_memory(const char **pos)
        new_memnote->address_initial);
 
       /* Initialize the tracked values based on the data type of the memnote */
-      new_ctr.floatval = 0;
+      new_ctr.floatval.fp = 0;
       new_ctr.intval = 0;
       new_ctr.type = new_memnote->type;
       new_memnote->current     = new_ctr;

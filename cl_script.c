@@ -66,11 +66,7 @@ bool cl_init_page(const char **pos, cl_page_t *page)
    }
    /* Zero-init the page's counters */
    for (i = 0; i < CL_COUNTERS_SIZE; i++)
-   {
-      page->counters[i].floatval = 0;
-      page->counters[i].intval = 0;
-      page->counters[i].type = CL_MEMTYPE_INT64;
-   }
+      cl_ctr_store_int(&page->counters[i], 0);
 
    cl_log("End of page.\n");
 
