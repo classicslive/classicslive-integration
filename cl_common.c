@@ -64,7 +64,7 @@ bool cl_read(void *dest, const uint8_t *src, cl_addr_t offset, unsigned size,
    return false;
 }
 
-bool cl_strto(const char **pos, void *value, uint8_t size, bool is_signed)
+bool cl_strto(const char **pos, void *value, unsigned size, bool is_signed)
 {
    char *end = NULL;
 
@@ -105,7 +105,8 @@ bool cl_strto(const char **pos, void *value, uint8_t size, bool is_signed)
    return true;
 }
 
-bool cl_write(uint8_t *dest, const void *src, cl_addr_t offset, uint8_t size, uint8_t endianness)
+bool cl_write(uint8_t *dest, const void *src, cl_addr_t offset, unsigned size,
+  unsigned endianness)
 {
    uint8_t i;
 
@@ -115,7 +116,7 @@ bool cl_write(uint8_t *dest, const void *src, cl_addr_t offset, uint8_t size, ui
          memcpy(&dest[offset], src, size);
       else if (endianness == CL_ENDIAN_BIG)
          for (i = 0; i < size; i++)
-            dest[offset + i] = ((uint8_t*)src)[size - i - 1];
+            dest[offset + i] = ((const uint8_t*)src)[size - i - 1];
       else
          return false;
    }

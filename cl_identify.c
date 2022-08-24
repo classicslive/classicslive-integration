@@ -102,23 +102,7 @@ void cl_task_gcwii(cl_task_t *task)
    }
 }
 
-/*
-void cl_push_gcwii_task(char *checksum, retro_task_callback_t callback)
-{
-   retro_task_t *task = task_init();
-   cl_md5_ctx_t *context = (cl_md5_ctx_t*)calloc(1, sizeof(cl_md5_ctx_t));
-
-   context->md5_final = checksum;
-
-   task->handler  = cl_task_gcwii;
-   task->state    = context;
-   task->callback = callback;
-
-   task_queue_push(task);
-}
-*/
-
-void cl_push_gcwii_task(char *checksum, void *callback)
+static void cl_push_gcwii_task(char *checksum, void *callback)
 {
    cl_task_t *task = (cl_task_t*)calloc(1, sizeof(cl_task_t));
    cl_md5_ctx_t *context = (cl_md5_ctx_t*)calloc(1, sizeof(cl_md5_ctx_t));

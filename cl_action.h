@@ -23,6 +23,7 @@ enum
   CL_ACTTYPE_SHIFT_RIGHT,
 
   CL_ACTTYPE_WRITE,
+  CL_ACTTYPE_CHANGE_CTR_TYPE,
 
   CL_ACTTYPE_COMPARE,
   CL_ACTTYPE_CHANGED,
@@ -51,13 +52,13 @@ typedef struct
 
 typedef struct cl_action_t
 {
-   uint32_t *arguments;
-   uint8_t   argument_count;
-   uint32_t  executions;
+   int64_t  *arguments;
+   unsigned  argument_count;
+   unsigned  executions;
    bool    (*function)();
    bool      if_type;
-   uint8_t   indentation;
-   char      type;
+   unsigned  indentation;
+   unsigned  type;
 
    /* TODO: Double-link actions together so the editor can easily insert new lines */ 
    struct cl_action_t *prev_action;
