@@ -92,8 +92,8 @@ unsigned cl_fe_memory_read(cl_memory_t *memory, void *dest, cl_addr_t address,
  * @param size The number of bytes to copy.
  * @return The number of bytes successfully written.
  **/
-unsigned cl_fe_memory_write(cl_memory_t *memory, void *src, cl_addr_t address,
-   unsigned size);
+unsigned cl_fe_memory_write(cl_memory_t *memory, const void *src,
+   cl_addr_t address, unsigned size);
 
 /**
  * Requests a deep copy of host memory into a search struct.
