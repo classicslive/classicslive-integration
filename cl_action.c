@@ -211,28 +211,32 @@ static bool cl_act_bits(cl_action_t *action)
 
 static bool cl_act_write(cl_action_t *action)
 {
-   if (action->argument_count != 4)
-      return cl_free_action(action);
-   else
-   {
-       cl_counter_t left = cl_get_compare_value(action->arguments[0], action->arguments[1]);
-       cl_counter_t right = cl_get_compare_value(action->arguments[2], action->arguments[3]);
+  cl_counter_t left = cl_get_compare_value(action->arguments[0], action->arguments[1]);
+  cl_counter_t right = cl_get_compare_value(action->arguments[2], action->arguments[3]);
 
-       if (left.type == CL_MEMTYPE_NOT_SET || right.type == CL_MEMTYPE_NOT_SET)
-         return cl_free_action(action);
+  if (left.type == CL_MEMTYPE_NOT_SET || right.type == CL_MEMTYPE_NOT_SET)
+    return cl_free_action(action);
+  else
+  {
+    switch (action->arguments[0])
+    {
+    case CL_SRCTYPE_CURRENT_RAM:
+      return cl_write_memnote_from_key(action->arguments[1], &right);
+    case CL_SRCTYPE_COUNTER:
+    {
+      cl_counter_t *ctr = cl_get_mutable_value(CL_SRCTYPE_COUNTER, action->arguments[1]);
+      if (!ctr)
+        return false;
       else
-      {
-         switch (left.type)
-         {
-         case CL_SRCTYPE_CURRENT_RAM:
-            return cl_write_memnote_from_key(action->arguments[1], &right);
-         default:
-            return false;
-         }
-      }
-      
+        *ctr = right;
+
       return true;
-   }
+    }
+    default:
+      cl_script_break(true, "Invalid srctype to write: %u", action->arguments[0]);
+      return false;
+    }
+  }
 }
 
 /**
@@ -264,7 +268,7 @@ static bool cl_act_bitwise_and(cl_action_t *action)
 {
   CL_TEMPLATE_CTR_BINARY
   {
-    return cl_ctr_and(ctr, &src.intval);
+    return cl_ctr_and(ctr, &src);
   }
 }
 
@@ -280,7 +284,7 @@ static bool cl_act_bitwise_or(cl_action_t *action)
 {
   CL_TEMPLATE_CTR_BINARY
   {
-    return cl_ctr_or(ctr, &src.intval);
+    return cl_ctr_or(ctr, &src);
   }
 }
 
@@ -288,7 +292,7 @@ static bool cl_act_bitwise_xor(cl_action_t *action)
 {
   CL_TEMPLATE_CTR_BINARY
   {
-    return cl_ctr_xor(ctr, &src.intval);
+    return cl_ctr_xor(ctr, &src);
   }
 }
 
@@ -296,7 +300,7 @@ static bool cl_act_shift_left(cl_action_t *action)
 {
   CL_TEMPLATE_CTR_BINARY
   {
-    return cl_ctr_shift_left(ctr, &src.intval);
+    return cl_ctr_shift_left(ctr, &src);
   }
 }
 
@@ -304,7 +308,7 @@ static bool cl_act_shift_right(cl_action_t *action)
 {
   CL_TEMPLATE_CTR_BINARY
   {
-    return cl_ctr_shift_right(ctr, &src.intval);
+    return cl_ctr_shift_right(ctr, &src);
   }
 }
 
@@ -348,6 +352,12 @@ static bool cl_act_subtraction(cl_action_t *action)
   }
 }
 
+static bool cl_act_change_ctr_type(cl_action_t *action)
+{
+  cl_counter_t *ctr = cl_get_mutable_value(CL_SRCTYPE_COUNTER, action->arguments[0]);
+  return ctr ? cl_ctr_change_type(ctr, action->arguments[1]) : false;
+}
+
 static const cl_acttype_t action_types[] =
 {
   { CL_ACTTYPE_NO_PROCESS, false, 0, 0, cl_act_no_process },
@@ -368,6 +378,10 @@ static const cl_acttype_t action_types[] =
   { CL_ACTTYPE_COMPLEMENT,  false, 1, 1, cl_act_bitwise_complement },
   { CL_ACTTYPE_SHIFT_LEFT,  false, 3, 3, cl_act_shift_left },
   { CL_ACTTYPE_SHIFT_RIGHT, false, 3, 3, cl_act_shift_right },
+
+  /* Direct value manipulation */
+  { CL_ACTTYPE_WRITE,           false, 4, 4, cl_act_write },
+  { CL_ACTTYPE_CHANGE_CTR_TYPE, false, 2, 2, cl_act_change_ctr_type },
 
   /* Website API calls */
   { CL_ACTTYPE_POST_ACHIEVEMENT, false, 1, 1, cl_act_post_achievement },
