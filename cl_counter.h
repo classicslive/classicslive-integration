@@ -30,6 +30,8 @@ bool cl_ctr_and(cl_counter_t *counter, const cl_counter_t *value);
 bool cl_ctr_or(cl_counter_t *counter, const cl_counter_t *value);
 bool cl_ctr_xor(cl_counter_t *counter, const cl_counter_t *value);
 
+bool cl_ctr_is_float(const cl_counter_t *counter);
+
 /**
  * Shifts a counter value to the left. Changes counter type to int.
  **/
