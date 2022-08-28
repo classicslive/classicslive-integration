@@ -95,7 +95,7 @@ typedef struct cl_memnote_t
    cl_counter_t last_unique;
 
    /* For following pointers to get RAM values */
-   int32_t  *pointer_offsets;
+   uint32_t *pointer_offsets;
    uint32_t  pointer_passes;
 
 #ifdef CL_HAVE_EDITOR
@@ -187,8 +187,8 @@ bool cl_init_memory(const char **pos);
  * @param address The virtual memory address to read from.
  * @param size The number of bytes to read.
  **/
-bool cl_read_memory_internal(void *value, cl_membank_t *bank, cl_addr_t address, 
-   unsigned size);
+unsigned cl_read_memory_internal(void *value, cl_membank_t *bank,
+  cl_addr_t address, unsigned size);
 
 /** 
  * Reads a value at a virtual memory address into a buffer by reading external
@@ -199,8 +199,8 @@ bool cl_read_memory_internal(void *value, cl_membank_t *bank, cl_addr_t address,
  * @param address The virtual memory address to read from.
  * @param size The number of bytes to read.
  **/
-bool cl_read_memory_external(void *value, cl_membank_t *bank, cl_addr_t address, 
-   unsigned size);
+unsigned cl_read_memory_external(void *value, cl_membank_t *bank,
+  cl_addr_t address, unsigned size);
 
 #if CL_EXTERNAL_MEMORY != true
 #define cl_read_memory cl_read_memory_internal
@@ -228,10 +228,10 @@ void cl_update_memory(void);
  * @param address The virtual address to write to.
  * @param size The number of bytes to write.
  * @param value A pointer to the source data.
- * @return Whether or not the write succeeded.
+ * @return Number of bytes written.
  **/
-bool cl_write_memory(cl_membank_t *bank, cl_addr_t address, unsigned size,
-   const void *value);
+unsigned cl_write_memory(cl_membank_t *bank, cl_addr_t address, unsigned size,
+  const void *value);
 
 /**
  * Writes the value referenced by a memory note with a given value.

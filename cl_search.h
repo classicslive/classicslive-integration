@@ -37,7 +37,7 @@ typedef struct cl_pointerresult_t
    cl_addr_t address_final;
    uint32_t  value_current;
    uint32_t  value_previous;
-   int32_t   offsets[CL_POINTER_MAX_PASSES];
+   uint32_t  offsets[CL_POINTER_MAX_PASSES];
 } cl_pointerresult_t;
 
 typedef struct cl_pointersearch_t

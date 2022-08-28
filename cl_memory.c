@@ -221,7 +221,7 @@ bool cl_init_memory(const char **pos)
       {
          uint8_t j;
 
-         new_memnote->pointer_offsets = (int32_t*)calloc(new_memnote->pointer_passes, sizeof(int32_t));
+         new_memnote->pointer_offsets = (uint32_t*)calloc(new_memnote->pointer_passes, sizeof(uint32_t));
          for (j = 0; j < new_memnote->pointer_passes; j++)
          {
             if (!cl_strto(pos, &new_memnote->pointer_offsets[j], sizeof(int32_t), true))
@@ -240,8 +240,8 @@ bool cl_init_memory(const char **pos)
    return true;
 }
 
-bool cl_read_memory_internal(void *value, cl_membank_t *bank, cl_addr_t address,
-  unsigned size)
+unsigned cl_read_memory_internal(void *value, cl_membank_t *bank,
+  cl_addr_t address, unsigned size)
 {
   if (!bank)
   {
@@ -257,12 +257,14 @@ bool cl_read_memory_internal(void *value, cl_membank_t *bank, cl_addr_t address,
   return false;
 }
 
-bool cl_read_memory_external(void *value, cl_membank_t *bank, cl_addr_t address, unsigned size)
+unsigned cl_read_memory_external(void *value, cl_membank_t *bank,
+  cl_addr_t address, unsigned size)
 {
+  CL_UNUSED(bank);
 #if CL_EXTERNAL_MEMORY == true
-   return cl_fe_memory_read(&memory, value, address, size);
+  return cl_fe_memory_read(&memory, value, address, size);
 #else
-   return false;
+  return false;
 #endif
 }
 
@@ -297,18 +299,18 @@ unsigned cl_sizeof_memtype(const unsigned type)
  **/
 bool cl_memnote_resolve_ptrs(cl_memnote_t *note)
 {
-   cl_addr_t final_addr = note->address_initial;
-   unsigned  i;
+  cl_addr_t final_addr = note->address_initial;
+  unsigned  i;
 
-   for (i = 0; i < note->pointer_passes; i++)
-   {
-      if (!cl_read_memory(&final_addr, NULL, final_addr, memory.pointer_size))
-         return false;
-      final_addr += note->pointer_offsets[i];
-   }
-   note->address = final_addr;
+  for (i = 0; i < note->pointer_passes; i++)
+  {
+    if (!cl_read_memory(&final_addr, NULL, final_addr, memory.pointer_size))
+      return false;
+    final_addr += note->pointer_offsets[i];
+  }
+  note->address = final_addr;
 
-   return true;
+  return true;
 }
 
 bool cl_update_memnote(cl_memnote_t *note)
@@ -329,6 +331,8 @@ bool cl_update_memnote(cl_memnote_t *note)
     /* Logic for "last unique" values; the previous value will persist */
     if (!cl_ctr_equal_exact(&note->previous, &note->current))
       note->last_unique = note->previous;
+
+    return true;
   }
 }
 
@@ -347,28 +351,28 @@ void cl_update_memory(void)
   }
 }
 
-bool cl_write_memory(cl_membank_t *bank, cl_addr_t address, unsigned size,
-   const void *value)
+unsigned cl_write_memory(cl_membank_t *bank, cl_addr_t address, unsigned size,
+  const void *value)
 {
-#if CL_EXTERNAL_MEMORY == true
+#if CL_EXTERNAL_MEMORY
   CL_UNUSED(bank);
   return cl_fe_memory_write(&memory, value, address, size);
 #else
-   if (!size || !value)
+  if (!size || !value)
+    return false;
+  else if (!bank)
+  {
+    bank = cl_find_membank(address);
+    if (!bank)
       return false;
-   else if (!bank)
-   {
-      bank = cl_find_membank(address);
-      if (!bank)
-         return false;
-      else
-         address -= bank->start;
-   }
-   if (bank->data)
-   /* TODO: The address should be masked */
-      return cl_write(bank->data, value, address, size, memory.endianness);
-   
-   return false;
+    else
+      address -= bank->start;
+  }
+  if (bank->data)
+  /* TODO: The address should be masked */
+    return cl_write(bank->data, value, address, size, memory.endianness);
+
+  return false;
 #endif
 }
 
@@ -380,10 +384,16 @@ bool cl_write_memnote(cl_memnote_t *note, const cl_counter_t *value)
   {
     if (cl_memnote_resolve_ptrs(note))
     {
-      if (note->type == CL_MEMTYPE_FLOAT || CL_MEMTYPE_DOUBLE)
-        return cl_write_memory(NULL, note->address, cl_sizeof_memtype(note->type), &value->floatval);
+      if (cl_ctr_is_float(&note->current))
+        return (bool)cl_write_memory(NULL,
+                                     note->address,
+                                     cl_sizeof_memtype(note->type),
+                                     &value->floatval);
       else
-        return cl_write_memory(NULL, note->address, cl_sizeof_memtype(note->type), &value->intval);
+        return (bool)cl_write_memory(NULL,
+                                     note->address,
+                                     cl_sizeof_memtype(note->type),
+                                     &value->intval);
     }
   }
 
