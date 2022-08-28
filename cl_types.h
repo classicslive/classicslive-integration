@@ -8,7 +8,21 @@
 #include <stdlib.h>
 #include <time.h>
 
+#ifndef _Bool
+#define _Bool unsigned char
+#define bool _Bool
+#define false 0
+#define true 1
+#endif
+
 #define CL_SESSION_ID_LENGTH 32
+
+typedef union
+{
+  int64_t intval;
+  double floatval;
+  unsigned uintval;
+} cl_arg_t;
 
 typedef struct
 {

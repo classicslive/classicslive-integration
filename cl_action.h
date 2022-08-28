@@ -27,6 +27,7 @@ enum
 
   CL_ACTTYPE_COMPARE,
   CL_ACTTYPE_CHANGED,
+  CL_ACTTYPE_BITS,
 
   /* API calls */
   CL_ACTTYPE_POST_ACHIEVEMENT,
@@ -52,7 +53,7 @@ typedef struct
 
 typedef struct cl_action_t
 {
-   int64_t  *arguments;
+   cl_arg_t *arguments;
    unsigned  argument_count;
    unsigned  executions;
    bool    (*function)();
@@ -65,12 +66,12 @@ typedef struct cl_action_t
    struct cl_action_t *next_action;
 } cl_action_t;
 
-bool cl_free_action    (cl_action_t *action);
+bool cl_free_action(cl_action_t *action);
 
 /* Assign the correct function pointer for the type of action */
-bool cl_init_action    (cl_action_t *action);
+bool cl_init_action(cl_action_t *action);
 
 /* Run the function and return whether it succeeded. */
-bool cl_process_action (cl_action_t *action);
+bool cl_process_action(cl_action_t *action);
 
 #endif

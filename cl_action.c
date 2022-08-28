@@ -9,18 +9,26 @@
 
 bool cl_free_action(cl_action_t *action)
 {
-   action->argument_count = 0;
-   free(action->arguments);
-   action->arguments = NULL;
-   action->type = CL_ACTTYPE_NO_PROCESS;
-   
-   action->prev_action = NULL;
-   action->next_action = NULL;
+  action->argument_count = 0;
+  free(action->arguments);
+  action->arguments = NULL;
+  action->type = CL_ACTTYPE_NO_PROCESS;
 
-   return false;
+  action->prev_action = NULL;
+  action->next_action = NULL;
+
+  return false;
 }
 
-cl_counter_t cl_get_compare_value(cl_src_t source, int64_t offset)
+/**
+ * @brief Returns a copy of a counter's data. Used in cases where the requested
+ *   counter should not be directly mutated.
+ * @param source The source type of the requested counter.
+ * @param offset An address or index relevant to the source type. For example,
+ *   a memory note or counter index, or a memory address.
+ * @return A mutable counter, or return CL_CTR_INVALID if unavailable.
+ **/
+static cl_counter_t cl_get_compare_value(cl_src_t source, int64_t offset)
 {
   cl_counter_t counter;
 
@@ -94,69 +102,51 @@ static cl_counter_t *cl_get_mutable_value(cl_src_t source, int64_t offset)
 
 static bool cl_act_post_achievement(cl_action_t *action)
 {
-   if (action->argument_count != 1)
-      return cl_free_action(action);
-   else
-   {
-      uint32_t key = action->arguments[0];
-      char     data[CL_POST_DATA_SIZE];
+  unsigned key = action->arguments[0].uintval;
+  char data[CL_POST_DATA_SIZE];
 
-      snprintf(data, CL_POST_DATA_SIZE, "ach_id=%u", key);
-      cl_network_post(CL_REQUEST_POST_ACHIEVEMENT, data, NULL);
+  snprintf(data, CL_POST_DATA_SIZE, "ach_id=%u", key);
+  cl_network_post(CL_REQUEST_POST_ACHIEVEMENT, data, NULL);
 
-      /* Clear this action so we don't re-submit the achievement */
-      cl_free_action(action);
-   }
+  /* Clear this action so we don't re-submit the achievement */
+  cl_free_action(action);
 
-   return true;
+  return true;
 }
 
-static bool cl_act_post_achievement_progress(cl_action_t *action)
+static bool cl_act_post_progress(cl_action_t *action)
 {
-   if (action->argument_count != 1)
-      return cl_free_action(action);
-   else
-   {
-      uint32_t key = action->arguments[0];
-      char     data[CL_POST_DATA_SIZE];
+  unsigned key = action->arguments[0].uintval;
+  char data[CL_POST_DATA_SIZE];
 
-      snprintf(data, CL_POST_DATA_SIZE, "ach_id=%u", key);
-      cl_network_post(CL_REQUEST_POST_PROGRESS, data, NULL);
-   }
-   
-   return true;
+  snprintf(data, CL_POST_DATA_SIZE, "ach_id=%u", key);
+  cl_network_post(CL_REQUEST_POST_PROGRESS, data, NULL);
+
+  return true;
 }
 
+/* TODO: Support extra values */
 static bool cl_act_post_leaderboard(cl_action_t *action)
 {
-   if (action->argument_count != 1)
-      return cl_free_action(action);
-   else
-   {
-      uint32_t key = action->arguments[0];
-      char     data[CL_POST_DATA_SIZE];
+  unsigned key = action->arguments[0].uintval;
+  char data[CL_POST_DATA_SIZE];
 
-      snprintf(data, CL_POST_DATA_SIZE, "ldb_id=%u", key);
-      cl_network_post(CL_REQUEST_POST_LEADERBOARD, data, NULL);
-   }
+  snprintf(data, CL_POST_DATA_SIZE, "ldb_id=%u", key);
+  cl_network_post(CL_REQUEST_POST_LEADERBOARD, data, NULL);
    
-   return true;
+  return true;
 }
 
 static bool cl_act_compare(cl_action_t *action)
 {
-  if (action->argument_count < 5)
+  cl_counter_t left = cl_get_compare_value(action->arguments[0].uintval, action->arguments[1].uintval);
+  cl_counter_t right = cl_get_compare_value(action->arguments[2].uintval, action->arguments[3].uintval);
+
+  if (left.type == CL_MEMTYPE_NOT_SET || right.type == CL_MEMTYPE_NOT_SET)
     return cl_free_action(action);
-  else
+
+  switch (action->arguments[4].intval)
   {
-    cl_counter_t left = cl_get_compare_value(action->arguments[0], action->arguments[1]);
-    cl_counter_t right = cl_get_compare_value(action->arguments[2], action->arguments[3]);
-
-    if (left.type == CL_MEMTYPE_NOT_SET || right.type == CL_MEMTYPE_NOT_SET)
-      return cl_free_action(action);
-
-    switch (action->arguments[4])
-    {
     case CL_CMPTYPE_IFEQUAL:
       return cl_ctr_equal(&left, &right);
     case CL_CMPTYPE_IFGREATER:
@@ -167,64 +157,54 @@ static bool cl_act_compare(cl_action_t *action)
       return cl_ctr_not_equal(&left, &right);
     default:
       return cl_free_action(action);
-    }
   }
 }
 
 static bool cl_act_no_process(cl_action_t *action)
 {
+  CL_UNUSED(action);
   return false;
 }
 
 static bool cl_act_changed(cl_action_t *action)
 {
-  if (action->argument_count != 3)
+  cl_counter_t left = cl_get_compare_value(CL_SRCTYPE_COUNTER, action->arguments[0].uintval);
+  cl_counter_t right = cl_get_compare_value(CL_SRCTYPE_COUNTER, action->arguments[1].uintval);
+
+  if (left.type == CL_MEMTYPE_NOT_SET || right.type == CL_MEMTYPE_NOT_SET)
     return cl_free_action(action);
   else
-  {
-    cl_counter_t left = cl_get_compare_value(action->arguments[0], action->arguments[1]);
-    cl_counter_t right = cl_get_compare_value(action->arguments[2], action->arguments[3]);
-
-    if (left.type == CL_MEMTYPE_NOT_SET || right.type == CL_MEMTYPE_NOT_SET)
-      return cl_free_action(action);
-    else
-      return cl_ctr_not_equal(&left, &right);
-  }
+    return cl_ctr_not_equal(&left, &right);
 }
 
 static bool cl_act_bits(cl_action_t *action)
 {
-  if (action->argument_count != 4)
+  cl_counter_t left = cl_get_compare_value(action->arguments[0].uintval, action->arguments[1].uintval);
+  cl_counter_t right = cl_get_compare_value(action->arguments[2].uintval, action->arguments[3].uintval);
+
+  if (left.type == CL_MEMTYPE_NOT_SET || right.type == CL_MEMTYPE_NOT_SET)
     return cl_free_action(action);
-  else
-  {
-    cl_counter_t left = cl_get_compare_value(action->arguments[0], action->arguments[1]);
-    cl_counter_t right = cl_get_compare_value(action->arguments[2], action->arguments[3]);
 
-    if (left.type == CL_MEMTYPE_NOT_SET || right.type == CL_MEMTYPE_NOT_SET)
-      return cl_free_action(action);
-
-    /* TODO: Not exactly what we want */
-    return (left.intval & right.intval) == right.intval;
-  }
+  /* TODO: Not exactly what we want */
+  return (left.intval & right.intval) == right.intval;
 }
 
 static bool cl_act_write(cl_action_t *action)
 {
-  cl_counter_t left = cl_get_compare_value(action->arguments[0], action->arguments[1]);
-  cl_counter_t right = cl_get_compare_value(action->arguments[2], action->arguments[3]);
+  cl_counter_t left = cl_get_compare_value(action->arguments[0].uintval, action->arguments[1].uintval);
+  cl_counter_t right = cl_get_compare_value(action->arguments[2].uintval, action->arguments[3].uintval);
 
   if (left.type == CL_MEMTYPE_NOT_SET || right.type == CL_MEMTYPE_NOT_SET)
     return cl_free_action(action);
   else
   {
-    switch (action->arguments[0])
+    switch (action->arguments[0].uintval)
     {
     case CL_SRCTYPE_CURRENT_RAM:
-      return cl_write_memnote_from_key(action->arguments[1], &right);
+      return cl_write_memnote_from_key(action->arguments[1].uintval, &right);
     case CL_SRCTYPE_COUNTER:
     {
-      cl_counter_t *ctr = cl_get_mutable_value(CL_SRCTYPE_COUNTER, action->arguments[1]);
+      cl_counter_t *ctr = cl_get_mutable_value(CL_SRCTYPE_COUNTER, action->arguments[1].uintval);
       if (!ctr)
         return false;
       else
@@ -233,7 +213,7 @@ static bool cl_act_write(cl_action_t *action)
       return true;
     }
     default:
-      cl_script_break(true, "Invalid srctype to write: %u", action->arguments[0]);
+      cl_script_break(true, "Invalid srctype to write: %u", action->arguments[0].uintval);
       return false;
     }
   }
@@ -244,7 +224,7 @@ static bool cl_act_write(cl_action_t *action)
  * index that operates on itself.
  **/
 #define CL_TEMPLATE_CTR_UNARY \
-  cl_counter_t *ctr = cl_get_mutable_value(CL_SRCTYPE_COUNTER, action->arguments[0]); \
+  cl_counter_t *ctr = cl_get_mutable_value(CL_SRCTYPE_COUNTER, action->arguments[0].uintval); \
   if (!ctr || ctr->type == CL_MEMTYPE_NOT_SET) \
     return false; \
   else
@@ -258,8 +238,8 @@ static bool cl_act_write(cl_action_t *action)
   cl_counter_t src; \
   if (action->argument_count != 3) \
     return false; \
-  ctr = cl_get_mutable_value(CL_SRCTYPE_COUNTER, action->arguments[0]); \
-  src = cl_get_compare_value(action->arguments[1], action->arguments[2]); \
+  ctr = cl_get_mutable_value(CL_SRCTYPE_COUNTER, action->arguments[0].uintval); \
+  src = cl_get_compare_value(action->arguments[1].uintval, action->arguments[2].uintval); \
   if (!ctr || ctr->type == CL_MEMTYPE_NOT_SET || src.type == CL_MEMTYPE_NOT_SET) \
     return false; \
   else
@@ -354,15 +334,16 @@ static bool cl_act_subtraction(cl_action_t *action)
 
 static bool cl_act_change_ctr_type(cl_action_t *action)
 {
-  cl_counter_t *ctr = cl_get_mutable_value(CL_SRCTYPE_COUNTER, action->arguments[0]);
-  return ctr ? cl_ctr_change_type(ctr, action->arguments[1]) : false;
+  cl_counter_t *ctr = cl_get_mutable_value(CL_SRCTYPE_COUNTER, action->arguments[0].uintval);
+  return ctr ? cl_ctr_change_type(ctr, action->arguments[1].uintval) : false;
 }
 
 static const cl_acttype_t action_types[] =
 {
   { CL_ACTTYPE_NO_PROCESS, false, 0, 0, cl_act_no_process },
-/*{ CL_ACTTYPE_BITS,       true,  4, 4, cl_act_bits },*/
   { CL_ACTTYPE_COMPARE,    true,  5, 5, cl_act_compare },
+  { CL_ACTTYPE_CHANGED,    true,  2, 2, cl_act_changed },
+  { CL_ACTTYPE_BITS,       true,  4, 4, cl_act_bits },
 
   /* Counter arithmetic */
   { CL_ACTTYPE_ADDITION,       false, 3, 3, cl_act_addition },
@@ -384,8 +365,9 @@ static const cl_acttype_t action_types[] =
   { CL_ACTTYPE_CHANGE_CTR_TYPE, false, 2, 2, cl_act_change_ctr_type },
 
   /* Website API calls */
-  { CL_ACTTYPE_POST_ACHIEVEMENT, false, 1, 1, cl_act_post_achievement },
+  { CL_ACTTYPE_POST_ACHIEVEMENT, false, 1, 1,  cl_act_post_achievement },
   { CL_ACTTYPE_POST_LEADERBOARD, false, 1, 15, cl_act_post_leaderboard },
+  { CL_ACTTYPE_POST_PROGRESS,    false, 1, 1,  cl_act_post_progress },
 
   { 0, false, 0, 0, NULL }
 };

@@ -61,7 +61,7 @@ void CleScriptEditor::run()
       /* Update arguments column */
       QString args;
       for (j = 0; j < action->argument_count; j++)
-         args += QString::number(action->arguments[j]) + " ";
+         args += QString::number(action->arguments[j].intval) + " ";
       m_Table->setItem(i, 1, new QTableWidgetItem(args));
 
       /* Update executions column */
