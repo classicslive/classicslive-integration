@@ -58,7 +58,7 @@ static cl_counter_t cl_get_compare_value(cl_src_t source, int64_t offset)
     break;
   }
   case CL_SRCTYPE_COUNTER:
-    if (offset >= CL_COUNTERS_SIZE || offset < 0)
+    if (offset < CL_COUNTERS_SIZE && offset >= 0)
       counter = script.current_page->counters[offset];
     else
       counter.type = CL_MEMTYPE_NOT_SET;
@@ -72,8 +72,8 @@ static cl_counter_t cl_get_compare_value(cl_src_t source, int64_t offset)
 }
 
 /**
- * @brief Returns a pointer to a counter that can be mutated. Currently, this
- *   only includes the counters stored within script pages.
+ * Returns a pointer to a counter that can be mutated. Currently, this only
+ *   includes the counters stored within script pages.
  * @param source The source type of the requested counter.
  * @param offset An address or index relevant to the source type.
  * @return A mutable counter, or NULL if unavailable.
