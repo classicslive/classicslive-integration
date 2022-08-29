@@ -58,7 +58,7 @@ static cl_counter_t cl_get_compare_value(cl_src_t source, int64_t offset)
     break;
   }
   case CL_SRCTYPE_COUNTER:
-    if (offset > CL_COUNTERS_SIZE || offset < 0)
+    if (offset >= CL_COUNTERS_SIZE || offset < 0)
       counter = script.current_page->counters[offset];
     else
       counter.type = CL_MEMTYPE_NOT_SET;
@@ -224,8 +224,10 @@ static bool cl_act_write(cl_action_t *action)
  * index that operates on itself.
  **/
 #define CL_TEMPLATE_CTR_UNARY \
-  cl_counter_t *ctr = cl_get_mutable_value(CL_SRCTYPE_COUNTER, action->arguments[0].uintval); \
-  if (!ctr || ctr->type == CL_MEMTYPE_NOT_SET) \
+  cl_counter_t *ctr = cl_get_mutable_value(CL_SRCTYPE_COUNTER, \
+                                           action->arguments[0].uintval); \
+  if (!ctr || \
+      ctr->type == CL_MEMTYPE_NOT_SET) \
     return false; \
   else
 
@@ -234,13 +236,13 @@ static bool cl_act_write(cl_action_t *action)
  * index and two for a compare value lookup.
  **/
 #define CL_TEMPLATE_CTR_BINARY \
-  cl_counter_t *ctr; \
-  cl_counter_t src; \
-  if (action->argument_count != 3) \
-    return false; \
-  ctr = cl_get_mutable_value(CL_SRCTYPE_COUNTER, action->arguments[0].uintval); \
-  src = cl_get_compare_value(action->arguments[1].uintval, action->arguments[2].uintval); \
-  if (!ctr || ctr->type == CL_MEMTYPE_NOT_SET || src.type == CL_MEMTYPE_NOT_SET) \
+  cl_counter_t *ctr = cl_get_mutable_value(CL_SRCTYPE_COUNTER, \
+                                           action->arguments[0].uintval); \
+  cl_counter_t src = cl_get_compare_value(action->arguments[1].uintval, \
+                                          action->arguments[2].uintval); \
+  if (!ctr || \
+      ctr->type == CL_MEMTYPE_NOT_SET || \
+      src.type == CL_MEMTYPE_NOT_SET) \
     return false; \
   else
 
