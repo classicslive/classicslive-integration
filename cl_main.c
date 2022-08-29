@@ -154,7 +154,7 @@ bool cl_run()
    if (session.ready)
    {
       cl_update_memory();
-      cl_update_script();
+      cl_script_update();
 
       /* Pingback every X seconds to update rich presence */
       if (time(0) >= session.last_status_update + CL_PRESENCE_INTERVAL)
