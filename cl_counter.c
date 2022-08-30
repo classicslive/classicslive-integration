@@ -167,17 +167,30 @@ bool cl_ctr_xor(cl_counter_t *counter, const cl_counter_t *value)
 
 bool cl_ctr_shift_left(cl_counter_t *counter, const cl_counter_t *value)
 {
-  return cl_ctr_store_int(counter, (cl_ctr_is_float(counter) ? counter->floatval.raw : counter->intval) << value->intval);
+  if (cl_ctr_is_float(counter))
+  {
+    counter->floatval.uraw <<= value->intval;
+    return cl_ctr_store_int(counter, counter->floatval.raw);
+  }
+  else
+    return cl_ctr_store_int(counter, counter->intval << value->intval);
 }
 
 bool cl_ctr_shift_right(cl_counter_t *counter, const cl_counter_t *value)
 {
-  return cl_ctr_store_int(counter, (cl_ctr_is_float(counter) ? counter->floatval.raw : counter->intval) >> value->intval);
+  if (cl_ctr_is_float(counter))
+  {
+    counter->floatval.uraw >>= value->intval;
+    return cl_ctr_store_int(counter, counter->floatval.raw);
+  }
+  else
+    return cl_ctr_store_int(counter, counter->intval >> value->intval);
 }
 
 bool cl_ctr_complement(cl_counter_t *counter)
 {
-  return cl_ctr_store_int(counter, ~(cl_ctr_is_float(counter) ? counter->floatval.raw : counter->intval));
+  return cl_ctr_store_int(counter,
+    ~(cl_ctr_is_float(counter) ? counter->floatval.raw : counter->intval));
 }
 
 bool cl_ctr_add(cl_counter_t *left, const cl_counter_t *right)
