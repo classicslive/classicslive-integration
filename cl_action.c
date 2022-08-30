@@ -168,8 +168,8 @@ static bool cl_act_no_process(cl_action_t *action)
 
 static bool cl_act_changed(cl_action_t *action)
 {
-  cl_counter_t left = cl_get_compare_value(CL_SRCTYPE_COUNTER, action->arguments[0].uintval);
-  cl_counter_t right = cl_get_compare_value(CL_SRCTYPE_COUNTER, action->arguments[1].uintval);
+  cl_counter_t left = cl_get_compare_value(CL_SRCTYPE_CURRENT_RAM, action->arguments[0].uintval);
+  cl_counter_t right = cl_get_compare_value(CL_SRCTYPE_PREVIOUS_RAM, action->arguments[0].uintval);
 
   if (left.type == CL_MEMTYPE_NOT_SET || right.type == CL_MEMTYPE_NOT_SET)
     return cl_free_action(action);
@@ -344,7 +344,7 @@ static const cl_acttype_t action_types[] =
 {
   { CL_ACTTYPE_NO_PROCESS, false, 0, 0, cl_act_no_process },
   { CL_ACTTYPE_COMPARE,    true,  5, 5, cl_act_compare },
-  { CL_ACTTYPE_CHANGED,    true,  2, 2, cl_act_changed },
+  { CL_ACTTYPE_CHANGED,    true,  1, 1, cl_act_changed },
   { CL_ACTTYPE_BITS,       true,  4, 4, cl_act_bits },
 
   /* Counter arithmetic */
