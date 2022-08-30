@@ -56,16 +56,16 @@ typedef enum
 **/
 typedef struct cl_membank_t
 {
-   /* The location of the actual data */
-   uint8_t *data;
+  /* The location of the actual data */
+  uint8_t *data;
 
-   /* The number of bytes this bank contains */
-   cl_addr_t size;
+  /* The number of bytes this bank contains */
+  cl_addr_t size;
 
-   /* The virtual location of the first byte of this bank's data */
-   cl_addr_t start;
+  /* The virtual location of the first byte of this bank's data */
+  cl_addr_t start;
 
-   char title[256];
+  char title[256];
 } cl_membank_t;
 
 /**
@@ -80,30 +80,29 @@ typedef struct cl_membank_t
 **/
 typedef struct cl_memnote_t
 {
-   uint32_t  key;
-   uint32_t  order;
-   cl_addr_t address;
-   cl_addr_t address_initial;
+  unsigned  key;
+  unsigned  order;
+  cl_addr_t address;
+  cl_addr_t address_initial;
 
-   /* TODO: Set these back to correct sizes */
-   uint32_t flags;
-   uint32_t type;
+  unsigned flags;
+  unsigned type;
 
-   /* Stored values */
-   cl_counter_t current;
-   cl_counter_t previous;
-   cl_counter_t last_unique;
+  /* Stored values */
+  cl_counter_t current;
+  cl_counter_t previous;
+  cl_counter_t last_unique;
 
-   /* For following pointers to get RAM values */
-   uint32_t *pointer_offsets;
-   uint32_t  pointer_passes;
+  /* For following pointers to get RAM values */
+  unsigned *pointer_offsets;
+  unsigned  pointer_passes;
 
-#ifdef CL_HAVE_EDITOR
-   /* Metadata for generated human-readable strings in Live Editor */
-   /* TODO: Identifiers */
-   char description [2048];
-   bool edited;
-   char title       [256];
+#if CL_HAVE_EDITOR
+  /* Metadata for generated human-readable strings in Live Editor */
+  /* TODO: Identifiers */
+  char description[2048];
+  bool edited;
+  char title      [256];
 #endif
 } cl_memnote_t;
 
@@ -113,17 +112,17 @@ typedef struct cl_memnote_t
  **/
 typedef struct cl_memory_t
 {
-   cl_memnote_t *notes;
-   unsigned      note_count;
+  cl_memnote_t *notes;
+  unsigned      note_count;
 
-   cl_membank_t *banks;
-   unsigned      bank_count;
+  cl_membank_t *banks;
+  unsigned      bank_count;
 
-   /* The endianness of the content's memory. For example, CL_ENDIAN_LITTLE. */
-   uint8_t endianness;
+  /* The endianness of the content's memory. For example, CL_ENDIAN_LITTLE. */
+  unsigned endianness;
 
-   /* How many bytes the content uses for virtual addresses. */
-   uint8_t pointer_size;
+  /* How many bytes the content uses for virtual addresses. */
+  unsigned pointer_size;
 } cl_memory_t;
 
 /**
@@ -144,7 +143,7 @@ void cl_memory_free(void);
  **/
 void cl_free_memnote(cl_memnote_t *note);
 
-#if CL_LIBRETRO == true
+#if CL_LIBRETRO
 /**
  * Initializes memory banks from an array of libretro memory descriptors.
  * @param descs An array of libretro memory descriptors.
@@ -180,7 +179,8 @@ bool cl_init_memory(const char **pos);
 
 /** 
  * Reads a value at a virtual memory address into a buffer by using the memory
- * bank data pointer.
+ *   bank data pointer.
+ * In most cases, the cl_read_memory macro should be used instead.
  * @param value The buffer to be read into.
  * @param bank A pointer to a specific memory bank, or NULL to have it be 
  * looked up automatically.
@@ -192,7 +192,8 @@ unsigned cl_read_memory_internal(void *value, cl_membank_t *bank,
 
 /** 
  * Reads a value at a virtual memory address into a buffer by reading external
- * process memory.
+ *   process memory.
+ * In most cases, the cl_read_memory macro should be used instead.
  * @param value The buffer to be read into.
  * @param bank A pointer to a specific memory bank, or NULL to have it be 
  * looked up automatically.
@@ -202,10 +203,10 @@ unsigned cl_read_memory_internal(void *value, cl_membank_t *bank,
 unsigned cl_read_memory_external(void *value, cl_membank_t *bank,
   cl_addr_t address, unsigned size);
 
-#if CL_EXTERNAL_MEMORY != true
-#define cl_read_memory cl_read_memory_internal
-#else
+#if CL_EXTERNAL_MEMORY
 #define cl_read_memory cl_read_memory_external
+#else
+#define cl_read_memory cl_read_memory_internal
 #endif
 
 /**

@@ -133,7 +133,7 @@ static void cl_push_gcwii_task(char *checksum, void *callback)
 static uint8_t* cl_identify_iso9660(intfstream_t *stream)
 {
   if (!stream)
-    return false;
+    return NULL;
   else
   {
     uint8_t  *buffer;
@@ -157,10 +157,10 @@ static uint8_t* cl_identify_iso9660(intfstream_t *stream)
         return buffer;
       }
     }
-
     /* Not found */
     intfstream_close(stream);
     free(buffer);
+
     return NULL;
   }
 }
@@ -172,7 +172,7 @@ static uint8_t* cl_identify_iso9660(intfstream_t *stream)
  *   unsuccessful.
  * @todo See below and do this instead to support CIA.
  **/
-uint8_t* cl_identify_ncch(const char *path)
+static uint8_t* cl_identify_ncch(const char *path)
 {
   intfstream_t *stream;
   uint8_t      *data;
