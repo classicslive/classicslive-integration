@@ -39,21 +39,21 @@ bool cl_init_page(const char **pos, cl_page_t *page)
   {
     action = &page->actions[i];
 
-    if (!cl_strto(pos, &action->indentation,    1, false) ||
-        !cl_strto(pos, &action->type,           1, false) ||
-        !cl_strto(pos, &action->argument_count, 1, false) ||
+    if (!cl_strto(pos, &action->indentation, sizeof(action->indentation), false) ||
+        !cl_strto(pos, &action->type, sizeof(action->type), false) ||
+        !cl_strto(pos, &action->argument_count, sizeof(action->argument_count), false) ||
         !cl_init_action(action))
       return false;
 
-    cl_log("%u %c %u", page->actions[i].indentation, page->actions[i].type, page->actions[i].argument_count);
+    cl_log("%u %u %u", page->actions[i].indentation, page->actions[i].type, page->actions[i].argument_count);
 
     /* Allocate and initialize action arguments */
     action->arguments = (cl_arg_t*)calloc(action->argument_count, sizeof(cl_arg_t));
     for (j = 0; j < action->argument_count; j++)
     {
-      if (!cl_strto(pos, &action->arguments[j], 4, false))
+      if (!cl_strto(pos, &action->arguments[j], sizeof(cl_arg_t), true))
         return false;
-      cl_log(" %u", page->actions[i].arguments[j]);
+      cl_log(" %lld", page->actions[i].arguments[j]);
     }
 
     /* Double-linked list */
@@ -90,7 +90,7 @@ bool cl_script_init(const char **pos)
     script.status = CL_SRCSTATUS_ACTIVE;
 
     return true;
-   }
+  }
 }
 
 static unsigned cl_process_if_statements(cl_page_t *page, unsigned pos)
@@ -178,15 +178,24 @@ bool cl_script_update()
 
 void cl_script_break(bool fatal, const char *format, ...)
 {
-   va_list args;
+  va_list args;
 
-   script.status = CL_SCRSTATUS_PAUSED;
-   script.error_fatal = fatal;
+  script.status = CL_SCRSTATUS_PAUSED;
+  script.error_fatal = fatal;
 
-   if (fatal)
-      cl_fe_pause();
+  va_start(args, format);
+  vsprintf(script.error_msg, format, args);
+  va_end(args);
 
-   va_start(args, format);
-   vsprintf(script.error_msg, format, args);
-   va_end(args);
+  /*
+   * Show why the script errored out if the error is unrecoverable.
+   * If in edit mode, have the content pause execution for debugging.
+   */
+  if (fatal)
+  {
+#if CL_HAVE_EDITOR
+    cl_fe_pause();
+#endif
+    cl_message(CL_MSG_ERROR, script.error_msg);
+  }
 }
