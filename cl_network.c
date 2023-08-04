@@ -49,6 +49,11 @@ void cl_network_init(const char *new_session_id)
   logged_in = true;
 }
 
+void cl_default_network_cb(cl_network_response_t response)
+{
+  cl_log(response.data);
+}
+
 void cl_network_post(const char *request, const char *post_data,
   cl_network_cb_t callback)
 {
@@ -59,6 +64,9 @@ void cl_network_post(const char *request, const char *post_data,
   snprintf(new_post_data, CL_POST_DATA_SIZE, "request=%s&%s&%s",
     request, generic_post_data, post_data ? post_data : "");
   cl_log("cl_network_post:\nPOST: %s\n", new_post_data);
+
+  if (!callback)
+    callback = cl_default_network_cb;
    
   cl_fe_network_post(CL_REQUEST_URL, new_post_data, callback);
 }

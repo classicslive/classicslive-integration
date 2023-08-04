@@ -15,7 +15,7 @@ typedef struct cl_counter_t
    unsigned type;
 } cl_counter_t;
 
-bool cl_ctr_store(cl_counter_t *counter, void *src, unsigned type);
+bool cl_ctr_store(cl_counter_t *counter, const void *src, unsigned type);
 bool cl_ctr_store_int(cl_counter_t *counter, int64_t value);
 bool cl_ctr_store_float(cl_counter_t *counter, double value);
 

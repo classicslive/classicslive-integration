@@ -39,13 +39,13 @@ bool cl_init_page(const char **pos, cl_page_t *page)
   {
     action = &page->actions[i];
 
-    if (!cl_strto(pos, &action->indentation, sizeof(action->indentation), false) ||
-        !cl_strto(pos, &action->type, sizeof(action->type), false) ||
-        !cl_strto(pos, &action->argument_count, sizeof(action->argument_count), false) ||
-        !cl_init_action(action))
+    if (cl_strto(pos, &action->indentation, sizeof(action->indentation), false) &&
+        cl_strto(pos, &action->type, sizeof(action->type), false) &&
+        cl_strto(pos, &action->argument_count, sizeof(action->argument_count), false))
+      cl_log("%u %u %u", page->actions[i].indentation, page->actions[i].type, page->actions[i].argument_count);
+    
+    if (!cl_init_action(action))
       return false;
-
-    cl_log("%u %u %u", page->actions[i].indentation, page->actions[i].type, page->actions[i].argument_count);
 
     /* Allocate and initialize action arguments */
     action->arguments = (cl_arg_t*)calloc(action->argument_count, sizeof(cl_arg_t));
@@ -157,7 +157,7 @@ bool cl_process_actions(cl_page_t *page)
   return success;
 }
 
-bool cl_script_update()
+bool cl_script_update(void)
 {
   if (script.status != CL_SRCSTATUS_ACTIVE)
     return false;

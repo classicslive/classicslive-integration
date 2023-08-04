@@ -345,7 +345,7 @@ uint32_t cl_search_step(cl_search_t *search, void *value)
       else
          cl_log("Comparing to %u...", *((uint32_t*)value));
 
-#if CL_EXTERNAL_MEMORY == true
+#if CL_EXTERNAL_MEMORY
       cl_fe_search_deep_copy(search);
 #endif
       

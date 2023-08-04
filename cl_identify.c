@@ -32,6 +32,8 @@ static void cl_task_md5(cl_task_t *task)
   {
     cl_md5_ctx_t *state = (cl_md5_ctx_t*)task->state;
 
+    while (!cl_fe_install_membanks());
+
     MD5_Init(&state->context);
     MD5_Update(&state->context, state->data, state->size);
     MD5_Final(state->md5_raw, &state->context);

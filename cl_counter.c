@@ -15,7 +15,7 @@ bool cl_ctr_is_float(const cl_counter_t *counter)
     return false;
 }
 
-bool cl_ctr_store(cl_counter_t *counter, void *src, unsigned type)
+bool cl_ctr_store(cl_counter_t *counter, const void *src, unsigned type)
 {
   switch (type)
   {
@@ -40,8 +40,6 @@ bool cl_ctr_store(cl_counter_t *counter, void *src, unsigned type)
   default:
     return false;
   }
-
-  return true;
 }
 
 bool cl_ctr_store_int(cl_counter_t *counter, int64_t value)
