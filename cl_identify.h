@@ -17,6 +17,4 @@
 bool cl_identify(const void *info_data, const unsigned info_size,
    const char *info_path, const char *library, char *checksum, void *callback);
 
-bool cl_read_from_file(const char *path, uint8_t **data, uint32_t *size);
-
 #endif

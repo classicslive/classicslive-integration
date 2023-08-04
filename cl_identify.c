@@ -1,9 +1,12 @@
 #include <lrc_hash.h>
+#include <string/stdstring.h>
+
+#if CL_HAVE_FILESYSTEM
 #include <streams/file_stream.h>
 #include <streams/chd_stream.h>
 #include <streams/interface_stream.h>
-#include <string/stdstring.h>
 #include <file/file_path.h>
+#endif
 
 #include "cl_frontend.h"
 #include "cl_identify.h"
@@ -118,6 +121,32 @@ static void cl_push_gcwii_task(char *checksum, void *callback)
   task->callback = callback;
 
   cl_fe_thread(task);
+}
+
+#if CL_HAVE_FILESYSTEM
+bool cl_read_from_file(const char *path, uint8_t **data, uint32_t *size)
+{
+  uint8_t *buffer;
+  int64_t  read_bytes;
+
+  intfstream_t *stream = intfstream_open_file(path,
+                                              RETRO_VFS_FILE_ACCESS_READ,
+                                              RETRO_VFS_FILE_ACCESS_HINT_NONE);
+         
+  *size = (unsigned)intfstream_get_size(stream);
+  buffer = (uint8_t*)malloc(*size);
+  read_bytes = (int64_t)intfstream_read(stream, buffer, *size);
+  intfstream_close(stream);
+  if (!read_bytes)
+  {
+    free(buffer);
+    *data = NULL;
+
+    return false;
+  }
+  *data = buffer;
+
+  return true;
 }
 
 /**
@@ -318,7 +347,9 @@ bool cl_identify_m3u(char *path, char *extension)
 
   return false;
 }
+#endif
 
+#if CL_HAVE_FILESYSTEM
 bool cl_identify(const void *info_data, const unsigned info_size,
   const char *info_path, const char *library, char *checksum, void *callback)
 {
@@ -409,28 +440,21 @@ bool cl_identify(const void *info_data, const unsigned info_size,
 
   return true;
 }
-
-bool cl_read_from_file(const char *path, uint8_t **data, uint32_t *size)
+#else
+bool cl_identify(const void *info_data, const unsigned info_size,
+  const char *info_path, const char *library, char *checksum, void *callback)
 {
-  uint8_t *buffer;
-  int64_t  read_bytes;
+  uint8_t *data = NULL;
 
-  intfstream_t *stream = intfstream_open_file(path,
-                                              RETRO_VFS_FILE_ACCESS_READ,
-                                              RETRO_VFS_FILE_ACCESS_HINT_NONE);
-         
-  *size = (unsigned)intfstream_get_size(stream);
-  buffer = (uint8_t*)malloc(*size);
-  read_bytes = (int64_t)intfstream_read(stream, buffer, *size);
-  intfstream_close(stream);
-  if (!read_bytes)
+  if (info_data && info_size > 0)
   {
-    free(buffer);
-    *data = NULL;
+    data = (uint8_t*)malloc(info_size);
+    memcpy(data, info_data, info_size);
+    cl_push_md5_task(data, info_size, checksum, callback);
 
-    return false;
+    return true;
   }
-  *data = buffer;
-
-  return true;
+  else
+    return false;
 }
+#endif
