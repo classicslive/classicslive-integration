@@ -12,22 +12,22 @@ cl_memory_t memory;
 
 cl_membank_t* cl_find_membank(cl_addr_t address)
 {
-   if (!memory.bank_count)
-      return NULL;
-   else
-   {
-      cl_membank_t *bank;
-      uint8_t i;
+  if (!memory.bank_count)
+    return NULL;
+  else
+  {
+    cl_membank_t *bank;
+    uint8_t i;
 
-      for (i = 0; i < memory.bank_count; i++)
-      {
-         bank = &memory.banks[i];
-         if (bank->start <= address && address < bank->start + bank->size)
-            return bank;
-      }
-   }
+    for (i = 0; i < memory.bank_count; i++)
+    {
+      bank = &memory.banks[i];
+      if (bank->start <= address && address < bank->start + bank->size)
+        return bank;
+    }
+  }
 
-   return NULL;
+  return NULL;
 }
 
 cl_memnote_t* cl_find_memnote(unsigned key)
@@ -197,9 +197,9 @@ bool cl_init_memory(const char **pos)
 
       if (!(cl_strto(pos, &new_memnote->key,            4, false) &&
             cl_strto(pos, &new_memnote->address_initial, sizeof(cl_addr_t), false) &&
-            cl_strto(pos, &new_memnote->type,           1, false) &&
-            cl_strto(pos, &new_memnote->flags,          1, false) &&
-            cl_strto(pos, &new_memnote->pointer_passes, 1, false)))
+            cl_strto(pos, &new_memnote->type,           4, false) &&
+            cl_strto(pos, &new_memnote->flags,          4, false) &&
+            cl_strto(pos, &new_memnote->pointer_passes, 4, false)))
          return false;
          
       cl_log("Memory note {%03u} - S: %u, P: %u, A: %08X",
@@ -210,7 +210,7 @@ bool cl_init_memory(const char **pos)
 
       /* Initialize the tracked values based on the data type of the memnote */
       new_ctr.floatval.fp = 0;
-      new_ctr.intval = 0;
+      new_ctr.intval.i64 = 0;
       new_ctr.type = new_memnote->type;
       new_memnote->current     = new_ctr;
       new_memnote->previous    = new_ctr;
@@ -325,7 +325,11 @@ bool cl_update_memnote(cl_memnote_t *note)
     note->previous = note->current;
 
     /* Read the current frame's value from memory */
+#if __WIIU__
+    cl_read(&new_val, memory.banks[0].data, note->address - memory.banks[0].start, cl_sizeof_memtype(note->type), memory.endianness);
+#else
     cl_read_memory(&new_val, NULL, note->address, cl_sizeof_memtype(note->type));
+#endif
     cl_ctr_store(&note->current, &new_val, note->type);
 
     /* Logic for "last unique" values; the previous value will persist */

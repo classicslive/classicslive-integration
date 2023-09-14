@@ -39,7 +39,8 @@ bool cl_init_session(const char* json)
 
    /* Memory-related */
    iterator = &memory_str[0];
-   if (!cl_json_get(memory_str, json, "memory_notes", CL_JSON_STRING, sizeof(memory_str)) || !cl_init_memory(&iterator))
+   if (!cl_json_get(memory_str, json, "memory_notes", CL_JSON_STRING, sizeof(memory_str)) ||
+       !cl_init_memory(&iterator))
       return false;
    cl_json_get(&memory.endianness,   json, "endianness",   CL_JSON_NUMBER, sizeof(memory.endianness));
    cl_json_get(&memory.pointer_size, json, "pointer_size", CL_JSON_NUMBER, sizeof(memory.pointer_size));
@@ -108,13 +109,14 @@ static void cl_post_login()
    snprintf
    (
       post_data, sizeof(post_data),
-      "hash=%.32s&username=%s&password=%s&filename=%s%s%s",
+      "hash=%.32s&username=%s&password=%s&filename=%s&library=%s%s%s",
       session.checksum,
       user.username,
       user.password,
       session.content_name,
-      user.language ? "&lang=" : "",
-      user.language ? user.language : ""
+      cl_fe_library_name(),
+      !string_is_empty(user.language) ? "&lang=" : "",
+      !string_is_empty(user.language) ? user.language : ""
    );
 
    cl_network_post(CL_REQUEST_LOGIN, post_data, cl_cb_login);
@@ -128,9 +130,9 @@ bool cl_init(const void *data, const unsigned size, const char *path)
    cl_fe_user_data(&user, 0);
 
    /* If the user hasn't entered a username, they probably aren't using CL */
-   if (!user.username || string_is_empty(user.username))
+   if (string_is_empty(user.username))
       return false;
-   else if (!user.password || string_is_empty(user.password))
+   else if (string_is_empty(user.password))
       return cl_post_empty_login();
    else
    {
@@ -138,8 +140,10 @@ bool cl_init(const void *data, const unsigned size, const char *path)
       session.checksum[0]        = '\0';
       session.last_status_update = time(0);
       session.ready              = true;
+#if CL_HAVE_FILESYSTEM
       strncpy(session.content_name, path_basename(path),
          sizeof(session.content_name) - 1);
+#endif
 
       /* Pass information off to content identification code */
       cl_identify(data, size, path, cl_fe_library_name(), session.checksum,
@@ -173,7 +177,7 @@ bool cl_run()
    return false;
 }
 
-void cl_free()
+void cl_free(void)
 {
    cl_network_post(CL_REQUEST_CLOSE, "", NULL);
    cl_memory_free();

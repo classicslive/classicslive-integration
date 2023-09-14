@@ -14,7 +14,7 @@ typedef union
 {
   int64_t intval;
   double floatval;
-  unsigned uintval;
+  uint64_t uintval;
 } cl_arg_t;
 
 typedef struct
@@ -50,13 +50,13 @@ typedef struct cl_task_t
 
 typedef struct
 {
-  const char *username;
-  const char *password;
-  const char *token;
-  const char *language;
+  char username[64];
+  char password[64];
+  char token[32];
+  char language[8];
 } cl_user_t;
 
 /* A virtual address for the emulated system. */
-typedef uint64_t cl_addr_t;
+typedef uintptr_t cl_addr_t;
 
 #endif

@@ -18,7 +18,7 @@ typedef struct cl_md5_ctx_t
   void     *data;
   unsigned  size;
   uint8_t   md5_raw[16];
-  unsigned  unused;
+  bool      free_on_finish;
   char     *md5_final;
 } cl_md5_ctx_t;
 
@@ -50,19 +50,22 @@ static void cl_task_md5(cl_task_t *task)
       state->md5_raw[15]);
 
     cl_log("Content MD5: %.32s\n", state->md5_final);
-    free(state->data);
+    if (state->free_on_finish)
+      free(state->data);
     free(state);
   }
 }
 
-static void cl_push_md5_task(void *data, unsigned size, char *checksum, void *callback)
+static void cl_push_md5_task(void *data, unsigned size, char *checksum, 
+  bool free_on_finish, void *callback)
 {
   cl_task_t *task = (cl_task_t*)calloc(1, sizeof(cl_task_t));
   cl_md5_ctx_t *context = (cl_md5_ctx_t*)calloc(1, sizeof(cl_md5_ctx_t));
 
-  context->data      = data;
-  context->size      = size;
-  context->md5_final = checksum;
+  context->data           = data;
+  context->size           = size;
+  context->md5_final      = checksum;
+  context->free_on_finish = free_on_finish;
 
   task->handler  = cl_task_md5;
   task->state    = context;
@@ -98,7 +101,8 @@ static void cl_task_gcwii(cl_task_t *task)
       memcpy(buffer, memory.banks[0].data, CL_DOLPHIN_SIZE);
       cl_log("(GC/Wii) Game to be identified: %.8s\n", buffer);
 
-      cl_push_md5_task(buffer, CL_DOLPHIN_SIZE, ((cl_md5_ctx_t*)task->state)->md5_final, task->callback);
+      cl_push_md5_task(buffer, CL_DOLPHIN_SIZE,
+        ((cl_md5_ctx_t*)task->state)->md5_final, true, task->callback);
       task->callback = NULL;
     }
   }
@@ -436,7 +440,7 @@ bool cl_identify(const void *info_data, const unsigned info_size,
     else if (!cl_read_from_file(path, &data, &size))
       return false;
   }
-  cl_push_md5_task(data, size, checksum, callback);
+  cl_push_md5_task(data, size, checksum, true, callback);
 
   return true;
 }
@@ -444,14 +448,9 @@ bool cl_identify(const void *info_data, const unsigned info_size,
 bool cl_identify(const void *info_data, const unsigned info_size,
   const char *info_path, const char *library, char *checksum, void *callback)
 {
-  uint8_t *data = NULL;
-
   if (info_data && info_size > 0)
   {
-    data = (uint8_t*)malloc(info_size);
-    memcpy(data, info_data, info_size);
-    cl_push_md5_task(data, info_size, checksum, callback);
-
+    cl_push_md5_task(info_data, info_size, checksum, false, callback);
     return true;
   }
   else

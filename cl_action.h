@@ -3,7 +3,7 @@
 
 #include "cl_common.h"
 
-enum
+typedef enum
 {
   CL_ACTTYPE_NO_PROCESS = 0,
 
@@ -35,21 +35,39 @@ enum
   CL_ACTTYPE_POST_PROGRESS,
   CL_ACTTYPE_POST_POLL,
   CL_ACTTYPE_POST_INFO,
-};
+} cl_action_id;
 
 typedef struct
 {
-  unsigned id;
-  bool     if_type;
+  cl_action_id id;
+
+  /* Whether or not to evaluate the action as a conditional */
+  bool if_type;
+
+  /* The minimum number of arguments allowed for this action type */
   unsigned minimum_args;
+
+  /* The maximum number of arguments allowed for this action type */
   unsigned maximum_args;
+
+  /* The number of arguments used to store each optional */
+  unsigned modulo_after_minimum;
+
+  /* The function of the action */
   bool    (*function)();
 } cl_acttype_t;
 
-#define CL_CMPTYPE_IFEQUAL   1
-#define CL_CMPTYPE_IFGREATER 2
-#define CL_CMPTYPE_IFLESS    3
-#define CL_CMPTYPE_IFNEQUAL  4
+enum
+{
+  CL_CMPTYPE_INVALID = 0,
+
+  CL_CMPTYPE_IFEQUAL,
+  CL_CMPTYPE_IFGREATER,
+  CL_CMPTYPE_IFLESS,
+  CL_CMPTYPE_IFNEQUAL,
+  
+  CL_CMPTYPE_SIZE
+};
 
 typedef struct cl_action_t
 {

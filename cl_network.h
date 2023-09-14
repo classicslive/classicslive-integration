@@ -4,12 +4,12 @@
 #include "cl_frontend.h"
 
 #ifdef HAVE_SSL
-#define CL_URL_SITE "http://127.0.0.1/"
+#define CL_URL_SITE "http://192.168.86.10/"
 #else
-#define CL_URL_SITE "http://127.0.0.1/"
+#define CL_URL_SITE "http://192.168.86.10/"
 #endif
 
-#define CL_REQUEST_URL              "http://127.0.0.1/classicslive/public/api/request.php"
+#define CL_REQUEST_URL              "http://192.168.86.10/classicslive/public/api/request.php"
 
 #define CL_REQUEST_LOGIN            "login"
 #define CL_REQUEST_ADD_MEMNOTE      "add_memory_note"

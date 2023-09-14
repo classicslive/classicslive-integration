@@ -5,14 +5,17 @@
 
 typedef struct cl_counter_t
 {
-   int64_t intval;
-   union
-   {
-     double fp;
-     int64_t raw;
-     uint64_t uraw;
-   } floatval;
-   unsigned type;
+  union
+  {
+    int64_t i64;
+    uint64_t raw;
+  } intval;
+  union
+  {
+    double fp;
+    uint64_t raw;
+  } floatval;
+  unsigned type;
 } cl_counter_t;
 
 bool cl_ctr_store(cl_counter_t *counter, const void *src, unsigned type);

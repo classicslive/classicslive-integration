@@ -31,8 +31,8 @@ bool cl_update_generic_post_data()
           snprintf(generic_post_data, sizeof(generic_post_data), "%s&m%u=%f",
             generic_post_data, note->key, value.floatval.fp);
         else
-          snprintf(generic_post_data, sizeof(generic_post_data), "%s&m%u=%u",
-            generic_post_data, note->key, value.intval);
+          snprintf(generic_post_data, sizeof(generic_post_data), "%s&m%u=%lli",
+            generic_post_data, note->key, value.intval.i64);
       }
       else
         return false;
