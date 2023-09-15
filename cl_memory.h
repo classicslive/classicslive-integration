@@ -145,13 +145,14 @@ void cl_free_memnote(cl_memnote_t *note);
 
 #if CL_LIBRETRO
 /**
- * Initializes memory banks from an array of libretro memory descriptors.
+ * Initializes memory banks from an array of libretro memory descriptors,
+ * informed via environment callback RETRO_ENVIRONMENT_SET_MEMORY_MAPS.
  * @param descs An array of libretro memory descriptors.
  * @param num_descs The count of elements in descs.
  * @return Whether or not memory banks could be initialized.
  **/
 struct retro_memory_descriptor;
-bool cl_init_membanks_libretro(struct retro_memory_descriptor **descs, 
+bool cl_init_membanks_libretro(const struct retro_memory_descriptor **descs,
    const unsigned num_descs);
 #endif
 

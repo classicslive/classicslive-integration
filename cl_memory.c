@@ -1,12 +1,12 @@
-#if CL_LIBRETRO == true
-#include <libretro.h>
-#endif
-
 #include <string.h>
 
 #include "cl_common.h"
 #include "cl_frontend.h"
 #include "cl_memory.h"
+
+#if CL_LIBRETRO
+#include <libretro.h>
+#endif
 
 cl_memory_t memory;
 
@@ -134,8 +134,8 @@ void cl_sort_membanks(cl_membank_t *banks, unsigned count)
   }
 }
 
-#if CL_LIBRETRO == true
-bool cl_init_membanks_libretro(struct retro_memory_descriptor **descs, 
+#if CL_LIBRETRO
+bool cl_init_membanks_libretro(const struct retro_memory_descriptor **descs,
    const unsigned num_descs)
 {
    const struct retro_memory_descriptor *desc;
