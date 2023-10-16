@@ -76,5 +76,5 @@ void CleScriptEditor::run()
    if (script.status == CL_SCRSTATUS_PAUSED)
       m_Label->setText(script.error_msg);
    else
-      m_Label->setText("Counter 0: " + QString::number(script.pages[0].counters[0].intval));
+      m_Label->setText("Counter 0: " + QString::number(script.pages[0].counters[0].intval.i64));
 }

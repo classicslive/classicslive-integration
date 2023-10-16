@@ -47,7 +47,7 @@ bool cl_ctr_store_int(cl_counter_t *counter, int64_t value)
 {
   counter->intval.i64 = value;
   counter->floatval.fp = (double)value;
-  //counter->type = CL_MEMTYPE_INT64;
+  /** @todo Can we add this back? counter->type = CL_MEMTYPE_INT64; */
 
   return true;
 }
@@ -56,7 +56,7 @@ bool cl_ctr_store_float(cl_counter_t *counter, double value)
 {
   counter->intval.i64 = (int64_t)value;
   counter->floatval.fp = value;
-  //counter->type = CL_MEMTYPE_DOUBLE;
+  /** @todo Can we add this back? counter->type = CL_MEMTYPE_DOUBLE; */
 
   return true;
 }
