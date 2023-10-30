@@ -7,12 +7,19 @@
 #include "cl_network.h"
 #include "cl_script.h"
 
+static bool cl_act_no_process(cl_action_t *action)
+{
+  CL_UNUSED(action);
+  return false;
+}
+
 bool cl_free_action(cl_action_t *action)
 {
   action->argument_count = 0;
   free(action->arguments);
   action->arguments = NULL;
   action->type = CL_ACTTYPE_NO_PROCESS;
+  action->function = cl_act_no_process;
 
   action->prev_action = NULL;
   action->next_action = NULL;
@@ -109,11 +116,8 @@ static bool cl_act_post_achievement(cl_action_t *action)
   snprintf(data, CL_POST_DATA_SIZE, "ach_id=%u", ach_id.intval.i64);
   cl_network_post(CL_REQUEST_POST_ACHIEVEMENT, data, NULL);
 
-  /**
-   * Clear this action so we don't re-submit the achievement
-   * @todo Actually freeing it here causes a crash
-   */
-  action->function = cl_act_no_process;
+  /* Clear this action so we don't re-submit the achievement */
+  cl_free_action(action);
 
   return true;
 }
@@ -163,12 +167,6 @@ static bool cl_act_compare(cl_action_t *action)
     default:
       return cl_free_action(action);
   }
-}
-
-static bool cl_act_no_process(cl_action_t *action)
-{
-  CL_UNUSED(action);
-  return false;
 }
 
 static bool cl_act_changed(cl_action_t *action)
