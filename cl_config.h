@@ -17,6 +17,14 @@
 #define CL_HAVE_FILESYSTEM false
 #endif
 
+#ifndef CL_HAVE_SSL
+/**
+ * Whether or not the networking callbacks in this implementation support HTTPS.
+ * This should be assumed true and only changed with caution.
+ */
+#define CL_HAVE_SSL true
+#endif
+
 #ifndef CL_EXTERNAL_MEMORY
 /**
  * Whether or not the target memory is external to this program, ie. being read
@@ -33,5 +41,12 @@
  */
 #define CL_LIBRETRO false
 #endif
+
+typedef struct cl_config_t
+{
+  char url[256];
+} cl_config_t;
+
+cl_config_t cl_default_config(void);
 
 #endif

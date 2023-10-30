@@ -26,15 +26,26 @@ typedef struct
 
 typedef void (*cl_network_cb_t)(cl_network_response_t);
 
+typedef union cl_session_flags_t
+{
+  unsigned intval;
+  struct
+  {
+    unsigned cheats : 1;
+    unsigned states : 1;
+    unsigned fast_forward : 1;
+    unsigned pause : 1;
+  };
+} cl_session_flags_t;
+
 typedef struct cl_session_t
 {
    char     checksum[64];
    char     content_name[256];
-   uint16_t game_id;
+   unsigned game_id;
    char     game_name[256];
    char     generic_post[2048];
-   bool     cheats_on;
-   bool     states_on;
+   cl_session_flags_t flags;
    char     id[CL_SESSION_ID_LENGTH];
    time_t   last_status_update;
    bool     ready;
@@ -56,7 +67,7 @@ typedef struct
   char language[8];
 } cl_user_t;
 
-/* A virtual address for the emulated system. */
+/** A virtual address for the emulated system. */
 typedef uintptr_t cl_addr_t;
 
 #endif

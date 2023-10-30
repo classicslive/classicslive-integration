@@ -1,15 +1,16 @@
 #ifndef CL_NETWORK_H
 #define CL_NETWORK_H
 
+#include "cl_config.h"
 #include "cl_frontend.h"
 
-#ifdef HAVE_SSL
-#define CL_URL_SITE "http://192.168.86.10/"
+#if CL_HAVE_SSL
+  #define CL_URL_SITE "https://doggylongface.com/classicslive/"
 #else
-#define CL_URL_SITE "http://192.168.86.10/"
+  #define CL_URL_SITE "http://doggylongface.com/classicslive/"
 #endif
 
-#define CL_REQUEST_URL              "http://192.168.86.10/classicslive/public/api/request.php"
+#define CL_REQUEST_URL CL_URL_SITE "public/api/request.php"
 
 #define CL_REQUEST_LOGIN            "login"
 #define CL_REQUEST_ADD_MEMNOTE      "add_memory_note"
