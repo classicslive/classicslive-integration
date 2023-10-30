@@ -109,8 +109,11 @@ static bool cl_act_post_achievement(cl_action_t *action)
   snprintf(data, CL_POST_DATA_SIZE, "ach_id=%u", ach_id.intval.i64);
   cl_network_post(CL_REQUEST_POST_ACHIEVEMENT, data, NULL);
 
-  /* Clear this action so we don't re-submit the achievement */
-  cl_free_action(action);
+  /**
+   * Clear this action so we don't re-submit the achievement
+   * @todo Actually freeing it here causes a crash
+   */
+  action->function = cl_act_no_process;
 
   return true;
 }
