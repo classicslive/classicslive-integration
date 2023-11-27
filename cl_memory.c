@@ -1,6 +1,7 @@
 #include <string.h>
 
 #include "cl_common.h"
+#include "cl_config.h"
 #include "cl_frontend.h"
 #include "cl_memory.h"
 
@@ -389,15 +390,15 @@ bool cl_write_memnote(cl_memnote_t *note, const cl_counter_t *value)
     if (cl_memnote_resolve_ptrs(note))
     {
       if (cl_ctr_is_float(&note->current))
-        return (bool)cl_write_memory(NULL,
-                                     note->address,
-                                     cl_sizeof_memtype(note->type),
-                                     &value->floatval);
+        return cl_write_memory(NULL,
+                               note->address,
+                               cl_sizeof_memtype(note->type),
+                               &value->floatval) == cl_sizeof_memtype(note->type);
       else
-        return (bool)cl_write_memory(NULL,
-                                     note->address,
-                                     cl_sizeof_memtype(note->type),
-                                     &value->intval);
+        return cl_write_memory(NULL,
+                               note->address,
+                               cl_sizeof_memtype(note->type),
+                               &value->intval) == cl_sizeof_memtype(note->type);
     }
   }
 

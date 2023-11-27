@@ -1,16 +1,17 @@
 #include <lrc_hash.h>
 #include <string/stdstring.h>
 
+#include "cl_config.h"
+#include "cl_frontend.h"
+#include "cl_identify.h"
+#include "cl_memory.h"
+
 #if CL_HAVE_FILESYSTEM
 #include <streams/file_stream.h>
 #include <streams/chd_stream.h>
 #include <streams/interface_stream.h>
 #include <file/file_path.h>
 #endif
-
-#include "cl_frontend.h"
-#include "cl_identify.h"
-#include "cl_memory.h"
 
 typedef struct cl_md5_ctx_t
 {
