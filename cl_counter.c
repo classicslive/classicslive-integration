@@ -20,23 +20,23 @@ bool cl_ctr_store(cl_counter_t *counter, const void *src, unsigned type)
   switch (type)
   {
   case CL_MEMTYPE_INT8:
-    return cl_ctr_store_int(counter, *((int8_t*)src));
+    return cl_ctr_store_int(counter, *((const int8_t*)src));
   case CL_MEMTYPE_UINT8:
-    return cl_ctr_store_int(counter, *((uint8_t*)src));
+    return cl_ctr_store_int(counter, *((const uint8_t*)src));
   case CL_MEMTYPE_INT16:
-    return cl_ctr_store_int(counter, *((int16_t*)src));
+    return cl_ctr_store_int(counter, *((const int16_t*)src));
   case CL_MEMTYPE_UINT16:
-    return cl_ctr_store_int(counter, *((uint16_t*)src));
+    return cl_ctr_store_int(counter, *((const uint16_t*)src));
   case CL_MEMTYPE_INT32:
-    return cl_ctr_store_int(counter, *((int32_t*)src));
+    return cl_ctr_store_int(counter, *((const int32_t*)src));
   case CL_MEMTYPE_UINT32:
-    return cl_ctr_store_int(counter, *((uint32_t*)src));
+    return cl_ctr_store_int(counter, *((const uint32_t*)src));
   case CL_MEMTYPE_INT64:
-    return cl_ctr_store_int(counter, *((int64_t*)src));
+    return cl_ctr_store_int(counter, *((const int64_t*)src));
   case CL_MEMTYPE_FLOAT:
-    return cl_ctr_store_float(counter, (double)*((float*)src));
+    return cl_ctr_store_float(counter, (double)*((const float*)src));
   case CL_MEMTYPE_DOUBLE:
-    return cl_ctr_store_float(counter, *((double*)src));
+    return cl_ctr_store_float(counter, *((const double*)src));
   default:
     return false;
   }
