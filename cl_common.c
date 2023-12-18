@@ -4,7 +4,9 @@
 #include "cl_common.h"
 #include "cl_frontend.h"
 
+#ifdef __GNUC__
 __attribute__((__format__ (__printf__, 2, 0)))
+#endif
 void cl_message(unsigned level, const char *format, ...)
 {
 #if CL_SHOW_ERRORS
@@ -19,7 +21,9 @@ void cl_message(unsigned level, const char *format, ...)
 #endif
 }
 
+#ifdef __GNUC__
 __attribute__((__format__ (__printf__, 1, 0)))
+#endif
 void cl_log(const char *format, ...)
 {
 #if CL_LOGGING
