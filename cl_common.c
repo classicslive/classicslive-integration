@@ -1,6 +1,10 @@
 #include <stdarg.h>
 #include <string.h>
 
+#ifdef _MSC_VER
+#include <intrin.h>
+#endif
+
 #include "cl_common.h"
 #include "cl_frontend.h"
 
@@ -51,15 +55,27 @@ bool cl_read(void *dest, const uint8_t *src, cl_addr_t offset, unsigned size,
     {
       switch (size)
       {
-        case 2:
-          *((uint16_t*)dest) = __builtin_bswap16(*((uint16_t*)dest));
-          break;
-        case 4:
-          *((uint32_t*)dest) = __builtin_bswap32(*((uint32_t*)dest));
-          break;
-        case 8:
-          *((uint64_t*)dest) = __builtin_bswap64(*((uint64_t*)dest));
-          break;
+      case 2:
+#ifdef _MSC_VER
+        *((uint16_t*)dest) = _byteswap_ushort(*((uint16_t*)dest));
+#else
+        *((uint16_t*)dest) = __builtin_bswap16(*((uint16_t*)dest));
+#endif
+        break;
+      case 4:
+#ifdef _MSC_VER
+        *((uint32_t*)dest) = _byteswap_ulong(*((uint32_t*)dest));
+#else
+        *((uint32_t*)dest) = __builtin_bswap32(*((uint32_t*)dest));
+#endif
+        break;
+      case 8:
+#ifdef _MSC_VER
+        *((uint64_t*)dest) = _byteswap_uint64(*((uint64_t*)dest));
+#else
+        *((uint64_t*)dest) = __builtin_bswap64(*((uint64_t*)dest));
+#endif
+        break;
       }
     }
 
