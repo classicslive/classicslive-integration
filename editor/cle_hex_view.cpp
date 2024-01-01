@@ -11,7 +11,7 @@
 
 extern "C"
 {
-   #include "../cl_memory.h"
+  #include "../cl_memory.h"
 }
 
 #include "cle_hex_view.h"
@@ -289,35 +289,26 @@ void CleHexWidget::repaintRect(const void *buffer, uint8_t index)
    /* Update the hex value drawn over the given rect */
    if (buffer)
    {
+      uint64_t val = 0;
+
+      cl_read(&val, reinterpret_cast<const uint8_t*>(buffer), index * m_Size, m_Size, m_UseByteSwap);
+
       switch (m_Size)
       {
       case 1:
-         snprintf(m_Texts[index], 16, "%02X", 
-            *((uint8_t*)(buffer) + index));
-         break;
+        snprintf(m_Texts[index], 16, "%02X", val);
+          break;
       case 2:
-      {
-         uint16_t value = *((uint16_t*)(buffer) + index);
-
-         snprintf(m_Texts[index], 16, "%04X", 
-            m_UseByteSwap ? __builtin_bswap16(value) : value);
-      }
-         break;
+        snprintf(m_Texts[index], 16, "%04X", val);
+          break;
       case 4:
-      {
-         uint32_t value = *((uint32_t*)(buffer) + index);
-
-         snprintf(m_Texts[index], 16, "%08X", 
-            m_UseByteSwap ? __builtin_bswap32(value) : value);
-      }
-         break;
+        snprintf(m_Texts[index], 16, "%08X", val);
+          break;
       case 8:
-      {
-         uint64_t value = *((uint64_t*)(buffer) + index);
-         snprintf(m_Texts[index], 16, "%016llX", 
-            m_UseByteSwap ? __builtin_bswap64(value) : value);
-      }
-      break;
+        snprintf(m_Texts[index], 16, "%016llX", val);
+          break;
+      default:
+        snprintf(m_Texts[index], 16, "Err", val);
       }
    }
 
