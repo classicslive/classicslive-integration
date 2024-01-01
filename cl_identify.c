@@ -1,4 +1,5 @@
 #include <lrc_hash.h>
+#include <retro_timers.h>
 #include <string/stdstring.h>
 
 #include "cl_config.h"
@@ -35,8 +36,6 @@ static void cl_task_md5(cl_task_t *task)
   else
   {
     cl_md5_ctx_t *state = (cl_md5_ctx_t*)task->state;
-
-    while (!cl_fe_install_membanks());
 
     MD5_Init(&state->context);
     MD5_Update(&state->context, state->data, state->size);
@@ -78,7 +77,7 @@ static void cl_push_md5_task(void *data, unsigned size, char *checksum,
 /*
    Hash info loaded into the beginning of GC/Wii memory. (0x00 - 0x2B)
    This includes game ID, region, revision, and some console info.
-*/ 
+*/
 static void cl_task_gcwii(cl_task_t *task)
 {
   if (!task)
@@ -86,8 +85,9 @@ static void cl_task_gcwii(cl_task_t *task)
   else
   {
     /* Give it an arbitrary amount of time to init fully */
-    /* TODO: Timeout? */
-    while (!cl_fe_install_membanks());
+    retro_sleep(5);
+
+    cl_fe_install_membanks();
       
     /* When memory has been initialized, 0x20 in memory is 0D15EA5E. */
     if (memory.banks[0].data &&
