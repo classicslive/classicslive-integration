@@ -47,7 +47,7 @@ bool cl_ctr_store_int(cl_counter_t *counter, int64_t value)
 {
   counter->intval.i64 = value;
   counter->floatval.fp = (double)value;
-  /** @todo Can we add this back? counter->type = CL_MEMTYPE_INT64; */
+  counter->type = CL_MEMTYPE_INT64;
 
   return true;
 }
@@ -258,7 +258,9 @@ bool cl_ctr_change_type(cl_counter_t *counter, unsigned type)
   return true;
 }
 
-void cl_ctr_test_add(void)
+#if CL_TESTS
+
+static void cl_ctr_test_add(void)
 {
   cl_counter_t a, b;
 
@@ -266,9 +268,9 @@ void cl_ctr_test_add(void)
   cl_ctr_store_int(&b, 4);
   cl_ctr_add(&a, &b);
   if (a.intval.i64 != 6)
-    exit(1);
+    CL_TEST_FAIL(1);
   if (fabs(a.floatval.fp - 6.0) < CL_CTR_EPSILON)
-    exit(2);
+    CL_TEST_FAIL(2);
 
   cl_ctr_store_float(&a, 10.0);
   cl_ctr_add(&a, &b);
@@ -278,7 +280,7 @@ void cl_ctr_test_add(void)
     exit(4);
 }
 
-void cl_ctr_test_subtract(void)
+static void cl_ctr_test_subtract(void)
 {
   cl_counter_t a, b;
 
@@ -298,7 +300,7 @@ void cl_ctr_test_subtract(void)
     exit(4);
 }
 
-void cl_ctr_test_multiply(void)
+static void cl_ctr_test_multiply(void)
 {
   cl_counter_t a, b;
 
@@ -318,7 +320,7 @@ void cl_ctr_test_multiply(void)
     exit(4);
 }
 
-void cl_ctr_test_divide(void)
+static void cl_ctr_test_divide(void)
 {
   cl_counter_t a, b;
 
@@ -338,7 +340,7 @@ void cl_ctr_test_divide(void)
     exit(4);
 }
 
-void cl_ctr_test_modulo(void)
+static void cl_ctr_test_modulo(void)
 {
   cl_counter_t a, b;
 
@@ -359,7 +361,7 @@ void cl_ctr_test_modulo(void)
     exit(4);
 }
 
-void cl_ctr_test_shift_left(void)
+static void cl_ctr_test_shift_left(void)
 {
   cl_counter_t a, b;
 
@@ -375,7 +377,7 @@ void cl_ctr_test_shift_left(void)
     exit(2);
 }
 
-void cl_ctr_test_shift_right(void)
+static void cl_ctr_test_shift_right(void)
 {
   cl_counter_t a, b;
 
@@ -391,7 +393,7 @@ void cl_ctr_test_shift_right(void)
     exit(2);
 }
 
-void cl_ctr_test_complement(void)
+static void cl_ctr_test_complement(void)
 {
   cl_counter_t a;
 
@@ -400,3 +402,19 @@ void cl_ctr_test_complement(void)
   if (a.intval.i64 != ~10)
     exit(1);
 }
+
+int cl_ctr_tests(void)
+{
+  cl_ctr_test_add();
+  cl_ctr_test_subtract();
+  cl_ctr_test_multiply();
+  cl_ctr_test_divide();
+  cl_ctr_test_modulo();
+  cl_ctr_test_shift_left();
+  cl_ctr_test_shift_right();
+  cl_ctr_test_complement();
+
+  return 1;
+}
+
+#endif
