@@ -42,6 +42,13 @@
 #define CL_LIBRETRO false
 #endif
 
+#ifndef CL_URL_HOSTNAME
+/**
+ * The full hostname for the CL website.
+ */
+#define CL_URL_HOSTNAME "classicslive.doggylongface.com"
+#endif
+
 typedef struct cl_config_t
 {
   char url[256];

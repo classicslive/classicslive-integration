@@ -5,12 +5,12 @@
 #include "cl_frontend.h"
 
 #if CL_HAVE_SSL
-  #define CL_URL_SITE "https://doggylongface.com/classicslive/"
+  #define CL_URL_SITE "https://" CL_URL_HOSTNAME
 #else
-  #define CL_URL_SITE "http://doggylongface.com/classicslive/"
+  #define CL_URL_SITE "http://" CL_URL_HOSTNAME
 #endif
 
-#define CL_REQUEST_URL CL_URL_SITE "public/api/request.php"
+#define CL_REQUEST_URL CL_URL_SITE "/api/request.php"
 
 #define CL_REQUEST_LOGIN            "login"
 #define CL_REQUEST_ADD_MEMNOTE      "add_memory_note"
