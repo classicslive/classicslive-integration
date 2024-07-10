@@ -97,9 +97,9 @@ CleMemoryInspector::CleMemoryInspector()
       this, SLOT(requestAddMemoryNote(cl_addr_t)));
    connect(m_HexWidget, SIGNAL(requestPointerSearch(cl_addr_t)),
       this, SLOT(requestPointerSearch(cl_addr_t)));
-   m_HexWidget->setByteSwapEnabled(memory.endianness);
-   m_HexWidget->setOffset(memory.banks[0].start);
-   m_HexWidget->setRange(memory.banks[0].start, memory.banks[0].start + memory.banks[0].size + 1);
+   m_HexWidget->setByteSwapEnabled(memory.regions[0].endianness == CL_ENDIAN_BIG);
+   m_HexWidget->setOffset(memory.regions[0].base_guest);
+   m_HexWidget->setRange(memory.regions[0].base_guest, memory.regions[0].base_guest + memory.regions[0].size + 1);
 
    /* Initialize timer for updating search rows */
    m_UpdateTimer = new QTimer(this);
@@ -118,7 +118,7 @@ CleMemoryInspector::CleMemoryInspector()
 
    /* Initialize other variables */
    m_AddressOffset = 0;
-   m_CurrentMembank = &memory.banks[0];
+   m_CurrentMembank = &memory.regions[0];
    m_TabCount = 1;
    m_MemoryNoteSubmit = NULL;
 
@@ -137,7 +137,7 @@ uint8_t CleMemoryInspector::getCurrentSizeType(void)
 
 void CleMemoryInspector::onAddressChanged(cl_addr_t address)
 {
-   cl_membank_t *new_bank = cl_find_membank(address);
+   cl_memory_region_t *new_bank = cl_find_memory_region(address);
 
    if (!new_bank)
       return;
@@ -145,15 +145,15 @@ void CleMemoryInspector::onAddressChanged(cl_addr_t address)
    {
       if (m_CurrentMembank != new_bank)
       {
-         m_HexWidget->setRange(new_bank->start, new_bank->start + new_bank->size + 1);
+         m_HexWidget->setRange(new_bank->base_guest, new_bank->base_guest + new_bank->size + 1);
          m_CurrentMembank = new_bank;
       }
-      m_AddressOffset = address - m_CurrentMembank->start;
+      m_AddressOffset = address - m_CurrentMembank->base_guest;
       m_HexWidget->setOffset(address);
 
       m_Slider->setMinimum(0);
       m_Slider->setMaximum(m_CurrentMembank->size);
-      m_Slider->setValue(address - m_CurrentMembank->start);
+      m_Slider->setValue(address - m_CurrentMembank->base_guest);
    }
 }
 
@@ -181,7 +181,7 @@ void CleMemoryInspector::onChangeCompareType()
 
 void CleMemoryInspector::onChangeScrollbar(int value)
 {
-   onAddressChanged(m_CurrentMembank->start + value);
+   onAddressChanged(m_CurrentMembank->base_guest + value);
 }
 
 void CleMemoryInspector::onChangeSizeType()
@@ -217,7 +217,7 @@ void CleMemoryInspector::onChangeTab()
 
 void CleMemoryInspector::onClickNew()
 {
-   if (!memory.bank_count)
+   if (!memory.region_count)
       return;
    else
    {
@@ -237,7 +237,7 @@ void CleMemoryInspector::onClickNew()
 
 void CleMemoryInspector::onClickSearch()
 {
-   if (!memory.bank_count)
+   if (!memory.region_count)
       return;
    else
    {
@@ -348,7 +348,7 @@ void CleMemoryInspector::requestPointerSearch(cl_addr_t address)
 void CleMemoryInspector::run()
 {
    m_CurrentSearch->run();
-   cl_read_memory(m_BufferCurrent, nullptr, m_AddressOffset + m_CurrentMembank->start, 256);
+   cl_read_memory(m_BufferCurrent, nullptr, m_AddressOffset + m_CurrentMembank->base_guest, 256);
    m_HexWidget->refresh(m_BufferCurrent, m_BufferPrevious);
    memcpy(m_BufferPrevious, m_BufferCurrent, 256);
 }

@@ -157,12 +157,12 @@ void CleResultTableNormal::rebuild()
    size        = m_Search.params.size;
    val_type    = m_Search.params.value_type;
 
-   for (i = 0; i < memory.bank_count; i++)
+   for (i = 0; i < memory.region_count; i++)
    {
       if (!m_Search.searchbanks[i].any_valid)
          continue;
 
-      for (j = 0; j < memory.banks[i].size; j += size)
+      for (j = 0; j < memory.regions[i].size; j += size)
       {
          /* This value was filtered out */
          if (!m_Search.searchbanks[i].valid[j])
@@ -172,14 +172,14 @@ void CleResultTableNormal::rebuild()
          m_Table->insertRow(current_row);
 
          /* Address */
-         snprintf(temp_string, 256, "%08X", j + memory.banks[i].start);
+         snprintf(temp_string, 256, "%08X", j + memory.regions[i].base_guest);
          m_Table->setItem(current_row, 0, new QTableWidgetItem(QString(temp_string)));
          /* Previous value */
          cl_read_search(&temp_value, &m_Search, &m_Search.searchbanks[i], j);
          valueToString(temp_string, sizeof(temp_string), temp_value, val_type);
          m_Table->setItem(current_row, 1, new QTableWidgetItem(QString(temp_string)));
          /* Current value */
-         cl_read_memory(&temp_value, /*&memory.banks[i]*/nullptr, j + memory.banks[i].start, size);
+         cl_read_memory(&temp_value, /*&memory.banks[i]*/nullptr, j + memory.regions[i].base_guest, size);
          valueToString(temp_string, sizeof(temp_string), temp_value, val_type);
          m_Table->setItem(current_row, 2, new QTableWidgetItem(QString(temp_string)));
          current_row++;

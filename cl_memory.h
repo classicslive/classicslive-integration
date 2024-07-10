@@ -119,12 +119,6 @@ typedef struct cl_memory_region_t
   cl_addr_t size;
 
   /**
-   * A mask that is applied relative to size to retain only possible bits when
-   * calculating an offset to apply to final address.
-   */
-  cl_addr_t mask;
-
-  /**
    * The size, in bytes, of pointers within this region. Primarily used for
    * emulators that use a smaller pointer length than the host, like 2 or 4.
    */
@@ -193,7 +187,7 @@ typedef struct cl_memory_t
  * @param address A virtual memory address.
  * @return A pointer to the memory bank, or NULL if one is not found.
  **/
-cl_memory_region_t* cl_find_membank(cl_addr_t address);
+cl_memory_region_t* cl_find_memory_region(cl_addr_t address);
 
 /**
  * Frees all values contained within the global memory context.

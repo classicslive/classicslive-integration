@@ -161,10 +161,12 @@ bool cl_init_membanks_libretro(const struct retro_memory_descriptor **descs,
     }
 
     /* Copy the libretro mmap parameters into our format */
+    region->base_alloc = CL_ADDRESS_INVALID;
     region->base_guest = desc->start;
     region->base_host = desc->ptr;
     region->endianness = desc->flags & RETRO_MEMDESC_BIGENDIAN ?
                                      CL_ENDIAN_BIG : CL_ENDIAN_LITTLE;
+    region->flags = (cl_memory_region_flags){ .bits.read=1, .bits.write=1 };
     /**
      * @todo Is there a commonly used libretro flag for this? Not a huge deal
      * since this gets overwritten by the server later
@@ -257,7 +259,7 @@ unsigned cl_read_memory_internal(void *value, cl_memory_region_t *bank,
 {
   if (!bank)
   {
-    bank = cl_find_membank(address);
+    bank = cl_find_memory_region(address);
     if (!bank)
       return false;
     else
@@ -385,7 +387,7 @@ unsigned cl_write_memory(cl_memory_region_t *bank, cl_addr_t address,
     return false;
   else if (!bank)
   {
-    bank = cl_find_membank(address);
+    bank = cl_find_memory_region(address);
     if (!bank)
       return false;
     else

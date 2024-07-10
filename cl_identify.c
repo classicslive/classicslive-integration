@@ -90,16 +90,16 @@ static void cl_task_gcwii(cl_task_t *task)
     cl_fe_install_membanks();
       
     /* When memory has been initialized, 0x20 in memory is 0D15EA5E. */
-    if (memory.banks[0].data &&
-        memory.banks[0].data[0x20] == 0x0D &&
-        memory.banks[0].data[0x21] == 0x15 &&
-        memory.banks[0].data[0x22] == 0xEA &&
-        memory.banks[0].data[0x23] == 0x5E)
+    if (memory.regions[0].base_host &&
+        ((uint8_t*)(memory.regions[0].base_host))[0x20] == 0x0D &&
+        ((uint8_t*)(memory.regions[0].base_host))[0x21] == 0x15 &&
+        ((uint8_t*)(memory.regions[0].base_host))[0x22] == 0xEA &&
+        ((uint8_t*)(memory.regions[0].base_host))[0x23] == 0x5E)
     {
       uint8_t *buffer;
 
       buffer = (uint8_t*)malloc(CL_DOLPHIN_SIZE);
-      memcpy(buffer, memory.banks[0].data, CL_DOLPHIN_SIZE);
+      memcpy(buffer, memory.regions[0].base_host, CL_DOLPHIN_SIZE);
       cl_log("(GC/Wii) Game to be identified: %.8s\n", buffer);
 
       cl_push_md5_task(buffer, CL_DOLPHIN_SIZE,

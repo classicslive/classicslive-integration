@@ -45,7 +45,7 @@ private:
    CleHexWidget        *m_HexWidget;
    CleMemoryNoteSubmit *m_MemoryNoteSubmit;
 
-   cl_membank_t *m_CurrentMembank;
+   cl_memory_region_t *m_CurrentMembank;
 
    uint32_t  m_AddressOffset;
    uint8_t  *m_BufferPrevious;
