@@ -4,6 +4,12 @@
 #include "cl_types.h"
 
 /**
+ * A -1 value to represent invalid addresses in memory regions, as 0 for NULL
+ * may be a valid address on some emulated systems.
+ */
+#define CL_ADDRESS_INVALID 0xFFFFFFFFFFFFFFFF
+
+/**
  * Maximum size, in bytes, to use when generating an MD5 hash of raw content
  * data.
  */

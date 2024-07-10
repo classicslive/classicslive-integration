@@ -1,6 +1,8 @@
 #ifndef CL_MEMORY_H
 #define CL_MEMORY_H
 
+#include "cl_common.h"
+
 /* Memnotes marked with this are submitted to the server on every request,
    as well as on timed intervals to retrieve a play status string. */
 #define CL_MEMFLAG_RICH    0
@@ -54,19 +56,86 @@ typedef enum
  * mapped virtually. This data allows us to follow pointers across different
  * memory regions.
 **/
-typedef struct cl_membank_t
+/**
+ * A bitfield to represent aspects of a mapped memory region of another
+ * process. Primarily used when inspecting a memory region owned by
+ * another process.
+ */
+typedef union cl_memory_region_flags
 {
-  /* The location of the actual data */
-  uint8_t *data;
+  struct
+  {
+    unsigned commit : 1;
+    unsigned free : 1;
+    unsigned reserve : 1;
+    unsigned read : 1;
+    unsigned write : 1;
+    unsigned execute : 1;
+    unsigned image : 1;
+    unsigned mapped : 1;
+    unsigned privated : 1;
+  } bits;
+  unsigned raw;
+} cl_memory_region_flags;
 
-  /* The number of bytes this bank contains */
+typedef struct cl_memory_region_t
+{
+  /**
+   * Flags that represent how this region can be utilized. Primarily used when
+   * reading the memory of an external process.
+   * @see cl_memory_region_flags
+   */
+  cl_memory_region_flags flags;
+
+  /**
+   * The byte ordering of this region.
+   * @see cl_endianness
+   */
+  cl_endianness endianness;
+
+  /**
+   * A pointer to the location of this memory on the host system. When reading
+   * memory from an external process, this will not be a directly accessible
+   * pointer, but a location we use to request process memory from the
+   * operating system.
+   */
+  void *base_host;
+
+  /**
+   * A pointer to the allocation base location this memory region is
+   * contained within. Might be the same as base_host, or CL_ADDRESS_INVALID.
+   * Should only be needed when reading external process memory, if ever.
+   */
+  void *base_alloc;
+
+  /**
+   * For emulators, the start of the virtual address for this region in the
+   * emulated system, otherwise CL_ADDRESS_INVALID (we do not use NULL here
+   * because 0 can be a valid guest memory location).
+   */
+  cl_addr_t base_guest;
+
+  /** The size, in bytes, of this region. */
   cl_addr_t size;
 
-  /* The virtual location of the first byte of this bank's data */
-  cl_addr_t start;
+  /**
+   * A mask that is applied relative to size to retain only possible bits when
+   * calculating an offset to apply to final address.
+   */
+  cl_addr_t mask;
 
+  /**
+   * The size, in bytes, of pointers within this region. Primarily used for
+   * emulators that use a smaller pointer length than the host, like 2 or 4.
+   */
+  unsigned pointer_length;
+
+  /**
+   * A string that represents the purpose of this region. Primarily used for
+   * virtually-mapped hardware devices on emulators.
+   */
   char title[256];
-} cl_membank_t;
+} cl_memory_region_t;
 
 /**
  * A "memory note" or "memnote" is a point in core memory that corresponds
@@ -113,16 +182,10 @@ typedef struct cl_memnote_t
 typedef struct cl_memory_t
 {
   cl_memnote_t *notes;
-  unsigned      note_count;
+  unsigned note_count;
 
-  cl_membank_t *banks;
-  unsigned      bank_count;
-
-  /* The endianness of the content's memory. For example, CL_ENDIAN_LITTLE. */
-  unsigned endianness;
-
-  /* How many bytes the content uses for virtual addresses. */
-  unsigned pointer_size;
+  cl_memory_region_t *regions;
+  unsigned region_count;
 } cl_memory_t;
 
 /**
@@ -130,7 +193,7 @@ typedef struct cl_memory_t
  * @param address A virtual memory address.
  * @return A pointer to the memory bank, or NULL if one is not found.
  **/
-cl_membank_t* cl_find_membank(cl_addr_t address);
+cl_memory_region_t* cl_find_membank(cl_addr_t address);
 
 /**
  * Frees all values contained within the global memory context.
@@ -188,9 +251,10 @@ bool cl_init_memory(const char **pos);
  * @param address The virtual memory address to read from.
  * @param size The number of bytes to read.
  **/
-unsigned cl_read_memory_internal(void *value, cl_membank_t *bank,
+unsigned cl_read_memory_internal(void *value, cl_memory_region_t *bank,
   cl_addr_t address, unsigned size);
 
+#if CL_EXTERNAL_MEMORY
 /** 
  * Reads a value at a virtual memory address into a buffer by reading external
  *   process memory.
@@ -201,8 +265,9 @@ unsigned cl_read_memory_internal(void *value, cl_membank_t *bank,
  * @param address The virtual memory address to read from.
  * @param size The number of bytes to read.
  **/
-unsigned cl_read_memory_external(void *value, cl_membank_t *bank,
+unsigned cl_read_memory_external(void *value, cl_memory_region_t *bank,
   cl_addr_t address, unsigned size);
+#endif
 
 #if CL_EXTERNAL_MEMORY
 #define cl_read_memory cl_read_memory_external
@@ -232,8 +297,8 @@ void cl_update_memory(void);
  * @param value A pointer to the source data.
  * @return Number of bytes written.
  **/
-unsigned cl_write_memory(cl_membank_t *bank, cl_addr_t address, unsigned size,
-  const void *value);
+unsigned cl_write_memory(cl_memory_region_t *bank, cl_addr_t address,
+                         unsigned size, const void *value);
 
 /**
  * Writes the value referenced by a memory note with a given value.
