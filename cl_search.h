@@ -15,7 +15,7 @@ typedef struct cl_search_params_t
 
 typedef struct cl_searchbank_t
 {
-   cl_membank_t *bank;
+   cl_memory_region_t *region;
    uint8_t *backup;
    uint8_t *valid;
    bool any_valid;

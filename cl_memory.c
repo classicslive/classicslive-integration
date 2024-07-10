@@ -11,20 +11,25 @@
 
 cl_memory_t memory;
 
-cl_membank_t* cl_find_membank(cl_addr_t address)
+cl_memory_region_t* cl_find_memory_region(cl_addr_t address)
 {
-  if (!memory.bank_count)
+  if (memory.region_count == 0)
     return NULL;
+  else if (memory.region_count == 1)
+    return &memory.regions[0];
   else
   {
-    cl_membank_t *bank;
-    uint8_t i;
+    cl_memory_region_t *region;
+    unsigned i;
 
-    for (i = 0; i < memory.bank_count; i++)
+    for (i = 0; i < memory.region_count; i++)
     {
-      bank = &memory.banks[i];
-      if (bank->start <= address && address < bank->start + bank->size)
-        return bank;
+      region = &memory.regions[i];
+
+      if (region->base_guest <= address &&
+        address < region->base_guest + region->size)
+
+      return region;
     }
   }
 
@@ -33,75 +38,76 @@ cl_membank_t* cl_find_membank(cl_addr_t address)
 
 cl_memnote_t* cl_find_memnote(unsigned key)
 {
-   uint32_t i;
+  unsigned i;
 
-   for (i = 0; i < memory.note_count; i++)
-   {
-      if (memory.notes[i].key == key)
-         return &memory.notes[i];
-   }
+  for (i = 0; i < memory.note_count; i++)
+  {
+    if (memory.notes[i].key == key)
+      return &memory.notes[i];
+  }
 
-   return NULL;
+  return NULL;
 }
 
 void cl_free_memnote(cl_memnote_t *note)
 {
-   free(note->pointer_offsets);
-   note->pointer_passes  = 0;
-   note->pointer_offsets = NULL;
+  free(note->pointer_offsets);
+  note->pointer_passes = 0;
+  note->pointer_offsets = NULL;
 }
 
-void cl_memory_free()
+void cl_memory_free(void)
 {
-   uint32_t i;
+  unsigned i;
 
-   free(memory.banks);
-   for (i = 0; i < memory.note_count; i++)
-      cl_free_memnote(&memory.notes[i]);
-   memory.banks = NULL;
-   memory.notes = NULL;
+  for (i = 0; i < memory.note_count; i++)
+    cl_free_memnote(&memory.notes[i]);
+  memory.notes = NULL;
+
+  free(memory.regions);
+  memory.regions = NULL;
 }
 
 bool cl_get_memnote_flag(cl_memnote_t *note, uint8_t flag)
 {
-   if (!note)
-      return false;
-   else
-      return (note->flags & (1 << flag)) != 0;
+  if (!note)
+    return false;
+  else
+    return (note->flags & (1 << flag)) != 0;
 }
 
 bool cl_get_memnote_flag_from_key(unsigned key, uint8_t flag)
 {
-   cl_memnote_t *note = cl_find_memnote(key);
+  cl_memnote_t *note = cl_find_memnote(key);
 
-   if (!note)
-      return false;
-   else
-      return cl_get_memnote_flag(note, flag);
+  if (!note)
+    return false;
+  else
+    return cl_get_memnote_flag(note, flag);
 }
 
 bool cl_get_memnote_value(cl_counter_t *src, cl_memnote_t *note, unsigned type)
 {
   if (!src || !note)
-    return false;
+   return false;
   else
   {
-    switch (type)
-    {
-    case CL_SRCTYPE_CURRENT_RAM:
-      *src = note->current;
-      break;
-    case CL_SRCTYPE_PREVIOUS_RAM:
-      *src = note->previous;
-      break;
-    case CL_SRCTYPE_LAST_UNIQUE_RAM:
-      *src = note->last_unique;
-      break;
-    default:
-      return false;
-    }
+   switch (type)
+   {
+   case CL_SRCTYPE_CURRENT_RAM:
+    *src = note->current;
+    break;
+   case CL_SRCTYPE_PREVIOUS_RAM:
+    *src = note->previous;
+    break;
+   case CL_SRCTYPE_LAST_UNIQUE_RAM:
+    *src = note->last_unique;
+    break;
+   default:
+    return false;
+   }
 
-    return true;
+   return true;
   }
 }
 
@@ -111,163 +117,168 @@ bool cl_get_memnote_value_from_key(cl_counter_t *src, unsigned key,
   cl_memnote_t *note = cl_find_memnote(key);
 
   if (!note)
-    return false;
+   return false;
   else
-    return cl_get_memnote_value(src, note, type);
+   return cl_get_memnote_value(src, note, type);
 }
 
-void cl_sort_membanks(cl_membank_t *banks, unsigned count)
+void cl_sort_memory_regions(cl_memory_region_t *banks, unsigned count)
 {
   unsigned i, j;
 
   for (i = 0; i < count; ++i)
-  {
     for (j = i + 1; j < count; ++j)
-    {
-      if (banks[i].start > banks[j].start)
+      if (banks[i].base_guest > banks[j].base_guest)
       {
-        cl_membank_t temp = banks[i];
+        cl_memory_region_t temp = banks[i];
 
         banks[i] = banks[j];
         banks[j] = temp;
       }
-    }
-  }
 }
 
 #if CL_LIBRETRO
 bool cl_init_membanks_libretro(const struct retro_memory_descriptor **descs,
-   const unsigned num_descs)
+  const unsigned num_descs)
 {
-   const struct retro_memory_descriptor *desc;
-   unsigned i;
+  const struct retro_memory_descriptor *desc;
+  unsigned i;
 
-   memory.banks = (cl_membank_t*)calloc(num_descs, sizeof(cl_membank_t));
-   memory.bank_count = num_descs;
-   for (i = 0; i < num_descs; i++)
-   {
-      desc = descs[i];
+  memory.regions = (cl_memory_region_t*)calloc(num_descs,
+                                               sizeof(cl_memory_region_t));
+  memory.region_count = num_descs;
 
-      /* Is this bank's data a null pointer? Ignore it */
-      if (!desc->ptr)
-      {
-         memory.bank_count--;
-         continue;
-      }
-      
-      /* Copy the libretro mmap parameters into our format */
-      memory.banks[i].data  = (uint8_t*)desc->ptr;
-      memory.banks[i].size  = desc->len;
-      memory.banks[i].start = desc->start;
+  for (i = 0; i < num_descs; i++)
+  {
+    desc = descs[i];
+    cl_memory_region_t *region = &memory.regions[i];
 
-      /* Setup the title of the memory bank */
-      if (desc->addrspace)
-         snprintf(memory.banks[i].title, sizeof(memory.banks[i].title),
-                  "%s", desc->addrspace);
-      else
-         snprintf(memory.banks[i].title, sizeof(memory.banks[i].title),
-                  "Memory bank %u/%u", i + 1, memory.bank_count);
-   }
+    /* Is this bank's data a null pointer? Ignore it */
+    if (!desc->ptr)
+    {
+      memory.region_count--;
+      continue;
+    }
 
-   cl_sort_membanks(memory.banks, memory.bank_count);
-   for (i = 0; i < memory.bank_count; i++)
-      cl_log("Bank %02X: 0x%08X | %08X bytes | %s\n", i,
-             memory.banks[i].start,
-             memory.banks[i].size,
-             memory.banks[i].title);
+    /* Copy the libretro mmap parameters into our format */
+    region->base_alloc = CL_ADDRESS_INVALID;
+    region->base_guest = desc->start;
+    region->base_host = desc->ptr;
+    region->endianness = desc->flags & RETRO_MEMDESC_BIGENDIAN ?
+                                     CL_ENDIAN_BIG : CL_ENDIAN_LITTLE;
+    region->flags = (cl_memory_region_flags){ .bits.read=1, .bits.write=1 };
+    /**
+     * @todo Is there a commonly used libretro flag for this? Not a huge deal
+     * since this gets overwritten by the server later
+     */
+    region->pointer_length = 4;
+    region->size = desc->len;
 
-   return true;
+    /* Setup the title of the memory bank */
+    if (desc->addrspace)
+      snprintf(region->title, sizeof(region->title),
+            "%s", desc->addrspace);
+    else
+      snprintf(region->title, sizeof(region->title),
+            "Memory bank %u/%u", i + 1, memory.region_count);
+  }
+
+  cl_sort_memory_regions(memory.regions, memory.region_count);
+
+  for (i = 0; i < memory.region_count; i++)
+  {
+    cl_memory_region_t *region = &memory.regions[i];
+
+    cl_log("Bank %02X: 0x%08X | %08X bytes | %s\n", i, region->base_guest,
+           region->size, region->title);
+  }
+
+  return true;
 }
 #endif
 
 bool cl_init_memory(const char **pos)
 {
-   cl_memnote_t *new_memnote;
-   uint32_t      i;
-   
-   if (!cl_strto(pos, &memory.note_count, sizeof(memory.note_count), false))
+  cl_memnote_t *new_memnote;
+  uint32_t    i;
+
+  if (!cl_strto(pos, &memory.note_count, sizeof(memory.note_count), false))
+    return false;
+  memory.notes = (cl_memnote_t*)calloc(memory.note_count, sizeof(cl_memnote_t));
+
+  cl_log("Memory notes: %u\n", memory.note_count);
+
+  for (i = 0; i < memory.note_count; i++)
+  {
+    cl_counter_t new_ctr;
+    new_memnote = &memory.notes[i];
+
+    if (!(cl_strto(pos, &new_memnote->key,        4, false) &&
+        cl_strto(pos, &new_memnote->address_initial, sizeof(cl_addr_t), false) &&
+        cl_strto(pos, &new_memnote->type,        4, false) &&
+        cl_strto(pos, &new_memnote->flags,       4, false) &&
+        cl_strto(pos, &new_memnote->pointer_passes, 4, false)))
       return false;
-   memory.notes = (cl_memnote_t*)calloc(memory.note_count, sizeof(cl_memnote_t));
 
-   cl_log("Memory notes: %u\n", memory.note_count);
+    cl_log("Memory note {%03u} - S: %u, P: %u, A: %08X",
+     new_memnote->key,
+     cl_sizeof_memtype(new_memnote->type),
+     new_memnote->pointer_passes,
+     new_memnote->address_initial);
 
-   for (i = 0; i < memory.note_count; i++)
-   {
-       cl_counter_t new_ctr;
-      new_memnote = &memory.notes[i];
+    /* Initialize the tracked values based on the data type of the memnote */
+    new_ctr.floatval.fp = 0;
+    new_ctr.intval.i64 = 0;
+    new_ctr.type = new_memnote->type;
+    new_memnote->current    = new_ctr;
+    new_memnote->previous   = new_ctr;
+    new_memnote->last_unique = new_ctr;
 
-      if (!(cl_strto(pos, &new_memnote->key,            4, false) &&
-            cl_strto(pos, &new_memnote->address_initial, sizeof(cl_addr_t), false) &&
-            cl_strto(pos, &new_memnote->type,           4, false) &&
-            cl_strto(pos, &new_memnote->flags,          4, false) &&
-            cl_strto(pos, &new_memnote->pointer_passes, 4, false)))
-         return false;
-         
-      cl_log("Memory note {%03u} - S: %u, P: %u, A: %08X",
-       new_memnote->key,
-       cl_sizeof_memtype(new_memnote->type),
-       new_memnote->pointer_passes,
-       new_memnote->address_initial);
+    /* Initialize offsets for pointer-chain variables */
+    if (new_memnote->pointer_passes > 0)
+    {
+      unsigned j;
 
-      /* Initialize the tracked values based on the data type of the memnote */
-      new_ctr.floatval.fp = 0;
-      new_ctr.intval.i64 = 0;
-      new_ctr.type = new_memnote->type;
-      new_memnote->current     = new_ctr;
-      new_memnote->previous    = new_ctr;
-      new_memnote->last_unique = new_ctr;
-
-      /* Initialize offsets for pointer-chain variables */
-      if (new_memnote->pointer_passes > 0)
+      new_memnote->pointer_offsets = (uint32_t*)calloc(new_memnote->pointer_passes, sizeof(uint32_t));
+      for (j = 0; j < new_memnote->pointer_passes; j++)
       {
-         uint8_t j;
-
-         new_memnote->pointer_offsets = (uint32_t*)calloc(new_memnote->pointer_passes, sizeof(uint32_t));
-         for (j = 0; j < new_memnote->pointer_passes; j++)
-         {
-            if (!cl_strto(pos, &new_memnote->pointer_offsets[j], sizeof(int32_t), true))
-               return false;
-            cl_log(" + %i", new_memnote->pointer_offsets[j]);
-         }
+        if (!cl_strto(pos, &new_memnote->pointer_offsets[j], sizeof(int32_t), true))
+          return false;
+        cl_log(" + %i", new_memnote->pointer_offsets[j]);
       }
-      cl_log("\n");
-   }
-   cl_log("End of memory.\n");
+    }
+    cl_log("\n");
+  }
+  cl_log("End of memory.\n");
 
-   /* This will be overwritten, set it to something valid. */
-   memory.endianness   = CL_ENDIAN_LITTLE;
-   memory.pointer_size = 4;
-
-   return true;
+  return true;
 }
 
-unsigned cl_read_memory_internal(void *value, cl_membank_t *bank,
+unsigned cl_read_memory_internal(void *value, cl_memory_region_t *bank,
   cl_addr_t address, unsigned size)
 {
   if (!bank)
   {
-    bank = cl_find_membank(address);
+    bank = cl_find_memory_region(address);
     if (!bank)
       return false;
     else
-      address -= bank->start;
+      address -= bank->base_guest;
   }
-  if (bank->data && address < bank->size)
-    return cl_read(value, bank->data, address, size, memory.endianness);
-   
+  if (bank->base_host && address < bank->size)
+    return cl_read(value, bank->base_host, address, size, bank->endianness);
+
   return false;
 }
 
-unsigned cl_read_memory_external(void *value, cl_membank_t *bank,
+#if CL_EXTERNAL_MEMORY
+unsigned cl_read_memory_external(void *value, cl_memory_region_t *bank,
   cl_addr_t address, unsigned size)
 {
   CL_UNUSED(bank);
-#if CL_EXTERNAL_MEMORY == true
   return cl_fe_memory_read(&memory, value, address, size);
-#else
-  return false;
-#endif
 }
+#endif
 
 unsigned cl_sizeof_memtype(const unsigned type)
 {
@@ -301,12 +312,18 @@ unsigned cl_sizeof_memtype(const unsigned type)
 bool cl_memnote_resolve_ptrs(cl_memnote_t *note)
 {
   cl_addr_t final_addr = note->address_initial;
-  unsigned  i;
+  unsigned i;
 
   for (i = 0; i < note->pointer_passes; i++)
   {
-    if (!cl_read_memory(&final_addr, NULL, final_addr, memory.pointer_size))
+    const cl_memory_region_t *region = cl_find_memory_region(final_addr);
+
+    if (!region)
       return false;
+    else if (!cl_read_memory(&final_addr, NULL, final_addr,
+                             region->pointer_length))
+      return false;
+
     final_addr += note->pointer_offsets[i];
   }
   note->address = final_addr;
@@ -325,7 +342,10 @@ bool cl_update_memnote(cl_memnote_t *note)
     /* The "previous" value is the value from the previous frame */
     note->previous = note->current;
 
-    /* Read the current frame's value from memory */
+    /**
+     * Read the current frame's value from memory
+     * @todo-branch Test this on Wii U. Is it fixed?
+     */
 #if __WIIU__
     cl_read(&new_val, memory.banks[0].data, note->address - memory.banks[0].start, cl_sizeof_memtype(note->type), memory.endianness);
 #else
@@ -345,7 +365,7 @@ void cl_update_memory(void)
 {
   /* Have memory banks not been set up yet? */
   /* TODO: Maybe we should attempt to set up membanks here, like before */
-  if (memory.bank_count == 0)
+  if (memory.region_count == 0)
     return;
   else
   {
@@ -356,8 +376,8 @@ void cl_update_memory(void)
   }
 }
 
-unsigned cl_write_memory(cl_membank_t *bank, cl_addr_t address, unsigned size,
-  const void *value)
+unsigned cl_write_memory(cl_memory_region_t *bank, cl_addr_t address,
+                         unsigned size, const void *value)
 {
 #if CL_EXTERNAL_MEMORY
   CL_UNUSED(bank);
@@ -367,15 +387,15 @@ unsigned cl_write_memory(cl_membank_t *bank, cl_addr_t address, unsigned size,
     return false;
   else if (!bank)
   {
-    bank = cl_find_membank(address);
+    bank = cl_find_memory_region(address);
     if (!bank)
       return false;
     else
-      address -= bank->start;
+      address -= bank->base_guest;
   }
-  if (bank->data)
+  if (bank->base_host)
   /* TODO: The address should be masked */
-    return cl_write(bank->data, value, address, size, memory.endianness);
+    return cl_write(bank->base_host, value, address, size, bank->endianness);
 
   return false;
 #endif
@@ -384,22 +404,22 @@ unsigned cl_write_memory(cl_membank_t *bank, cl_addr_t address, unsigned size,
 bool cl_write_memnote(cl_memnote_t *note, const cl_counter_t *value)
 {
   if (!note || !value)
-    return false;
+   return false;
   else
   {
-    if (cl_memnote_resolve_ptrs(note))
-    {
-      if (cl_ctr_is_float(&note->current))
-        return cl_write_memory(NULL,
-                               note->address,
-                               cl_sizeof_memtype(note->type),
-                               &value->floatval) == cl_sizeof_memtype(note->type);
-      else
-        return cl_write_memory(NULL,
-                               note->address,
-                               cl_sizeof_memtype(note->type),
-                               &value->intval) == cl_sizeof_memtype(note->type);
-    }
+   if (cl_memnote_resolve_ptrs(note))
+   {
+    if (cl_ctr_is_float(&note->current))
+      return cl_write_memory(NULL,
+                     note->address,
+                     cl_sizeof_memtype(note->type),
+                     &value->floatval) == cl_sizeof_memtype(note->type);
+    else
+      return cl_write_memory(NULL,
+                     note->address,
+                     cl_sizeof_memtype(note->type),
+                     &value->intval) == cl_sizeof_memtype(note->type);
+   }
   }
 
   return false;
