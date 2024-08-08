@@ -1,6 +1,51 @@
 #ifndef CL_CONFIG_H
 #define CL_CONFIG_H
 
+#define CL_PLATFORM_UNKNOWN 0
+
+#define CL_PLATFORM_WINDOWS 1
+#define CL_PLATFORM_LINUX 2
+#define CL_PLATFORM_MACOS 3
+#define CL_PLATFORM_ANDROID 4
+
+#define CL_PLATFORM_64 1
+#define CL_PLATFORM_32 2
+
+#ifndef CL_HOST_PLATFORM
+  #if defined(WIN32) || defined(_WIN32)
+    #define CL_HOST_PLATFORM CL_PLATFORM_WINDOWS
+    #if defined(WIN64) || defined(_WIN64)
+      #define CL_HOST_ARCHITECTURE CL_PLATFORM_64
+    #else
+      #define CL_HOST_ARCHITECTURE CL_PLATFORM_32
+    #endif
+  #elif defined(__linux__) && !defined(__ANDROID__)
+    #define CL_HOST_PLATFORM CL_PLATFORM_LINUX
+    #if defined(__x86_64__) || defined(__ppc64__) || defined(__aarch64__)
+      #define CL_HOST_ARCHITECTURE CL_PLATFORM_64
+    #else
+      #define CL_HOST_ARCHITECTURE CL_PLATFORM_32
+    #endif
+  #elif defined(__APPLE__) && defined(__MACH__)
+    #define CL_HOST_PLATFORM CL_PLATFORM_MACOS
+    #if defined(__x86_64__) || defined(__ppc64__) || defined(__aarch64__)
+      #define CL_HOST_ARCHITECTURE CL_PLATFORM_64
+    #else
+      #define CL_HOST_ARCHITECTURE CL_PLATFORM_32
+    #endif
+  #elif defined(__ANDROID__)
+    #define CL_HOST_PLATFORM CL_PLATFORM_ANDROID
+    #if defined(__x86_64__) || defined(__aarch64__)
+      #define CL_HOST_ARCHITECTURE CL_PLATFORM_64
+    #else
+      #define CL_HOST_ARCHITECTURE CL_PLATFORM_32
+    #endif
+  #else
+    #define CL_HOST_PLATFORM CL_PLATFORM_UNKNOWN
+    #define CL_HOST_ARCHITECTURE CL_PLATFORM_UNKNOWN
+  #endif
+#endif
+
 #ifndef CL_HAVE_EDITOR
 /**
  * Whether or not the Classics Live Editor is included in this implementation.
