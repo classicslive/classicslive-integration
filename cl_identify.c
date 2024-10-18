@@ -29,7 +29,7 @@ typedef struct cl_md5_ctx_t
 #define CL_NCCH_SIZE    0x0200
 #define CL_MAX_PATH     4096
 
-static void cl_task_md5(cl_task_t *task)
+static void cl_task_md5(struct cl_task_t *task)
 {
   if (!task)
     return;
@@ -57,7 +57,7 @@ static void cl_task_md5(cl_task_t *task)
 }
 
 static void cl_push_md5_task(void *data, unsigned size, char *checksum, 
-  bool free_on_finish, void *callback)
+  bool free_on_finish, CL_TASK_CB_T callback)
 {
   cl_task_t *task = (cl_task_t*)calloc(1, sizeof(cl_task_t));
   cl_md5_ctx_t *context = (cl_md5_ctx_t*)calloc(1, sizeof(cl_md5_ctx_t));
@@ -114,7 +114,7 @@ static void cl_task_gcwii(cl_task_t *task)
  * @param checksum A string to put the final hash in (32 bytes).
  * @param callback The function to call after the task finishes.
  */
-static void cl_push_gcwii_task(char *checksum, void *callback)
+static void cl_push_gcwii_task(char *checksum, CL_TASK_CB_T callback)
 {
   cl_task_t *task = (cl_task_t*)calloc(1, sizeof(cl_task_t));
   cl_md5_ctx_t *context = (cl_md5_ctx_t*)calloc(1, sizeof(cl_md5_ctx_t));
@@ -447,8 +447,10 @@ bool cl_identify(const void *info_data, const unsigned info_size,
 }
 #else
 bool cl_identify(const void *info_data, const unsigned info_size,
-  const char *info_path, const char *library, char *checksum, void *callback)
+  const char *info_path, const char *library, char *checksum, CL_TASK_CB_T callback)
 {
+  CL_UNUSED(info_path);
+  CL_UNUSED(library);
   if (info_data && info_size > 0)
   {
     cl_push_md5_task(info_data, info_size, checksum, false, callback);

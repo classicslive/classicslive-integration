@@ -51,11 +51,15 @@ typedef struct cl_session_t
    bool     ready;
 } cl_session_t;
 
+struct cl_task_t;
+
+typedef void (*CL_TASK_CB_T)(struct cl_task_t*);
+
 typedef struct cl_task_t
 {
    void  *state;
-   void (*handler)(struct cl_task_t*);
-   void (*callback)(struct cl_task_t*);
+   CL_TASK_CB_T handler;
+   CL_TASK_CB_T callback;
    char  *error;
 } cl_task_t;
 
