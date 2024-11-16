@@ -356,7 +356,7 @@ bool cl_identify_m3u(char *path, char *extension)
 
 #if CL_HAVE_FILESYSTEM
 bool cl_identify(const void *info_data, const unsigned info_size,
-  const char *info_path, const char *library, char *checksum, void *callback)
+  const char *info_path, const char *library, char *checksum, CL_TASK_CB_T callback)
 {
   uint8_t  *data = NULL;
   char      extension[16];

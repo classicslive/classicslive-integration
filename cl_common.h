@@ -87,6 +87,24 @@ typedef enum
   CL_MSG_SIZE
 } cl_log_level;
 
+typedef enum
+{
+  CL_MEMTYPE_NOT_SET = 0,
+
+  CL_MEMTYPE_INT64,
+  CL_MEMTYPE_DOUBLE,
+
+  CL_MEMTYPE_INT8,
+  CL_MEMTYPE_UINT8,
+  CL_MEMTYPE_INT16,
+  CL_MEMTYPE_UINT16,
+  CL_MEMTYPE_INT32,
+  CL_MEMTYPE_UINT32,
+  CL_MEMTYPE_FLOAT,
+
+  CL_MEMTYPE_SIZE
+} cl_value_type;
+
 /**
  * Used to explicitly ignore unused variables to prevent warnings.
  */

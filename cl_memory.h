@@ -5,25 +5,7 @@
 
 /* Memnotes marked with this are submitted to the server on every request,
    as well as on timed intervals to retrieve a play status string. */
-#define CL_MEMFLAG_RICH    0
-
-enum
-{
-  CL_MEMTYPE_NOT_SET = 0,
-
-  CL_MEMTYPE_INT64,
-  CL_MEMTYPE_DOUBLE,
-
-  CL_MEMTYPE_INT8,
-  CL_MEMTYPE_UINT8,
-  CL_MEMTYPE_INT16,
-  CL_MEMTYPE_UINT16,
-  CL_MEMTYPE_INT32,
-  CL_MEMTYPE_UINT32,
-  CL_MEMTYPE_FLOAT,
-
-  CL_MEMTYPE_SIZE
-};
+#define CL_MEMFLAG_RICH 0
 
 typedef enum
 {
