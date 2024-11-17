@@ -254,7 +254,7 @@ bool cl_init_memory(const char **pos)
   return true;
 }
 
-unsigned cl_read_memory_internal(void *value, cl_memory_region_t *bank,
+unsigned cl_read_memory_internal(void *value, const cl_memory_region_t *bank,
   cl_addr_t address, unsigned size)
 {
   if (!bank)
@@ -272,7 +272,7 @@ unsigned cl_read_memory_internal(void *value, cl_memory_region_t *bank,
 }
 
 #if CL_EXTERNAL_MEMORY
-unsigned cl_read_memory_external(void *value, cl_memory_region_t *bank,
+unsigned cl_read_memory_external(void *value, const cl_memory_region_t *bank,
   cl_addr_t address, unsigned size)
 {
   CL_UNUSED(bank);

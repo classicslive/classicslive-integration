@@ -227,7 +227,7 @@ bool cl_init_memory(const char **pos);
  * @param address The virtual memory address to read from.
  * @param size The number of bytes to read.
  **/
-unsigned cl_read_memory_internal(void *value, cl_memory_region_t *bank,
+unsigned cl_read_memory_internal(void *value, const cl_memory_region_t *bank,
   cl_addr_t address, unsigned size);
 
 #if CL_EXTERNAL_MEMORY
@@ -241,7 +241,7 @@ unsigned cl_read_memory_internal(void *value, cl_memory_region_t *bank,
  * @param address The virtual memory address to read from.
  * @param size The number of bytes to read.
  **/
-unsigned cl_read_memory_external(void *value, cl_memory_region_t *bank,
+unsigned cl_read_memory_external(void *value, const cl_memory_region_t *bank,
   cl_addr_t address, unsigned size);
 #endif
 
