@@ -53,7 +53,7 @@ bool cl_init_page(const char **pos, cl_page_t *page)
     {
       if (!cl_strto(pos, &action->arguments[j], sizeof(cl_arg_t), true))
         return false;
-      cl_log(" %lld", page->actions[i].arguments[j]);
+      cl_log(" %lld", page->actions[i].arguments[j].uintval);
     }
 
     /* Double-linked list */
