@@ -342,15 +342,7 @@ bool cl_update_memnote(cl_memnote_t *note)
     /* The "previous" value is the value from the previous frame */
     note->previous = note->current;
 
-    /**
-     * Read the current frame's value from memory
-     * @todo-branch Test this on Wii U. Is it fixed?
-     */
-#if __WIIU__
-    cl_read(&new_val, memory.banks[0].data, note->address - memory.banks[0].start, cl_sizeof_memtype(note->type), memory.endianness);
-#else
     cl_read_memory(&new_val, NULL, note->address, cl_sizeof_memtype(note->type));
-#endif
     cl_ctr_store(&note->current, &new_val, note->type);
 
     /* Logic for "last unique" values; the previous value will persist */
