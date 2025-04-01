@@ -2,6 +2,7 @@
 #include "cle_action_block_bookend.h"
 #include "cle_action_block_ctrbinary.h"
 
+#include <QMenu>
 #include <QMouseEvent>
 
 CleScriptEditorBlock::CleScriptEditorBlock(QWidget *parent)
@@ -24,20 +25,36 @@ CleScriptEditorBlock::~CleScriptEditorBlock()
 {
 }
 
-void CleScriptEditorBlock::addBlock(uint8_t type)
+void CleScriptEditorBlock::addBlock(int type, QPoint pos)
 {
-  CleActionBlock* block;
+  CleActionBlock* block = nullptr;
 
   switch (type)
   {
   case CL_ACTTYPE_ADDITION:
+  case CL_ACTTYPE_SUBTRACTION:
+  case CL_ACTTYPE_MULTIPLICATION:
+  case CL_ACTTYPE_DIVISION:
+  case CL_ACTTYPE_AND:
+  case CL_ACTTYPE_OR:
+  case CL_ACTTYPE_XOR:
+  case CL_ACTTYPE_COMPLEMENT:
     block = new CleActionBlockCtrBinary(type, this);
     break;
   }
+  if (block)
+  {
+    block->move(pos);
+    connect(block, SIGNAL(onDrag(CleActionBlock*)),
+            this,  SLOT(checkSnaps(CleActionBlock*)));
+    block->show();
+    blocks.push_back(block);
+  }
+}
 
-  connect(block, SIGNAL(onDrag(CleActionBlock*)),
-          this,  SLOT(checkSnaps(CleActionBlock*)));
-  blocks.push_back(block);
+void CleScriptEditorBlock::addBlock(int type)
+{
+  addBlock(type, QPoint(0, 0));
 }
 
 void CleScriptEditorBlock::checkSnaps(CleActionBlock* position)
@@ -64,10 +81,43 @@ void CleScriptEditorBlock::mousePressEvent(QMouseEvent *event)
 {
   if (event->button() == Qt::RightButton)
   {
-    auto a = new CleActionBlockCtrBinary(CL_ACTTYPE_ADDITION, this);
-    connect(a, SIGNAL(onDrag(CleActionBlock*)), this, SLOT(checkSnaps(CleActionBlock*)));
-    a->show();
-    blocks.push_back(a);
+    QMenu subMenu(this);
+    QMenu *basicMathMenu = subMenu.addMenu("Basic Math");
+    QMenu *bitwiseMenu = subMenu.addMenu("Bitwise Operations");
+
+    // Add Basic Math Options
+    QAction *additionAction = basicMathMenu->addAction("Addition");
+    additionAction->setData(CL_ACTTYPE_ADDITION);
+    QAction *subtractionAction = basicMathMenu->addAction("Subtraction");
+    subtractionAction->setData(CL_ACTTYPE_SUBTRACTION);
+    QAction *multiplicationAction = basicMathMenu->addAction("Multiplication");
+    multiplicationAction->setData(CL_ACTTYPE_MULTIPLICATION);
+    QAction *divisionAction = basicMathMenu->addAction("Division");
+    divisionAction->setData(CL_ACTTYPE_DIVISION);
+
+    // Add Bitwise Options
+    QAction *andAction = bitwiseMenu->addAction("AND");
+    andAction->setData(CL_ACTTYPE_AND);
+    QAction *orAction = bitwiseMenu->addAction("OR");
+    orAction->setData(CL_ACTTYPE_OR);
+    QAction *xorAction = bitwiseMenu->addAction("XOR");
+    xorAction->setData(CL_ACTTYPE_XOR);
+    QAction *notAction = bitwiseMenu->addAction("Complement");
+    notAction->setData(CL_ACTTYPE_COMPLEMENT);
+
+    // Add special options
+    QAction *achAction = subMenu.addAction("🏆 Unlock achievement");
+    achAction->setData(CL_ACTTYPE_POST_ACHIEVEMENT);
+    QAction *ldbAction = subMenu.addAction("📊 Post leaderboard entry");
+    ldbAction->setData(CL_ACTTYPE_POST_LEADERBOARD);
+
+    QAction *selectedSubAction = subMenu.exec(event->globalPos());
+
+    if (selectedSubAction)
+    {
+      int actionType = selectedSubAction->data().toInt();
+      addBlock(actionType, event->pos());
+    }
   }
 }
 

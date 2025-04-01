@@ -26,7 +26,8 @@ public slots:
 private:
   std::vector<CleActionBlock*> blocks;
 
-  void addBlock(uint8_t type);
+  void addBlock(int type);
+  void addBlock(int type, QPoint pos);
 };
 
 #endif
