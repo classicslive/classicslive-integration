@@ -48,11 +48,11 @@ public:
 
    virtual bool step(const QString& text) = 0;
 
-   virtual uint8_t getCompareType() { return 0; }
-   virtual uint8_t getValueType() { return 0; }
+   virtual cl_comparison getCompareType(void) { return CL_COMPARE_INVALID; }
+   virtual cl_value_type getValueType(void) { return CL_MEMTYPE_NOT_SET; }
 
-   virtual void setCompareType(const uint8_t new_type) {}
-   virtual void setValueType(const uint8_t new_type) {}
+   virtual void setCompareType(const cl_comparison new_type) = 0;
+   virtual void setValueType(const cl_value_type new_type) = 0;
 
 public slots:
    virtual void onResultClick(QTableWidgetItem *item) {};

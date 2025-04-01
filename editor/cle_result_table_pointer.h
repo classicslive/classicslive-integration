@@ -20,14 +20,14 @@ public:
   void run() override;
   bool step(const QString& text) override;
 
-  uint8_t getCompareType() override { return m_Search.params.compare_type; }
-  uint8_t getValueType() override { return m_Search.params.value_type; }
+  cl_comparison getCompareType(void) override { return m_Search.params.compare_type; }
+  cl_value_type getValueType(void) override { return m_Search.params.value_type; }
 
-  void setCompareType(const uint8_t new_type) override
+  void setCompareType(const cl_comparison new_type) override
   {
     m_Search.params.compare_type = new_type;
   }
-  void setValueType(const uint8_t new_type) override
+  void setValueType(const cl_value_type new_type) override
   {
     m_Search.params.value_type = new_type;
     m_Search.params.size = cl_sizeof_memtype(new_type);

@@ -16,25 +16,32 @@ extern "C"
 
 class CleResultTableNormal : public CleResultTable
 {
-   Q_OBJECT
+  Q_OBJECT
 
 public:
-   CleResultTableNormal(QWidget* parent);
-   ~CleResultTableNormal() override;
+  CleResultTableNormal(QWidget* parent);
+  ~CleResultTableNormal() override;
 
-   cl_addr_t getClickedResultAddress() override;
-   void* getSearchData() override;
-   bool isInitted() override { return true; }
-   void rebuild() override;
-   void reset(void) override;
-   void run() override;
-   bool step(const QString& text) override;
+  cl_addr_t getClickedResultAddress() override;
+  void* getSearchData() override;
+  bool isInitted() override { return true; }
+  void rebuild() override;
+  void reset(void) override;
+  void run() override;
+  bool step(const QString& text) override;
 
-   uint8_t getCompareType() override { return m_Search.comparison; }
-   uint8_t getValueType() override { return m_Search.value_size; }
+  cl_comparison getCompareType(void) override { return m_Search.comparison; }
+  cl_value_type getValueType(void) override { return m_Search.value_type; }
 
-   void setCompareType(const uint8_t new_type) override { m_Search.params.compare_type = new_type; }
-   void setValueType(const uint8_t new_type) override { m_Search.params.value_type = new_type; m_Search.params.size = cl_sizeof_memtype(new_type); }
+  void setCompareType(const cl_comparison new_type) override
+  {
+    m_Search.comparison = new_type;
+  }
+  void setValueType(const cl_value_type new_type) override
+  {
+    m_Search.value_type = new_type;
+    m_Search.value_size = cl_sizeof_memtype(new_type);
+  }
 
 public slots:
    void onClickResultAddMemoryNote();
