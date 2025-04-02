@@ -8,6 +8,7 @@
 CleScriptEditorBlock::CleScriptEditorBlock(QWidget *parent)
   : QWidget(parent)
 {
+  resize(640, 480);
   auto start = new CleActionBlockBookend(this, false);
   connect(start, SIGNAL(onDrag(CleActionBlock*)),
           this, SLOT(checkSnaps(CleActionBlock*)));

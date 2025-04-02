@@ -12,12 +12,15 @@ class CleActionBlockBookend : public CleActionBlock
 public:
   CleActionBlockBookend(QWidget* parent, bool is_end);
 
-  QString toString() override { return ""; };
+  QString toString(void) override { return ""; }
 
-  bool isStart() override { return !m_IsEnd; }
-  bool isEnd() override { return m_IsEnd; }
+  bool isStart(void) override { return !m_IsEnd; }
+
+  bool isEnd(void) override { return m_IsEnd; }
 
   void paintEvent(QPaintEvent *e) override;
+
+  int snapIndentation(QPoint pos) override;
 
 private:
   /* Whether or not this bookend represents the end of a script. */

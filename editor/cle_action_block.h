@@ -75,7 +75,7 @@ public:
    * Returns which indentation level the specified point will snap into, or -1
    * if it is not in range.
    */
-  int snapIndentation(QPoint pos);
+  virtual int snapIndentation(QPoint pos);
 
   QRect snapZone(void) { return m_SnapZone; }
 

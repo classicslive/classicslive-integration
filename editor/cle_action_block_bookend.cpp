@@ -28,3 +28,11 @@ void CleActionBlockBookend::paintEvent(QPaintEvent *e)
   painter.setPen(Qt::white);
   painter.drawText(16, m_IsEnd ? 20 : 36, m_IsEnd ? "End CLScript" : "Begin CLScript");
 }
+
+int CleActionBlockBookend::snapIndentation(QPoint pos)
+{
+  if (isEnd())
+    return -1;
+  else
+    return CleActionBlock::snapIndentation(pos) > -1 ? 0 : -1;
+}
