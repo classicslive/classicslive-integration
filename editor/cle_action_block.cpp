@@ -7,7 +7,7 @@
 
 #include "cle_action_block.h"
 
-CleActionBlock::CleActionBlock(QWidget* parent) : QWidget(parent)
+CleActionBlock::CleActionBlock(QWidget *parent) : QWidget(parent)
 {
   m_Layout = new QHBoxLayout(this);
   m_Layout->setContentsMargins(16, 4, 4, 4);
@@ -27,7 +27,7 @@ CleActionBlock::~CleActionBlock()
 void CleActionBlock::mouseMoveEvent(QMouseEvent *event)
 {
   QPoint adjusted_pos = m_DragPos.parent +
-    (event->globalPos() - m_DragPos.global) - m_DragPos.self;
+                        (event->globalPos() - m_DragPos.global) - m_DragPos.self;
 
   setPosition(adjusted_pos);
   emit onDrag(this);
@@ -39,11 +39,26 @@ void CleActionBlock::mousePressEvent(QMouseEvent *event)
   {
     m_DragPos.global = event->globalPos();
     m_DragPos.parent = mapToParent(event->pos());
-    m_DragPos.self   = event->pos();
+    m_DragPos.self = event->pos();
+    if (event->modifiers() & Qt::ControlModifier)
+      select();
+    else
+      selectWithChildren();
   }
   /* Delete self if right-clicked, unless this is a bookend. */
   else if (event->button() == Qt::RightButton && !isStart() && !isEnd())
     close();
+}
+
+void CleActionBlock::mouseReleaseEvent(QMouseEvent *event)
+{
+  if (event->button() == Qt::LeftButton)
+  {
+    if (event->modifiers() & Qt::ControlModifier)
+      deselect();
+    else
+      deselectWithChildren();
+  }
 }
 
 int CleActionBlock::snapIndentation(QPoint pos)
@@ -107,7 +122,10 @@ void CleActionBlock::paintEvent(QPaintEvent *e)
   CL_UNUSED(e);
 
   /* Draw a light border around all elements */
-  painter.setPen(Qt::darkGray);
+  if (selected())
+    painter.setPen(Qt::darkBlue);
+  else
+    painter.setPen(Qt::darkGray);
   painter.setRenderHint(QPainter::Antialiasing);
   painter.drawRoundedRect(QRectF(1, 1, CLE_BLOCK_WIDTH - 2, CLE_BLOCK_HEIGHT - 1), 2.0, 2.0);
 
@@ -155,9 +173,8 @@ void CleActionBlock::setPosition(QPoint pos)
 {
   move(pos);
   m_SnapZone = QRect(
-    pos.x() - CLE_BLOCK_HEIGHT * m_Indentation - CLE_BLOCK_HEIGHT / 2,
-    pos.y() + height() - CLE_BLOCK_HEIGHT / 2,
-    CLE_BLOCK_HEIGHT * (m_Indentation + 2),
-    static_cast<int>(CLE_BLOCK_HEIGHT * 1.5)
-  );
+      pos.x() - CLE_BLOCK_HEIGHT * m_Indentation - CLE_BLOCK_HEIGHT / 2,
+      pos.y() + height() - CLE_BLOCK_HEIGHT / 2,
+      CLE_BLOCK_HEIGHT * (m_Indentation + 2),
+      static_cast<int>(CLE_BLOCK_HEIGHT * 1.5));
 }

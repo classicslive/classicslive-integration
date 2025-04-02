@@ -46,7 +46,7 @@ public:
 
   ~CleActionBlock() override;
 
-  void attach(CleActionBlock *target, int indentation);
+  void attachTo(CleActionBlock *target, int indentation);
 
   void detach(void);
 
@@ -71,6 +71,16 @@ public:
 
   CleActionBlock* next(void) { return m_Next; }
 
+  bool selected(void) { return m_Selected; }
+
+  void select(void) { m_Selected = true; }
+
+  void selectWithChildren(void) { m_Selected = true; }
+
+  void deselect(void) { m_Selected = false; }
+
+  void deselectWithChildren(void) { m_Selected = false; }
+
   /**
    * Returns which indentation level the specified point will snap into, or -1
    * if it is not in range.
@@ -80,7 +90,9 @@ public:
   QRect snapZone(void) { return m_SnapZone; }
 
   void setNext(CleActionBlock *next) { m_Next = next; }
+
   void setPrev(CleActionBlock *prev) { m_Prev = prev; }
+
   void setPosition(QPoint pos);
 
 public slots:
@@ -102,14 +114,16 @@ protected:
    */
   DragStart m_DragPos;
 
-  cl_action_t *m_Action;
+  cl_action_t *m_Action = nullptr;
   int m_Indentation = 0;
-  QHBoxLayout *m_Layout;
+  QHBoxLayout *m_Layout = nullptr;
+  bool m_Selected = false;
+  cle_block_snap m_SnapDirection = CLE_SNAP_NONE;
+  QRect m_SnapZone;
+  int m_Type = 0;
+
   CleActionBlock *m_Next = nullptr;
   CleActionBlock *m_Prev = nullptr;
-  cle_block_snap m_SnapDirection;
-  QRect m_SnapZone;
-  int m_Type;
 };
 
 #endif

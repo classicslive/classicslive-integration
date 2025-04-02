@@ -20,7 +20,7 @@ public:
 private:
   QLabel *m_Label;
 
-  QImage *m_Image;
+  QImage m_Image;
 
   /**
    * @todo replace with combobox of possible ach/ldb

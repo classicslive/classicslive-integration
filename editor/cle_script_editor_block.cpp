@@ -1,6 +1,8 @@
 #include "cle_script_editor_block.h"
+#include "cle_action_block_api.h"
 #include "cle_action_block_bookend.h"
 #include "cle_action_block_ctrbinary.h"
+#include "cle_action_block_ctrunary.h"
 
 #include <QMenu>
 #include <QMouseEvent>
@@ -14,21 +16,24 @@ CleScriptEditorBlock::CleScriptEditorBlock(QWidget *parent)
           this, SLOT(checkSnaps(CleActionBlock*)));
   blocks.push_back(start);
 
+  auto middle = addBlock(CL_ACTTYPE_ADDITION);
+
   auto end = new CleActionBlockBookend(this, true);
   connect(end, SIGNAL(onDrag(CleActionBlock*)),
           this, SLOT(checkSnaps(CleActionBlock*)));
   blocks.push_back(end);
 
-  addBlock(CL_ACTTYPE_ADDITION);
+  end->attachTo(middle);
+  middle->attachTo(start);
 }
 
 CleScriptEditorBlock::~CleScriptEditorBlock()
 {
 }
 
-void CleScriptEditorBlock::addBlock(int type, QPoint pos)
+CleActionBlock *CleScriptEditorBlock::addBlock(int type, QPoint pos)
 {
-  CleActionBlock* block = nullptr;
+  CleActionBlock *block = nullptr;
 
   switch (type)
   {
@@ -39,8 +44,16 @@ void CleScriptEditorBlock::addBlock(int type, QPoint pos)
   case CL_ACTTYPE_AND:
   case CL_ACTTYPE_OR:
   case CL_ACTTYPE_XOR:
-  case CL_ACTTYPE_COMPLEMENT:
     block = new CleActionBlockCtrBinary(type, this);
+    break;
+  case CL_ACTTYPE_COMPLEMENT:
+    block = new CleActionBlockCtrUnary(type, this);
+    break;
+  case CL_ACTTYPE_POST_ACHIEVEMENT:
+  case CL_ACTTYPE_POST_LEADERBOARD:
+  case CL_ACTTYPE_POST_POLL:
+  case CL_ACTTYPE_POST_PROGRESS:
+    block = new CleActionBlockApi(type, this);
     break;
   }
   if (block)
@@ -51,6 +64,8 @@ void CleScriptEditorBlock::addBlock(int type, QPoint pos)
     block->show();
     blocks.push_back(block);
   }
+
+  return block;
 }
 
 void CleScriptEditorBlock::addBlock(int type)
@@ -72,7 +87,7 @@ void CleScriptEditorBlock::checkSnaps(CleActionBlock* position)
 
       if (indentation >= 0)
       {
-        position->attach(blocks[i], indentation);
+        position->attachTo(blocks[i], indentation);
         return;
       }
     }
@@ -150,7 +165,7 @@ QString CleScriptEditorBlock::toString()
     return error;
   else do
   {
-    string += " " + next->toString();
+    string += "\n" + next->toString();
     next = next->next();
   } while (next && !next->isEnd());
 
