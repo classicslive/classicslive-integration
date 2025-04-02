@@ -7,6 +7,7 @@
 #define CL_PLATFORM_LINUX 2
 #define CL_PLATFORM_MACOS 3
 #define CL_PLATFORM_ANDROID 4
+#define CL_PLATFORM_WII_U 5
 
 #define CL_PLATFORM_64 1
 #define CL_PLATFORM_32 2
@@ -40,9 +41,13 @@
     #else
       #define CL_HOST_ARCHITECTURE CL_PLATFORM_32
     #endif
+  #elif defined(__WIIU__)
+    #define CL_HOST_PLATFORM CL_PLATFORM_WII_U
+    #define CL_HOST_ARCHITECTURE CL_PLATFORM_32
   #else
     #define CL_HOST_PLATFORM CL_PLATFORM_UNKNOWN
     #define CL_HOST_ARCHITECTURE CL_PLATFORM_UNKNOWN
+    #error "Unrecognized target platform"
   #endif
 #endif
 
