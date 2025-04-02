@@ -156,16 +156,16 @@ static bool cl_act_compare(cl_action_t *action)
 
   switch (action->arguments[4].intval)
   {
-    case CL_CMPTYPE_IFEQUAL:
-      return cl_ctr_equal(&left, &right);
-    case CL_CMPTYPE_IFGREATER:
-      return cl_ctr_greater(&left, &right);
-    case CL_CMPTYPE_IFLESS:
-      return cl_ctr_lesser(&left, &right);
-    case CL_CMPTYPE_IFNEQUAL:
-      return cl_ctr_not_equal(&left, &right);
-    default:
-      return cl_free_action(action);
+  case CL_CMPTYPE_IFEQUAL:
+    return cl_ctr_equal(&left, &right);
+  case CL_CMPTYPE_IFGREATER:
+    return cl_ctr_greater(&left, &right);
+  case CL_CMPTYPE_IFLESS:
+    return cl_ctr_lesser(&left, &right);
+  case CL_CMPTYPE_IFNEQUAL:
+    return cl_ctr_not_equal(&left, &right);
+  default:
+    return cl_free_action(action);
   }
 }
 
@@ -423,6 +423,8 @@ bool cl_process_action(cl_action_t *action)
   else if (!action->function)
     cl_script_break(true, "Attempted to process an action with NULL "
       "implementation (action type %04X).", action->type);
+  else if (action->breakpoint)
+    cl_script_break(false, "User-defined breakpoint.");
   else if (action->function(action))
   {
     action->executions++;

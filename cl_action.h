@@ -54,7 +54,7 @@ typedef struct
   unsigned modulo_after_minimum;
 
   /* The function of the action */
-  bool    (*function)();
+  bool (*function)();
 } cl_acttype_t;
 
 enum
@@ -71,17 +71,18 @@ enum
 
 typedef struct cl_action_t
 {
-   cl_arg_t *arguments;
-   unsigned  argument_count;
-   unsigned  executions;
-   bool    (*function)();
-   bool      if_type;
-   unsigned  indentation;
-   unsigned  type;
+  cl_arg_t *arguments;
+  unsigned argument_count;
+  unsigned executions;
+  bool (*function)();
+  bool if_type;
+  unsigned indentation;
+  unsigned type;
+  bool breakpoint;
 
-   /* TODO: Double-link actions together so the editor can easily insert new lines */ 
-   struct cl_action_t *prev_action;
-   struct cl_action_t *next_action;
+  /* TODO: Double-link actions together so the editor can easily insert new lines */ 
+  struct cl_action_t *prev_action;
+  struct cl_action_t *next_action;
 } cl_action_t;
 
 bool cl_free_action(cl_action_t *action);
