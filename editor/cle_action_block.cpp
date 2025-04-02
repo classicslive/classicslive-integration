@@ -14,7 +14,7 @@ CleActionBlock::CleActionBlock(QWidget* parent) : QWidget(parent)
 
   setGeometry(0, 0, CLE_BLOCK_WIDTH, CLE_BLOCK_HEIGHT);
 
-  m_SnapDirection = CLE_ACT_SNAP_NONE;
+  m_SnapDirection = CLE_SNAP_NONE;
 
   setLayout(m_Layout);
 }
@@ -46,7 +46,7 @@ void CleActionBlock::mousePressEvent(QMouseEvent *event)
     close();
 }
 
-char CleActionBlock::getSnapArea(QPoint pos)
+int CleActionBlock::snapIndentation(QPoint pos)
 {
   if (!m_SnapZone.contains(pos))
     return -1;
@@ -54,14 +54,14 @@ char CleActionBlock::getSnapArea(QPoint pos)
     return (pos.x() - m_SnapZone.x()) / CLE_BLOCK_HEIGHT;
 }
 
-void CleActionBlock::attach(CleActionBlock *target, char indentation)
+void CleActionBlock::attach(CleActionBlock *target, int indentation)
 {
-  auto x = target->pos().x() + (indentation - target->getIndentation()) * CLE_BLOCK_HEIGHT;
+  auto x = target->pos().x() + (indentation - target->indentation()) * CLE_BLOCK_HEIGHT;
   auto y = target->pos().y() + target->height();
 
   setPosition(QPoint(x, y));
 
-  auto next = target->getNext();
+  auto next = target->next();
   if (next && next != this)
   {
     next->setPrev(this);
@@ -71,7 +71,7 @@ void CleActionBlock::attach(CleActionBlock *target, char indentation)
     while (next && next != this)
     {
       next->setPosition(QPoint(next->x(), next->y() + next->height()));
-      next = next->getNext();
+      next = next->next();
     }
   }
 
@@ -92,7 +92,7 @@ void CleActionBlock::detach()
     while (next)
     {
       next->setPosition(QPoint(next->x(), next->y() - CLE_BLOCK_HEIGHT));
-      next = next->getNext();
+      next = next->next();
     }
   }
 
@@ -104,6 +104,7 @@ void CleActionBlock::detach()
 void CleActionBlock::paintEvent(QPaintEvent *e)
 {
   QPainter painter(this);
+  CL_UNUSED(e);
 
   /* Draw a light border around all elements */
   painter.setPen(Qt::darkGray);
@@ -132,7 +133,7 @@ void CleActionBlock::paintEvent(QPaintEvent *e)
     painter.drawRect(0, 0, 4, height());
   }
 
-  if (m_SnapDirection != CLE_ACT_SNAP_NONE)
+  if (m_SnapDirection != CLE_SNAP_NONE)
   {
     QLinearGradient gradient(0, 0, width(), 4);
     gradient.setColorAt(0, Qt::darkBlue);
@@ -144,7 +145,7 @@ void CleActionBlock::paintEvent(QPaintEvent *e)
   }
 }
 
-void CleActionBlock::onSnap(const QPoint *position, unsigned char direction)
+void CleActionBlock::onSnap(const QPoint *position, cle_block_snap direction)
 {
   m_SnapDirection = direction;
   setPosition(*position);
@@ -157,6 +158,6 @@ void CleActionBlock::setPosition(QPoint pos)
     pos.x() - CLE_BLOCK_HEIGHT * m_Indentation - CLE_BLOCK_HEIGHT / 2,
     pos.y() + height() - CLE_BLOCK_HEIGHT / 2,
     CLE_BLOCK_HEIGHT * (m_Indentation + 2),
-    CLE_BLOCK_HEIGHT * 1.5
+    static_cast<int>(CLE_BLOCK_HEIGHT * 1.5)
   );
 }

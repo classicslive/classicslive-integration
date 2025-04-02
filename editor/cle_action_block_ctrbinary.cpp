@@ -5,7 +5,7 @@ extern "C"
 
 #include "cle_action_block_ctrbinary.h"
 
-CleActionBlockCtrBinary::CleActionBlockCtrBinary(uint8_t type, QWidget* parent)
+CleActionBlockCtrBinary::CleActionBlockCtrBinary(int type, QWidget* parent)
 : CleActionBlock(parent)
 {
   /* Left operand label */
@@ -23,11 +23,12 @@ CleActionBlockCtrBinary::CleActionBlockCtrBinary(uint8_t type, QWidget* parent)
 
   /* Right operand type */
   m_ModifierType = new QComboBox(this);
-  m_ModifierType->addItem("constant",    CL_SRCTYPE_IMMEDIATE_INT);
-  m_ModifierType->addItem("current",     CL_SRCTYPE_CURRENT_RAM);
-  m_ModifierType->addItem("previous",    CL_SRCTYPE_PREVIOUS_RAM);
+  m_ModifierType->addItem("constant", CL_SRCTYPE_IMMEDIATE_INT);
+  m_ModifierType->addItem("current", CL_SRCTYPE_CURRENT_RAM);
+  m_ModifierType->addItem("previous", CL_SRCTYPE_PREVIOUS_RAM);
   m_ModifierType->addItem("last unique", CL_SRCTYPE_LAST_UNIQUE_RAM);
-  connect(m_ModifierType, SIGNAL(currentIndexChanged(int)), this, SLOT(onChangeModifierType(int)));
+  connect(m_ModifierType, SIGNAL(currentIndexChanged(int)),
+          this, SLOT(onChangeModifierType(int)));
   m_Layout->addWidget(m_ModifierType);
 
   /* Right operand value (text entry) */
@@ -36,7 +37,7 @@ CleActionBlockCtrBinary::CleActionBlockCtrBinary(uint8_t type, QWidget* parent)
   /* Right operand value (dropdown box) */
   /* TODO: Have this refresh when the combobox is clicked */
   m_ModifierValueComboBox = new QComboBox(this);
-  for (int i = 0; i < memory.note_count; i++)
+  for (unsigned i = 0; i < memory.note_count; i++)
     m_ModifierValueComboBox->addItem(memory.notes[i].title);
 
   /* Right operand value stacker */
@@ -50,7 +51,7 @@ CleActionBlockCtrBinary::CleActionBlockCtrBinary(uint8_t type, QWidget* parent)
   setLayout(m_Layout);
 }
 
-uint32_t CleActionBlockCtrBinary::getModifierValue()
+int64_t CleActionBlockCtrBinary::modifierValue(void)
 {
   switch (m_ModifierType->currentData().toUInt())
   {
@@ -86,7 +87,7 @@ void CleActionBlockCtrBinary::onChangeModifierType(int index)
   }
 }
 
-void CleActionBlockCtrBinary::setType(uint8_t type)
+void CleActionBlockCtrBinary::setType(int type)
 {
   switch (type)
   {
@@ -98,10 +99,10 @@ void CleActionBlockCtrBinary::setType(uint8_t type)
     m_LabelA->setText("Bitwise OR counter");
     m_LabelB->setText("with");
     break;
-  /*case CL_ACTTYPE_XOR:
+  case CL_ACTTYPE_XOR:
     m_LabelA->setText("Bitwise XOR counter");
     m_LabelB->setText("with");
-    break;*/
+    break;
   case CL_ACTTYPE_MULTIPLICATION:
     m_LabelA->setText("Multiply counter");
     m_LabelB->setText("by");
@@ -110,31 +111,28 @@ void CleActionBlockCtrBinary::setType(uint8_t type)
     m_LabelA->setText("Add counter");
     m_LabelB->setText("to");
     break;
-  /*case CL_ACTTYPE_SHIFT_LEFT:
+  case CL_ACTTYPE_SHIFT_LEFT:
     m_LabelA->setText("Left shift counter");
     m_LabelB->setText("by");
     break;
   case CL_ACTTYPE_SHIFT_RIGHT:
     m_LabelA->setText("Right shift counter");
     m_LabelB->setText("by");
-    break;*/
+    break;
   default:
     m_LabelA->setText("Invalid action type " + QString::number(m_Type));
   }
 }
 
-QString CleActionBlockCtrBinary::toString()
+QString CleActionBlockCtrBinary::toString(void)
 {
   bool ok;
-  QString string = QString
-  (
-    QString::number(m_Indentation) + 
-    QString::number(m_Type) +
-    " 3 " +
-    stringToValue(m_CounterIndex->text(), &ok) + " " +
-    m_ModifierType->currentData().toUInt() + " " +
-    getModifierValue() + " "
-  );
+  QString string = QString("%1 %2 3 %3 %4 %5 ")
+    .arg(m_Indentation, 0, CL_RADIX)
+    .arg(m_Type, 0, CL_RADIX)
+    .arg(stringToValue(m_CounterIndex->text(), &ok), 0, CL_RADIX)
+    .arg(m_ModifierType->currentData().toUInt(), 0, CL_RADIX)
+    .arg(modifierValue(), 0, CL_RADIX);
 
-  return string;
+  return ok ? string : toNopString();
 }

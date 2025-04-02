@@ -10,11 +10,11 @@ CleScriptEditorBlock::CleScriptEditorBlock(QWidget *parent)
 {
   auto start = new CleActionBlockBookend(this, false);
   connect(start, SIGNAL(onDrag(CleActionBlock*)),
-          this,  SLOT(checkSnaps(CleActionBlock*)));
+          this, SLOT(checkSnaps(CleActionBlock*)));
   blocks.push_back(start);
 
   auto end = new CleActionBlockBookend(this, true);
-  connect(end,  SIGNAL(onDrag(CleActionBlock*)),
+  connect(end, SIGNAL(onDrag(CleActionBlock*)),
           this, SLOT(checkSnaps(CleActionBlock*)));
   blocks.push_back(end);
 
@@ -46,7 +46,7 @@ void CleScriptEditorBlock::addBlock(int type, QPoint pos)
   {
     block->move(pos);
     connect(block, SIGNAL(onDrag(CleActionBlock*)),
-            this,  SLOT(checkSnaps(CleActionBlock*)));
+            this, SLOT(checkSnaps(CleActionBlock*)));
     block->show();
     blocks.push_back(block);
   }
@@ -59,13 +59,15 @@ void CleScriptEditorBlock::addBlock(int type)
 
 void CleScriptEditorBlock::checkSnaps(CleActionBlock* position)
 {
-  for (size_t i = 0; i < blocks.size(); i++)
+  unsigned i;
+
+  for (i = 0; i < blocks.size(); i++)
   {
     if (blocks[i] == position)
       continue;
     else
     {
-      auto indentation = blocks[i]->getSnapArea(position->pos());
+      auto indentation = blocks[i]->snapIndentation(position->pos());
 
       if (indentation >= 0)
       {
@@ -123,13 +125,14 @@ void CleScriptEditorBlock::mousePressEvent(QMouseEvent *event)
 
 QString CleScriptEditorBlock::toString()
 {
-  const QString   error  = "0";
-  CleActionBlock* next   = nullptr;
-  CleActionBlock* start  = nullptr;
-  QString         string = QString::number(1, 16);
+  const QString error = "0";
+  CleActionBlock *next = nullptr;
+  CleActionBlock *start = nullptr;
+  QString string = QString::number(1, 16);
+  unsigned i;
 
   /* Find our starting point */
-  for (int i = 0; i < blocks.size(); i++)
+  for (i = 0; i < blocks.size(); i++)
   {
     if (blocks[i]->isStart())
     {
@@ -141,13 +144,13 @@ QString CleScriptEditorBlock::toString()
     return error;
 
   /* Iterate through all blocks after the starting bookend */
-  next = start->getNext();
+  next = start->next();
   if (!next)
     return error;
   else do
   {
     string += " " + next->toString();
-    next = next->getNext();
+    next = next->next();
   } while (next && !next->isEnd());
 
   /* Return final string only if the code block was closed with a bookend */

@@ -5,12 +5,14 @@
 CleActionBlockBookend::CleActionBlockBookend(QWidget* parent, bool is_end) : CleActionBlock(parent)
 {
   m_IsEnd = is_end;
-  setGeometry(0, 0, CLE_BLOCK_WIDTH / 2, CLE_BLOCK_HEIGHT * 1.5);
+  setGeometry(0, 0, CLE_BLOCK_WIDTH / 2, static_cast<int>(CLE_BLOCK_HEIGHT * 1.5));
 }
 
 void CleActionBlockBookend::paintEvent(QPaintEvent *e)
 {
   QPainter painter(this);
+
+  CL_UNUSED(e);
 
   painter.setPen(Qt::NoPen);
   painter.setRenderHint(QPainter::Antialiasing);
