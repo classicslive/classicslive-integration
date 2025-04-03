@@ -6,6 +6,7 @@ extern "C"
 #include "cle_action_block_ctrunary.h"
 
 CleActionBlockCtrUnary::CleActionBlockCtrUnary(int type, QWidget* parent)
+  : CleActionBlock(parent)
 {
   /* Operand label */
   m_Label = new QLabel(this);
@@ -21,7 +22,7 @@ CleActionBlockCtrUnary::CleActionBlockCtrUnary(int type, QWidget* parent)
   setLayout(m_Layout);
 }
 
-void CleActionBlockCtrUnary:setType(int type)
+void CleActionBlockCtrUnary::setType(int type)
 {
   switch (type)
   {
@@ -29,17 +30,21 @@ void CleActionBlockCtrUnary:setType(int type)
     m_Label->setText("Complement counter");
     break;
   default:
-    m_Label->setText("Invalid action type " + QString::number(m_Type));
+    m_Label->setText("Invalid ctrunary action " + QString::number(m_Type));
   }
+  CleActionBlock::setType(type);
 }
 
-QString CleActionBlockCtrUnary::toString(void)
+cle_result_t CleActionBlockCtrUnary::toString(void)
 {
   bool ok = false;
-  QString string = QString("%1 %2 1 %3 ")
+  QString string = QString("%1 %2 1 %3")
     .arg(m_Indentation, 0, CL_RADIX)
     .arg(m_Type, 0, CL_RADIX)
     .arg(stringToValue(m_CounterIndex->text(), &ok), 0, CL_RADIX);
-  
-  return ok ? string : toNopString();
+
+  if (ok)
+    return { string, true };
+  else
+    return { "Empty or invalid values", false };
 }

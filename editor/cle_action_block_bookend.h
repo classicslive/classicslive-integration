@@ -12,7 +12,8 @@ class CleActionBlockBookend : public CleActionBlock
 public:
   CleActionBlockBookend(QWidget* parent, bool is_end);
 
-  QString toString(void) override { return ""; }
+  cle_result_t toString(void) override {
+    return { QString("Critical error %1").arg(__FILE__), false }; }
 
   bool isStart(void) override { return !m_IsEnd; }
 

@@ -120,7 +120,7 @@ CleMemoryInspector::CleMemoryInspector()
    m_AddressOffset = 0;
    m_CurrentMembank = &memory.regions[0];
    m_TabCount = 1;
-   m_MemoryNoteSubmit = NULL;
+   m_MemoryNoteSubmit = nullptr;
 
    onChangeCompareType();
 }
@@ -253,7 +253,7 @@ void CleMemoryInspector::onClickSearch()
 
 void CleMemoryInspector::onHexWidgetValueEdited(cl_addr_t address, uint8_t value)
 {
-   cl_write_memory(NULL, address, cl_sizeof_memtype(getCurrentSizeType()), &value);
+   cl_write_memory(nullptr, address, cl_sizeof_memtype(getCurrentSizeType()), &value);
 }
 
 void CleMemoryInspector::onClickTabRename()

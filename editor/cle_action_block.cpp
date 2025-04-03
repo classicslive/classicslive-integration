@@ -69,7 +69,7 @@ int CleActionBlock::snapIndentation(QPoint pos)
     return (pos.x() - m_SnapZone.x()) / CLE_BLOCK_HEIGHT;
 }
 
-void CleActionBlock::attach(CleActionBlock *target, int indentation)
+void CleActionBlock::attachTo(CleActionBlock *target, int indentation)
 {
   auto x = target->pos().x() + (indentation - target->indentation()) * CLE_BLOCK_HEIGHT;
   auto y = target->pos().y() + target->height();
@@ -110,7 +110,6 @@ void CleActionBlock::detach()
       next = next->next();
     }
   }
-
   setPrev(nullptr);
   setNext(nullptr);
   m_Indentation = 0;
@@ -122,10 +121,7 @@ void CleActionBlock::paintEvent(QPaintEvent *e)
   CL_UNUSED(e);
 
   /* Draw a light border around all elements */
-  if (selected())
-    painter.setPen(Qt::darkBlue);
-  else
-    painter.setPen(Qt::darkGray);
+  painter.setPen(Qt::darkGray);
   painter.setRenderHint(QPainter::Antialiasing);
   painter.drawRoundedRect(QRectF(1, 1, CLE_BLOCK_WIDTH - 2, CLE_BLOCK_HEIGHT - 1), 2.0, 2.0);
 

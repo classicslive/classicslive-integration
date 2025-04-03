@@ -58,14 +58,7 @@ public:
 
   virtual void setType(int type) { m_Type = type; }
 
-  virtual QString toNopString(void)
-  {
-    return QString("%u %u 0 ")
-      .arg(m_Indentation, 0, CL_RADIX)
-      .arg(m_Type, 0, CL_RADIX);
-  }
-
-  virtual QString toString(void) { return "0 0 0"; }
+  virtual cle_result_t toString(void) { return { "Uninitialized action", false }; }
 
   CleActionBlock* prev(void) { return m_Prev; }
 
@@ -101,6 +94,8 @@ public slots:
   virtual void mouseMoveEvent(QMouseEvent *event) override;
 
   virtual void mousePressEvent(QMouseEvent *event) override;
+
+  virtual void mouseReleaseEvent(QMouseEvent *event) override;
 
   virtual void paintEvent(QPaintEvent *e) override;
 

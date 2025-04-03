@@ -15,10 +15,12 @@ public:
 
   virtual void setType(int type) override;
 
-  virtual QString toString(void) override;
+  virtual cle_result_t toString(void) override;
 
 private:
   QLabel *m_Label;
+
+  QLabel *m_ImageLabel;
 
   QImage m_Image;
 

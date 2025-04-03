@@ -17,7 +17,7 @@ public:
 
   virtual void setType(int type) override;
 
-  virtual QString toString() override;
+  virtual cle_result_t toString(void) override;
 
 private:
   QLabel *m_LabelA;

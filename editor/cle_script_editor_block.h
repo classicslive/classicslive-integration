@@ -2,10 +2,10 @@
 #define CLE_SCRIPT_EDITOR_BLOCK_H
 
 #include <QPushButton>
-#include <QWidget>
-#include <vector>
+#include <QScrollBar>
+#include <QTabWidget>
 
-#include "cle_action_block.h"
+#include "cle_script_editor_block_canvas.h"
 
 class CleScriptEditorBlock : public QWidget
 {
@@ -13,21 +13,13 @@ class CleScriptEditorBlock : public QWidget
 
 public:
   CleScriptEditorBlock(QWidget *parent = nullptr);
-  ~CleScriptEditorBlock();
-
-  QString toString();
-
-public slots:
-  void checkSnaps(CleActionBlock* position);
-
-  /* QWidget overrides */
-  void mousePressEvent(QMouseEvent *event) override;
 
 private:
-  std::vector<CleActionBlock*> blocks;
+  CleScriptEditorBlockCanvas *m_Canvas;
+  QPushButton *m_SaveButton;
 
-  void addBlock(int type);
-  void addBlock(int type, QPoint pos);
+private slots:
+  void onSaveButtonClicked(void);
 };
 
 #endif

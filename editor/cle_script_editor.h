@@ -9,18 +9,18 @@
 
 class CleScriptEditor : public QWidget
 {
-   Q_OBJECT
+  Q_OBJECT
 
 public:
-   CleScriptEditor();
+  CleScriptEditor();
 
 public slots:
-   void run();
+  void run();
 
 private:
-   QTableWidget *m_Table;
-   QTimer *m_UpdateTimer;
-   QLabel *m_Label;
+  QTableWidget *m_Table;
+  QTimer *m_UpdateTimer;
+  QLabel *m_Label;
 };
 
 #endif

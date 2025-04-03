@@ -120,19 +120,23 @@ void CleActionBlockCtrBinary::setType(int type)
     m_LabelB->setText("by");
     break;
   default:
-    m_LabelA->setText("Invalid action type " + QString::number(m_Type));
+    m_LabelA->setText("Invalid ctrbinary action " + QString::number(m_Type));
   }
+  CleActionBlock::setType(type);
 }
 
-QString CleActionBlockCtrBinary::toString(void)
+cle_result_t CleActionBlockCtrBinary::toString(void)
 {
   bool ok;
-  QString string = QString("%1 %2 3 %3 %4 %5 ")
+  QString string = QString("%1 %2 3 %3 %4 %5")
     .arg(m_Indentation, 0, CL_RADIX)
     .arg(m_Type, 0, CL_RADIX)
     .arg(stringToValue(m_CounterIndex->text(), &ok), 0, CL_RADIX)
     .arg(m_ModifierType->currentData().toUInt(), 0, CL_RADIX)
     .arg(modifierValue(), 0, CL_RADIX);
 
-  return ok ? string : toNopString();
+  if (ok)
+    return { string, true };
+  else
+    return { "Empty or invalid values", false };
 }

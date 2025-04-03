@@ -1,0 +1,35 @@
+#ifndef CLE_SCRIPT_EDITOR_BLOCK_CANVAS_H
+#define CLE_SCRIPT_EDITOR_BLOCK_CANVAS_H
+
+#include <QPushButton>
+#include <QWidget>
+#include <vector>
+
+#include "cle_action_block.h"
+
+class CleScriptEditorBlockCanvas : public QWidget
+{
+  Q_OBJECT
+
+public:
+  CleScriptEditorBlockCanvas(QWidget *parent = nullptr);
+
+  cle_result_t toString(void);
+
+public slots:
+  void checkSnaps(CleActionBlock* position);
+
+  /* QWidget overrides */
+  void mousePressEvent(QMouseEvent *event) override;
+
+protected:
+  void paintEvent(QPaintEvent *event) override;
+
+private:
+  std::vector<CleActionBlock*> blocks;
+
+  CleActionBlock *addBlock(int type);
+  CleActionBlock *addBlock(int type, QPoint pos);
+};
+
+#endif
