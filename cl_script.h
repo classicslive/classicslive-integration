@@ -6,12 +6,12 @@
 
 enum
 {
-   CL_SCRSTATUS_INACTIVE = 0,
+  CL_SCRSTATUS_INACTIVE = 0,
 
-   CL_SRCSTATUS_ACTIVE,
-   CL_SCRSTATUS_PAUSED,
+  CL_SRCSTATUS_ACTIVE,
+  CL_SCRSTATUS_PAUSED,
 
-   CL_SCRSTATUS_LAST
+  CL_SCRSTATUS_LAST
 };
 
 /* TODO: Arbitrary! Have pages allocate more/less depending on need */
