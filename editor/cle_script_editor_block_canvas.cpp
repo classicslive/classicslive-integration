@@ -4,6 +4,11 @@
 #include "cle_action_block_ctrbinary.h"
 #include "cle_action_block_ctrunary.h"
 
+extern "C"
+{
+  #include "../cl_script.h"
+};
+
 #include <QMenu>
 #include <QMouseEvent>
 #include <QPainter>
@@ -17,15 +22,35 @@ CleScriptEditorBlockCanvas::CleScriptEditorBlockCanvas(QWidget *parent)
           this, SLOT(checkSnaps(CleActionBlock*)));
   blocks.push_back(start);
 
-  auto middle = addBlock(CL_ACTTYPE_ADDITION);
-
   auto end = new CleActionBlockBookend(this, true);
   connect(end, SIGNAL(onDrag(CleActionBlock*)),
           this, SLOT(checkSnaps(CleActionBlock*)));
   blocks.push_back(end);
 
-  middle->attachTo(start, 0);
-  end->attachTo(middle, 0);
+  if (script.page_count &&
+      script.pages &&
+      script.pages[0].action_count &&
+      script.pages[0].actions)
+  {
+    unsigned i;
+    auto prev = addBlock(script.pages[0].actions[0].type);
+
+    prev->attachTo(start, 0);
+    for (i = 1; i < script.pages[0].action_count; i++)
+    {
+      auto next = addBlock(script.pages[0].actions[i].type);
+      next->attachTo(prev, script.pages[0].actions[i].indentation);
+      prev = next;
+    }
+    end->attachTo(prev, 0);
+  }
+  else
+  {
+    auto middle = addBlock(CL_ACTTYPE_ADDITION);
+
+    middle->attachTo(start, 0);
+    end->attachTo(middle, 0);
+  }
 
   setMinimumSize(640, 480);
   setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
