@@ -5,8 +5,8 @@ extern "C"
 
 #include "cle_action_block_ctrbinary.h"
 
-CleActionBlockCtrBinary::CleActionBlockCtrBinary(int type, QWidget* parent)
-: CleActionBlock(parent)
+CleActionBlockCtrBinary::CleActionBlockCtrBinary(cl_action_t *action,
+  QWidget* parent = nullptr) : CleActionBlock(action, parent)
 {
   /* Left operand label */
   m_LabelA = new QLabel(this);
@@ -46,7 +46,7 @@ CleActionBlockCtrBinary::CleActionBlockCtrBinary(int type, QWidget* parent)
   m_ModifierStack->addWidget(m_ModifierValueComboBox);
   m_Layout->addWidget(m_ModifierStack);
 
-  setType(type);
+  setType(type());
 
   setLayout(m_Layout);
 }
@@ -120,7 +120,7 @@ void CleActionBlockCtrBinary::setType(int type)
     m_LabelB->setText("by");
     break;
   default:
-    m_LabelA->setText("Invalid ctrbinary action " + QString::number(m_Type));
+    m_LabelA->setText("Invalid ctrbinary action " + QString::number(type));
   }
   CleActionBlock::setType(type);
 }
@@ -129,8 +129,8 @@ cle_result_t CleActionBlockCtrBinary::toString(void)
 {
   bool ok;
   QString string = QString("%1 %2 3 %3 %4 %5")
-    .arg(m_Indentation, 0, CL_RADIX)
-    .arg(m_Type, 0, CL_RADIX)
+    .arg(indentation(), 0, CL_RADIX)
+    .arg(type(), 0, CL_RADIX)
     .arg(stringToValue(m_CounterIndex->text(), &ok), 0, CL_RADIX)
     .arg(m_ModifierType->currentData().toUInt(), 0, CL_RADIX)
     .arg(modifierValue(), 0, CL_RADIX);

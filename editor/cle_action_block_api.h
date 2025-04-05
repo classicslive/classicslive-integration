@@ -11,7 +11,9 @@ class CleActionBlockApi : public CleActionBlock
   Q_OBJECT
 
 public:
-  CleActionBlockApi(int type, QWidget* parent);
+  CleActionBlockApi(cl_action_t *action, QWidget* parent);
+
+  virtual void populate(void) override;
 
   virtual void setType(int type) override;
 

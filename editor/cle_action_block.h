@@ -42,7 +42,7 @@ class CleActionBlock : public QWidget
   Q_OBJECT
 
 public:
-  CleActionBlock(QWidget* parent);
+  CleActionBlock(cl_action_t *action, QWidget* parent);
 
   ~CleActionBlock() override;
 
@@ -50,13 +50,13 @@ public:
 
   void detach(void);
 
-  int indentation(void) { return m_Indentation; }
+  virtual int indentation(void) { return m_Action->indentation; }
 
   virtual bool isStart(void) { return false; }
 
   virtual bool isEnd(void) { return false; }
 
-  virtual void setType(int type) { m_Type = type; }
+  virtual void setType(int type) { if (m_Action) m_Action->type = type; }
 
   virtual cle_result_t toString(void) { return { "Uninitialized action", false }; }
 
@@ -74,6 +74,8 @@ public:
 
   void deselectWithChildren(void) { m_Selected = false; }
 
+  virtual void populate(void) {}
+
   /**
    * Returns which indentation level the specified point will snap into, or -1
    * if it is not in range.
@@ -81,6 +83,14 @@ public:
   virtual int snapIndentation(QPoint pos);
 
   QRect snapZone(void) { return m_SnapZone; }
+
+  int type(void) { return m_Action ? m_Action->type : CL_ACTTYPE_NO_PROCESS; }
+
+  void setIndentation(int indentation)
+  {
+    if (m_Action)
+      m_Action->indentation = indentation;
+  }
 
   void setNext(CleActionBlock *next) { m_Next = next; }
 
@@ -110,12 +120,10 @@ protected:
   DragStart m_DragPos;
 
   cl_action_t *m_Action = nullptr;
-  int m_Indentation = 0;
   QHBoxLayout *m_Layout = nullptr;
   bool m_Selected = false;
   cle_block_snap m_SnapDirection = CLE_SNAP_NONE;
   QRect m_SnapZone;
-  int m_Type = 0;
 
   CleActionBlock *m_Next = nullptr;
   CleActionBlock *m_Prev = nullptr;

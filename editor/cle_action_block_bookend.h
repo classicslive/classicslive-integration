@@ -10,10 +10,12 @@ class CleActionBlockBookend : public CleActionBlock
   Q_OBJECT
 
 public:
-  CleActionBlockBookend(QWidget* parent, bool is_end);
+  CleActionBlockBookend(bool is_end, QWidget *parent);
 
   cle_result_t toString(void) override {
     return { QString("Critical error %1").arg(__FILE__), false }; }
+
+  int indentation(void) override { return 0; }
 
   bool isStart(void) override { return !m_IsEnd; }
 

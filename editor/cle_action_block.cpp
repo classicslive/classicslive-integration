@@ -7,8 +7,10 @@
 
 #include "cle_action_block.h"
 
-CleActionBlock::CleActionBlock(QWidget *parent) : QWidget(parent)
+CleActionBlock::CleActionBlock(cl_action_t *action, QWidget *parent = nullptr)
+  : QWidget(parent)
 {
+  m_Action = action;
   m_Layout = new QHBoxLayout(this);
   m_Layout->setContentsMargins(16, 4, 4, 4);
 
@@ -91,11 +93,11 @@ void CleActionBlock::attachTo(CleActionBlock *target, int indentation)
   }
 
   target->setNext(this);
-  m_Indentation = indentation;
+  setIndentation(indentation);
   m_Prev = target;
 }
 
-void CleActionBlock::detach()
+void CleActionBlock::detach(void)
 {
   if (m_Prev)
     m_Prev->setNext(m_Next);
@@ -112,7 +114,7 @@ void CleActionBlock::detach()
   }
   setPrev(nullptr);
   setNext(nullptr);
-  m_Indentation = 0;
+  setIndentation(0);
 }
 
 void CleActionBlock::paintEvent(QPaintEvent *e)
@@ -126,9 +128,9 @@ void CleActionBlock::paintEvent(QPaintEvent *e)
   painter.drawRoundedRect(QRectF(1, 1, CLE_BLOCK_WIDTH - 2, CLE_BLOCK_HEIGHT - 1), 2.0, 2.0);
 
   /* Draw a colored tab to the left of the block to represent indentation level */
-  if (m_Indentation >= 0)
+  if (indentation() >= 0)
   {
-    switch (m_Indentation % 4)
+    switch (indentation() % 4)
     {
     case 0:
       painter.setBrush(QColor(15, 99, 179));
@@ -169,8 +171,8 @@ void CleActionBlock::setPosition(QPoint pos)
 {
   move(pos);
   m_SnapZone = QRect(
-      pos.x() - CLE_BLOCK_HEIGHT * m_Indentation - CLE_BLOCK_HEIGHT / 2,
+      pos.x() - CLE_BLOCK_HEIGHT * indentation() - CLE_BLOCK_HEIGHT / 2,
       pos.y() + height() - CLE_BLOCK_HEIGHT / 2,
-      CLE_BLOCK_HEIGHT * (m_Indentation + 2),
+      CLE_BLOCK_HEIGHT * (indentation() + 2),
       static_cast<int>(CLE_BLOCK_HEIGHT * 1.5));
 }

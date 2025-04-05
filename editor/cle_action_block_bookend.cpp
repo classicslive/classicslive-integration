@@ -2,7 +2,8 @@
 
 #include <QPainter>
 
-CleActionBlockBookend::CleActionBlockBookend(QWidget* parent, bool is_end) : CleActionBlock(parent)
+CleActionBlockBookend::CleActionBlockBookend(bool is_end,
+  QWidget *parent = nullptr) : CleActionBlock(nullptr, parent)
 {
   m_IsEnd = is_end;
   setGeometry(0, 0, CLE_BLOCK_WIDTH / 2, static_cast<int>(CLE_BLOCK_HEIGHT * 1.5));

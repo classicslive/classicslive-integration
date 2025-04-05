@@ -28,8 +28,8 @@ protected:
 private:
   std::vector<CleActionBlock*> blocks;
 
-  CleActionBlock *addBlock(int type);
-  CleActionBlock *addBlock(int type, QPoint pos);
+  CleActionBlock *addBlock(cl_action_t *action);
+  CleActionBlock *addBlock(cl_action_t *action, QPoint pos);
 };
 
 #endif

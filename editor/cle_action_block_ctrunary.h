@@ -11,7 +11,7 @@ class CleActionBlockCtrUnary : public CleActionBlock
   Q_OBJECT
 
 public:
-  CleActionBlockCtrUnary(int type, QWidget* parent);
+  CleActionBlockCtrUnary(cl_action_t *action, QWidget* parent);
 
   virtual void setType(int type) override;
 

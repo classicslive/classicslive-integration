@@ -5,8 +5,8 @@ extern "C"
 
 #include "cle_action_block_api.h"
 
-CleActionBlockApi::CleActionBlockApi(int type, QWidget* parent)
-  : CleActionBlock(parent)
+CleActionBlockApi::CleActionBlockApi(cl_action_t *action,
+  QWidget* parent = nullptr) : CleActionBlock(action, parent)
 {
   /* Operand label */
   m_Label = new QLabel(this);
@@ -28,7 +28,8 @@ CleActionBlockApi::CleActionBlockApi(int type, QWidget* parent)
   m_ImageLabel->setPixmap(QPixmap::fromImage(m_Image));
   m_Layout->addWidget(m_ImageLabel);
 
-  setType(type);
+  setType(type());
+  populate();
 
   setLayout(m_Layout);
 }
@@ -49,6 +50,11 @@ void CleActionBlockApi::onIndexEdited(const QString& text)
   }
 }
 
+void CleActionBlockApi::populate(void)
+{
+  m_Index->setText(QString::number(m_Action->arguments[1].uintval));
+}
+
 void CleActionBlockApi::setType(int type)
 {
   switch (type)
@@ -66,7 +72,7 @@ void CleActionBlockApi::setType(int type)
     m_Label->setText("Submit poll");
     break;
   default:
-    m_Label->setText("Invalid API action " + QString::number(m_Type));
+    m_Label->setText("Invalid API action " + QString::number(type));
   }
   CleActionBlock::setType(type);
 }
@@ -75,8 +81,8 @@ cle_result_t CleActionBlockApi::toString(void)
 {
   bool ok = false;
   QString string = QString("%1 %2 2 %3 %4")
-    .arg(m_Indentation, 0, CL_RADIX)
-    .arg(m_Type, 0, CL_RADIX)
+    .arg(indentation(), 0, CL_RADIX)
+    .arg(type(), 0, CL_RADIX)
     .arg(CL_SRCTYPE_IMMEDIATE_INT) /** @todo programmatic index */
     .arg(stringToValue(m_Index->text(), &ok), 0, CL_RADIX);
 
