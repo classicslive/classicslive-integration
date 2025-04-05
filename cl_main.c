@@ -30,27 +30,27 @@ bool cl_init_session(const char* json)
   cl_log("=====\nResponse from server:\n=====\n%s\n=====\n", json);
 
   /* Session-related */
-  if (cl_json_get(session_id, json, "session_id", CL_JSON_STRING, sizeof(session_id)))
+  if (cl_json_get(session_id, json, "session_id", CL_JSON_TYPE_STRING, sizeof(session_id)))
     cl_network_init(session_id);
   else
     return false;
-  if (cl_json_get(&session.game_name, json, "title", CL_JSON_STRING, sizeof(session.game_name)))
+  if (cl_json_get(&session.game_name, json, "title", CL_JSON_TYPE_STRING, sizeof(session.game_name)))
     cl_message(CL_MSG_INFO, "Game name: %s\n", session.game_name);
-  cl_json_get(&session.game_id, json, "game_id", CL_JSON_NUMBER, sizeof(session.game_id));
+  cl_json_get(&session.game_id, json, "game_id", CL_JSON_TYPE_NUMBER, sizeof(session.game_id));
 
   /* Memory-related */
   iterator = &memory_str[0];
-  if (!cl_json_get(memory_str, json, "memory_notes", CL_JSON_STRING, sizeof(memory_str)) ||
+  if (!cl_json_get(memory_str, json, "memory_notes", CL_JSON_TYPE_STRING, sizeof(memory_str)) ||
      !cl_init_memory(&iterator))
     return false;
 
   /* Get default endianness of memory regions */
-  if (cl_json_get(&misc, json, "endianness", CL_JSON_NUMBER, sizeof(misc)))
+  if (cl_json_get(&misc, json, "endianness", CL_JSON_TYPE_NUMBER, sizeof(misc)))
     for (i = 0; i < memory.region_count; i++)
       memory.regions[i].endianness = misc;
 
   /* Get default pointer length of memory regions */
-  if (cl_json_get(&misc, json, "pointer_size", CL_JSON_NUMBER, sizeof(misc)))
+  if (cl_json_get(&misc, json, "pointer_size", CL_JSON_TYPE_NUMBER, sizeof(misc)))
     for (i = 0; i < memory.region_count; i++)
       memory.regions[i].pointer_length = misc;
 
@@ -60,7 +60,7 @@ bool cl_init_session(const char* json)
 
   /* Script-related */
   iterator = &script_str[0];
-  if (cl_json_get(script_str, json, "script", CL_JSON_STRING, sizeof(script_str)))
+  if (cl_json_get(script_str, json, "script", CL_JSON_TYPE_STRING, sizeof(script_str)))
     cl_script_init(&iterator);
   else
     return false; /* TODO */
@@ -78,13 +78,13 @@ static void cl_cb_login(cl_network_response_t response)
       response.error_msg);
   else
   {
-    if (!cl_json_get(&success, response.data, "success", CL_JSON_BOOLEAN, 0))
+    if (!cl_json_get(&success, response.data, "success", CL_JSON_TYPE_BOOLEAN, 0))
       cl_log("Malformed JSON output on login.\n");
     else if (!success)
     {
       char reason[256];
 
-      if (cl_json_get(&reason, response.data, "reason", CL_JSON_STRING, 0))
+      if (cl_json_get(&reason, response.data, "reason", CL_JSON_TYPE_STRING, 0))
         cl_message(CL_MSG_ERROR, reason);
       else
         cl_message(CL_MSG_ERROR, "Unknown error with login.");

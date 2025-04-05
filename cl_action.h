@@ -76,8 +76,8 @@ typedef struct cl_action_t
   unsigned executions;
   bool (*function)();
   bool if_type;
-  unsigned indentation;
-  unsigned type;
+  int indentation;
+  int type;
   bool breakpoint;
 
   /* TODO: Double-link actions together so the editor can easily insert new lines */ 
