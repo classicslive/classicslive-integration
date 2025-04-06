@@ -128,21 +128,21 @@ static int cl_json_number(void *userdata, const char* number, size_t length)
 static int cl_json_number_array(void *userdata, const char* number, size_t length)
 {
   cl_json_t *ud = (cl_json_t*)userdata;
+  unsigned value = 0;
+  bool success = cl_strto(&number, &value, sizeof(value), false);
   CL_UNUSED(length);
 
-  if (ud->is_current && ud->field)
+  if (!success)
+    return 1;
+  else if (ud->is_current && ud->field)
   {
     switch (ud->type)
     {
     case CL_JSON_TYPE_ACHIEVEMENT:
     {
       cl_achievement_t *ach = &((cl_achievement_t*)ud->data)[ud->element_num];
-      unsigned value = 0;
-      bool success = cl_strto(&number, &value, sizeof(value), false);
 
-      if (!success)
-        return 1;
-      else switch (ud->field)
+      switch (ud->field)
       {
       case CL_JSON_KEY_ID:
         ach->id = value;
@@ -158,12 +158,8 @@ static int cl_json_number_array(void *userdata, const char* number, size_t lengt
     case CL_JSON_TYPE_LEADERBOARD:
     {
       cl_leaderboard_t *ldb = &((cl_leaderboard_t*)ud->data)[ud->element_num];
-      unsigned value = 0;
-      bool success = cl_strto(&number, &value, sizeof(value), false);
 
-      if (!success)
-        return 1;
-      else switch (ud->field)
+      switch (ud->field)
       {
       case CL_JSON_KEY_ID:
         ldb->id = value;
