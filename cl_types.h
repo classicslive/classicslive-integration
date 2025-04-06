@@ -29,6 +29,12 @@ typedef struct
   unsigned id;
 } cl_leaderboard_t;
 
+typedef struct
+{
+  char title[64];
+  char description[2048];
+} cl_memnote_ex_t;
+
 typedef union
 {
   int64_t intval;

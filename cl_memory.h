@@ -34,11 +34,6 @@ typedef enum
 #include "cl_types.h"
 
 /**
- * A "memory bank" or "membank" is a region in emulated memory that has been
- * mapped virtually. This data allows us to follow pointers across different
- * memory regions.
-**/
-/**
  * A bitfield to represent aspects of a mapped memory region of another
  * process. Primarily used when inspecting a memory region owned by
  * another process.
@@ -118,11 +113,11 @@ typedef struct cl_memory_region_t
  * with an observable in-game value. Instead of accessing specific addreses
  * every frame, we allocate memory notes and update their contents, then look 
  * off of them for script conditions.
-
+ *
  * Here, we keep track of a memnote's value on the current and previous
  * frame, as well as the last unique value it had before it became
  * what it currently is. 
-**/
+ */
 typedef struct cl_memnote_t
 {
   unsigned  key;
@@ -144,10 +139,8 @@ typedef struct cl_memnote_t
 
 #if CL_HAVE_EDITOR
   /* Metadata for generated human-readable strings in Live Editor */
-  /* TODO: Identifiers */
-  char description[2048];
+  cl_memnote_ex_t details;
   bool edited;
-  char title      [256];
 #endif
 } cl_memnote_t;
 
