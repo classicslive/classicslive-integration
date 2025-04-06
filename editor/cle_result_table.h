@@ -51,15 +51,15 @@ public:
    virtual uint8_t getCompareType() { return 0; }
    virtual uint8_t getValueType() { return 0; }
 
-   virtual void setCompareType(const uint8_t new_type) {}
-   virtual void setValueType(const uint8_t new_type) {}
+   virtual void setCompareType(const uint8_t new_type) = 0;
+   virtual void setValueType(const uint8_t new_type) = 0;
 
 public slots:
-   virtual void onResultClick(QTableWidgetItem *item) {};
-   virtual void onResultDoubleClick(void) {};
-   virtual void onResultEdited(QTableWidgetItem *item) {};
-   virtual void onResultRightClick(const QPoint&) {};
-   virtual void onResultSelectionChanged(void) {};
+   virtual void onResultClick(QTableWidgetItem *item) = 0;
+   virtual void onResultDoubleClick(void) = 0;
+   virtual void onResultEdited(QTableWidgetItem *item) = 0;
+   virtual void onResultRightClick(const QPoint&) = 0;
+   virtual void onResultSelectionChanged(void) = 0;
 
 protected:
    /* 
