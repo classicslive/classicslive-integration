@@ -4,6 +4,7 @@
 #include "cle_action_block_comparison.h"
 #include "cle_action_block_ctrbinary.h"
 #include "cle_action_block_ctrunary.h"
+#include "cle_action_block_nop.h"
 
 extern "C"
 {
@@ -33,8 +34,8 @@ CleScriptEditorBlockCanvas::CleScriptEditorBlockCanvas(QWidget *parent)
       script.pages[0].action_count &&
       script.pages[0].actions)
   {
-    unsigned i;
     auto prev = addBlock(&script.pages[0].actions[0]);
+    unsigned i;
 
     prev->attachTo(start, 0);
     for (i = 1; i < script.pages[0].action_count; i++)
@@ -90,6 +91,8 @@ CleActionBlock *CleScriptEditorBlockCanvas::addBlock(cl_action_t *action,
   case CL_ACTTYPE_COMPARE:
     block = new CleActionBlockComparison(action, this);
     break;
+  default:
+    block = new CleActionBlockNop(action, this);
   }
   if (block)
   {
