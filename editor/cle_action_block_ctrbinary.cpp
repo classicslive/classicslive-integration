@@ -38,7 +38,7 @@ CleActionBlockCtrBinary::CleActionBlockCtrBinary(cl_action_t *action,
   /* TODO: Have this refresh when the combobox is clicked */
   m_ModifierValueComboBox = new QComboBox(this);
   for (unsigned i = 0; i < memory.note_count; i++)
-    m_ModifierValueComboBox->addItem(memory.notes[i].title);
+    m_ModifierValueComboBox->addItem(memory.notes[i].details.title);
 
   /* Right operand value stacker */
   m_ModifierStack = new QStackedWidget(this);

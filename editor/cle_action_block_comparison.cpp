@@ -24,7 +24,7 @@ CleActionBlockComparison::CleActionBlockComparison(cl_action_t *action,
   /* TODO: Have this refresh when the combobox is clicked */
   m_LeftComboBox = new QComboBox(this);
   for (unsigned i = 0; i < memory.note_count; i++)
-    m_LeftComboBox->addItem(memory.notes[i].title);
+    m_LeftComboBox->addItem(memory.notes[i].details.title);
   m_Layout->addWidget(m_LeftComboBox);
 
   /* Comparison selector */
@@ -51,7 +51,7 @@ CleActionBlockComparison::CleActionBlockComparison(cl_action_t *action,
   /* TODO: Have this refresh when the combobox is clicked */
   m_RightComboBox = new QComboBox(this);
   for (unsigned i = 0; i < memory.note_count; i++)
-    m_RightComboBox->addItem(memory.notes[i].title);
+    m_RightComboBox->addItem(memory.notes[i].details.title);
 
   /* Right operand value stacker */
   m_RightStack = new QStackedWidget(this);

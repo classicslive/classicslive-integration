@@ -50,7 +50,7 @@ public:
 
   void detach(void);
 
-  virtual int indentation(void) { return m_Action->indentation; }
+  virtual int indentation(void) { return m_Action ? m_Action->indentation : 0; }
 
   virtual bool isStart(void) { return false; }
 
