@@ -125,7 +125,8 @@ static int cl_json_number(void *userdata, const char* number, size_t length)
   return 0;
 }
 
-static int cl_json_number_array(void *userdata, const char* number, size_t length)
+static int cl_json_number_array(void *userdata, const char* number,
+  size_t length)
 {
   cl_json_t *ud = (cl_json_t*)userdata;
   unsigned value = 0;
@@ -260,7 +261,8 @@ static int cl_json_string(void *userdata, const char *string, size_t length)
   return 0;
 }
 
-static int cl_json_string_array(void *userdata, const char *string, size_t length)
+static int cl_json_string_array(void *userdata, const char *string,
+  size_t length)
 {
   cl_json_t *ud = (cl_json_t*)userdata;
 
@@ -275,7 +277,8 @@ static int cl_json_string_array(void *userdata, const char *string, size_t lengt
       switch (ud->field)
       {
       case CL_JSON_KEY_DESCRIPTION:
-        cl_json_strcpy(ach->description, sizeof(ach->description), string, length);
+        cl_json_strcpy(ach->description, sizeof(ach->description), string,
+                       length);
         break;
       case CL_JSON_KEY_ICON_URL:
         cl_json_strcpy(ach->icon_url, sizeof(ach->icon_url), string, length);
@@ -295,7 +298,8 @@ static int cl_json_string_array(void *userdata, const char *string, size_t lengt
       switch (ud->field)
       {
       case CL_JSON_KEY_DESCRIPTION:
-        cl_json_strcpy(ldb->description, sizeof(ldb->description), string, length);
+        cl_json_strcpy(ldb->description, sizeof(ldb->description), string,
+                       length);
         break;
       case CL_JSON_KEY_DETAILS:
         cl_json_strcpy(ldb->details, sizeof(ldb->details), string, length);
