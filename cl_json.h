@@ -56,6 +56,12 @@ typedef struct cl_json_t
   /** Internal; whether the currently processed JSON element is what we want */
   bool is_current;
 
+  /** Internal; whether the currently processed JSON element is in an array */
+  unsigned array_level;
+
+  /** Internal; whether the currently processed JSON element is an object */
+  bool is_object;
+
   /** Whether or not the requested element was copied into the buffer */
   cl_json_state state;
 
