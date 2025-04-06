@@ -65,6 +65,12 @@ bool cl_init_session(const char* json)
   else
     return false; /* TODO */
 
+  cl_json_get_array((void**)&session.achievements, &session.achievement_count,
+    json, "achievements", CL_JSON_TYPE_ACHIEVEMENT);
+
+  cl_json_get_array((void**)&session.leaderboards, &session.leaderboard_count,
+    json, "leaderboards", CL_JSON_TYPE_LEADERBOARD);
+
   return true;
 }
 

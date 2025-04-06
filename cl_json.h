@@ -18,6 +18,21 @@ typedef enum
 
 typedef enum
 {
+  CL_JSON_KEY_NONE = 0,
+
+  CL_JSON_KEY_TITLE,
+  CL_JSON_KEY_DESCRIPTION,
+  CL_JSON_KEY_DETAILS,
+  CL_JSON_KEY_ICON_URL,
+  CL_JSON_KEY_ID,
+  CL_JSON_KEY_FLAGS,
+  CL_JSON_KEY_UNLOCKED,
+
+  CL_JSON_KEY_SIZE
+} cl_json_field;
+
+typedef enum
+{
   CL_JSON_STATE_INVALID = 0,
 
   CL_JSON_STATE_STARTING,
@@ -50,6 +65,9 @@ typedef struct cl_json_t
   /** The type of JSON data we are looking for */
   cl_json_type type;
 
+  /** The current field when decoding an object */
+  cl_json_field field;
+
   /** In array decoding, the index of the current element */
   unsigned element_num;
 
@@ -60,7 +78,7 @@ typedef struct cl_json_t
 bool cl_json_get(void *data, const char *json, const char *key, unsigned type,
   unsigned size);
 
-bool cl_json_get_array(void *data, unsigned *elements, const char *json,
-  const char *key, unsigned type, unsigned size);
+bool cl_json_get_array(void **data, unsigned *elements, const char *json,
+  const char *key, unsigned type);
 
 #endif

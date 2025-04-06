@@ -4,9 +4,9 @@
 #include "cl_common.h"
 #include "cl_json.h"
 
-int cl_json_key(void *userdata, const char *name, size_t length)
+static int cl_json_key(void *userdata, const char *name, size_t length)
 {
-  cl_json_t* ud = (cl_json_t*)userdata;
+  cl_json_t *ud = (cl_json_t*)userdata;
 
   if (ud->state != CL_JSON_STATE_FINISHED)
   {
@@ -18,11 +18,44 @@ int cl_json_key(void *userdata, const char *name, size_t length)
   return 0;
 }
 
-int cl_json_boolean(void *userdata, int istrue)
+static int cl_json_key_array(void *userdata, const char *name, size_t length)
 {
-  cl_json_t* ud = (cl_json_t*)userdata;
+  cl_json_t *ud = (cl_json_t*)userdata;
 
-  if (ud->is_current)
+  if (ud->state == CL_JSON_STATE_ARRAY_STARTED)
+  {
+    if (!strncmp(name, "title", length))
+      ud->field = CL_JSON_KEY_TITLE;
+    else if (!strncmp(name, "description", length))
+      ud->field = CL_JSON_KEY_DESCRIPTION;
+    else if (!strncmp(name, "details", length))
+      ud->field = CL_JSON_KEY_DETAILS;
+    else if (!strncmp(name, "icon_url", length))
+      ud->field = CL_JSON_KEY_ICON_URL;
+    else if (!strncmp(name, "flags", length))
+      ud->field = CL_JSON_KEY_FLAGS;
+    else if (!strncmp(name, "id", length))
+      ud->field = CL_JSON_KEY_ID;
+    else if (!strncmp(name, "unlocked", length))
+      ud->field = CL_JSON_KEY_UNLOCKED;
+    else
+      ud->field = CL_JSON_KEY_NONE;
+  }
+  else if (ud->state != CL_JSON_STATE_FINISHED)
+  {
+    ud->is_current = !strncmp(ud->key, name, length);
+    if (ud->is_current)
+      ud->state = CL_JSON_STATE_KEY_FOUND;
+  }
+
+  return 0;
+}
+
+static int cl_json_boolean(void *userdata, int istrue)
+{
+  cl_json_t *ud = (cl_json_t*)userdata;
+
+  if (ud->is_current || ud->field)
   {
     ud->is_current = false;
     switch (ud->type)
@@ -31,6 +64,21 @@ int cl_json_boolean(void *userdata, int istrue)
       *((bool*)ud->data) = istrue ? true : false;
       ud->state = CL_JSON_STATE_FINISHED;
       break;
+    case CL_JSON_TYPE_ACHIEVEMENT:
+    {
+      cl_achievement_t *ach = &((cl_achievement_t*)ud->data)[ud->element_num];
+
+      switch (ud->field)
+      {
+      case CL_JSON_KEY_UNLOCKED:
+        *((bool*)ach->unlocked) = istrue ? true : false;
+        break;
+      default:
+        break;
+      }
+      ud->field = CL_JSON_KEY_NONE;
+      break;
+    }
     default:
       return 1;
     }
@@ -39,12 +87,12 @@ int cl_json_boolean(void *userdata, int istrue)
   return 0;
 }
 
-int cl_json_number(void *userdata, const char* number, size_t length)
+static int cl_json_number(void *userdata, const char* number, size_t length)
 {
-  cl_json_t* ud = (cl_json_t*)userdata;
+  cl_json_t *ud = (cl_json_t*)userdata;
   CL_UNUSED(length);
 
-  if (ud->is_current)
+  if (ud->is_current || ud->field)
   {
     ud->is_current = false;
     switch (ud->type)
@@ -53,6 +101,47 @@ int cl_json_number(void *userdata, const char* number, size_t length)
       ud->state = cl_strto(&number, ud->data, ud->size, false) ?
                            CL_JSON_STATE_FINISHED : CL_JSON_STATE_ERROR;
       break;
+    case CL_JSON_TYPE_ACHIEVEMENT:
+    {
+      cl_achievement_t *ach = &((cl_achievement_t*)ud->data)[ud->element_num];
+      unsigned value = 0;
+      bool success = cl_strto(&number, &value, sizeof(value), false);
+
+      if (!success)
+        return 1;
+      else switch (ud->field)
+      {
+      case CL_JSON_KEY_ID:
+        ach->id = value;
+        break;
+      case CL_JSON_KEY_FLAGS:
+        ach->flags = value;
+        break;
+      default:
+        break;
+      }
+      ud->field = CL_JSON_KEY_NONE;
+      break;
+    }
+    case CL_JSON_TYPE_LEADERBOARD:
+    {
+      cl_leaderboard_t *ldb = &((cl_leaderboard_t*)ud->data)[ud->element_num];
+      unsigned value = 0;
+      bool success = cl_strto(&number, &value, sizeof(value), false);
+
+      if (!success)
+        return 1;
+      else switch (ud->field)
+      {
+      case CL_JSON_KEY_ID:
+        ldb->id = value;
+        break;
+      default:
+        break;
+      }
+      ud->field = CL_JSON_KEY_NONE;
+      break;
+    }
     default:
       return 1;
     }
@@ -61,9 +150,9 @@ int cl_json_number(void *userdata, const char* number, size_t length)
   return 0;
 }
 
-static int cl_json_start_array_count(void *userdata)
+static int cl_json_start_array(void *userdata)
 {
-  cl_json_t* ud = (cl_json_t*)userdata;
+  cl_json_t *ud = (cl_json_t*)userdata;
 
   if (ud->is_current)
     ud->state = CL_JSON_STATE_ARRAY_STARTED;
@@ -71,9 +160,9 @@ static int cl_json_start_array_count(void *userdata)
   return 0;
 }
 
-static int cl_json_end_array_count(void *userdata)
+static int cl_json_end_array(void *userdata)
 {
-  cl_json_t* ud = (cl_json_t*)userdata;
+  cl_json_t *ud = (cl_json_t*)userdata;
 
   if (ud->is_current)
   {
@@ -84,9 +173,19 @@ static int cl_json_end_array_count(void *userdata)
   return 0;
 }
 
+static int cl_json_array_index(void *userdata, unsigned index)
+{
+  cl_json_t *ud = (cl_json_t*)userdata;
+
+  if (ud->is_current && index < ud->element_count)
+    ud->element_num = index;
+
+  return 0;
+}
+
 static int cl_json_array_index_count(void *userdata, unsigned index)
 {
-  cl_json_t* ud = (cl_json_t*)userdata;
+  cl_json_t *ud = (cl_json_t*)userdata;
 
   if (ud->is_current)
     ud->element_count = index + 1;
@@ -94,11 +193,12 @@ static int cl_json_array_index_count(void *userdata, unsigned index)
   return 0;
 }
 
-int cl_json_string(void *userdata, const char *string, size_t length)
+static int cl_json_string(void *userdata, const char *string, size_t length)
 {
-  cl_json_t* ud = (cl_json_t*)userdata;
+  cl_json_t *ud = (cl_json_t*)userdata;
+  CL_UNUSED(length);
 
-  if (ud->is_current)
+  if (ud->is_current || ud->field)
   {
     ud->is_current = false;
     switch (ud->type)
@@ -116,6 +216,49 @@ int cl_json_string(void *userdata, const char *string, size_t length)
       snprintf(ud->data, length + 1, "%s", string);
       ((char*)ud->data)[length] = '\0';
       break;
+    case CL_JSON_TYPE_ACHIEVEMENT:
+    {
+      cl_achievement_t *ach = &((cl_achievement_t*)ud->data)[ud->element_num];
+
+      switch (ud->field)
+      {
+      case CL_JSON_KEY_DESCRIPTION:
+        snprintf(ach->description, sizeof(ach->description), "%s", string);
+        break;
+      case CL_JSON_KEY_ICON_URL:
+        snprintf(ach->icon_url, sizeof(ach->icon_url), "%s", string);
+        break;
+      case CL_JSON_KEY_TITLE:
+        snprintf(ach->title, sizeof(ach->title), "%s", string);
+        break;
+      default:
+        return 1;
+      }
+      break;
+    }
+    case CL_JSON_TYPE_LEADERBOARD:
+    {
+      cl_leaderboard_t *ldb = &((cl_leaderboard_t*)ud->data)[ud->element_num];
+
+      switch (ud->field)
+      {
+      case CL_JSON_KEY_DESCRIPTION:
+        snprintf(ldb->description, sizeof(ldb->description), "%s", string);
+        break;
+      case CL_JSON_KEY_DETAILS:
+        snprintf(ldb->details, sizeof(ldb->details), "%s", string);
+        break;
+      case CL_JSON_KEY_ICON_URL:
+        snprintf(ldb->icon_url, sizeof(ldb->icon_url), "%s", string);
+        break;
+      case CL_JSON_KEY_TITLE:
+        snprintf(ldb->title, sizeof(ldb->title), "%s", string);
+        break;
+      default:
+        return 1;
+      }
+      break;
+    }
     default:
       return 1;
     }
@@ -146,7 +289,10 @@ bool cl_json_get(void *data, const char *json, const char *key, unsigned type,
   cl_json_t value;
 
   value.data = data;
+  value.element_count = 0;
+  value.element_num = 0;
   value.is_current = false;
+  value.field = CL_JSON_KEY_NONE;
   value.state = CL_JSON_STATE_STARTING;
   value.key = key;
   value.size = size;
@@ -159,34 +305,9 @@ bool cl_json_get(void *data, const char *json, const char *key, unsigned type,
     return false;
 }
 
-bool cl_json_get_array(void *data, unsigned *elements, const char *json,
-  const char *key, unsigned type, unsigned size)
+bool cl_json_get_array(void **data, unsigned *elements, const char *json,
+  const char *key, unsigned type)
 {
-#if 0
-  const jsonsax_handlers_t handlers =
-  {
-    NULL,            /* start_document */
-    NULL,            /* end_document   */
-    NULL,            /* start_object   */
-    NULL,            /* end_object     */
-    cl_json_start_array, /* start_array    */
-    NULL,            /* end_array      */
-    cl_json_key,     /* key            */
-    NULL,            /* array_index    */
-    cl_json_string,  /* string         */
-    cl_json_number,  /* number         */
-    cl_json_boolean, /* boolean        */
-    NULL             /* null           */
-  };
-  cl_json_t value;
-
-  value.data = data;
-  value.is_current = false;
-  value.found = false;
-  value.key = key;
-  value.size = size;
-  value.type = type;
-#endif
   /**
    * Do a first pass of the document to see how many elements are in the
    * requested array, so we can allocate only what we need
@@ -197,8 +318,8 @@ bool cl_json_get_array(void *data, unsigned *elements, const char *json,
     NULL,                      /* end_document   */
     NULL,                      /* start_object   */
     NULL,                      /* end_object     */
-    cl_json_start_array_count, /* start_array    */
-    cl_json_end_array_count,   /* end_array      */
+    cl_json_start_array,       /* start_array    */
+    cl_json_end_array,         /* end_array      */
     cl_json_key,               /* key            */
     cl_json_array_index_count, /* array_index    */
     NULL,                      /* string         */
@@ -206,17 +327,37 @@ bool cl_json_get_array(void *data, unsigned *elements, const char *json,
     NULL,                      /* boolean        */
     NULL                       /* null           */
   };
+  const jsonsax_handlers_t handlers =
+  {
+    NULL,                /* start_document */
+    NULL,                /* end_document   */
+    NULL,                /* start_object   */
+    NULL,                /* end_object     */
+    cl_json_start_array, /* start_array    */
+    cl_json_end_array,   /* end_array      */
+    cl_json_key_array,   /* key            */
+    cl_json_array_index, /* array_index    */
+    cl_json_string,      /* string         */
+    cl_json_number,      /* number         */
+    cl_json_boolean,     /* boolean        */
+    NULL                 /* null           */
+  };
   cl_json_t value;
 
+  memset(&value, 0, sizeof(value));
   value.data = NULL;
+  value.element_count = 0;
+  value.element_num = 0;
+  value.field = CL_JSON_KEY_NONE;
   value.is_current = false;
-  value.state = CL_JSON_STATE_STARTING;
   value.key = key;
   value.size = 0;
+  value.state = CL_JSON_STATE_STARTING;
   value.type = type;
 
   /* Were we able to count the number of elements in the array? */
   if (jsonsax_parse(json, &handlers_count, (void*)&value) != JSONSAX_OK ||
+                    value.element_count == 0 ||
                     value.state != CL_JSON_STATE_FINISHED)
     return false;
 
@@ -225,12 +366,35 @@ bool cl_json_get_array(void *data, unsigned *elements, const char *json,
   switch (type)
   {
   case CL_JSON_TYPE_ACHIEVEMENT:
-    data = (cl_achievement_t*)calloc(value.element_count, sizeof(cl_achievement_t));
+    *data = (cl_achievement_t*)calloc(value.element_count,
+      sizeof(cl_achievement_t));
     break;
   case CL_JSON_TYPE_LEADERBOARD:
-    data = (cl_leaderboard_t*)calloc(value.element_count, sizeof(cl_leaderboard_t));
+    *data = (cl_leaderboard_t*)calloc(value.element_count,
+      sizeof(cl_leaderboard_t));
     break;
   default:
     return false;
   }
+
+  /* Now, actually extract the values */
+  memset(&value, 0, sizeof(value));
+  value.data = *data;
+  value.element_count = *elements;
+  value.element_num = 0;
+  value.field = CL_JSON_KEY_NONE;
+  value.is_current = false;
+  value.key = key;
+  value.size = 0;
+  value.state = CL_JSON_STATE_STARTING;
+  value.type = type;
+
+  if (jsonsax_parse(json, &handlers, (void*)&value) != JSONSAX_OK ||
+                    value.state != CL_JSON_STATE_FINISHED)
+  {
+    free(*data);
+    return false;
+  }
+  else
+    return true;
 }
