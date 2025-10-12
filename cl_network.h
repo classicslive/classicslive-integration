@@ -10,17 +10,14 @@
   #define CL_URL_SITE "http://" CL_URL_HOSTNAME
 #endif
 
-#define CL_REQUEST_URL CL_URL_SITE "/api/request.php"
+#define CL_CLINT_URL CL_URL_SITE "/api/clint/v1/"
 
-#define CL_REQUEST_LOGIN            "login"
-#define CL_REQUEST_ADD_MEMNOTE      "add_memory_note"
-#define CL_REQUEST_CLOSE            "close"
-#define CL_REQUEST_PING             "ping"
-#define CL_REQUEST_POST_ACHIEVEMENT "post_unlock"
-#define CL_REQUEST_POST_HASH        "post_hash"
-#define CL_REQUEST_POST_LEADERBOARD "post_lb_entry"
-#define CL_REQUEST_POST_PRESENCE    "post_presence"
-#define CL_REQUEST_POST_PROGRESS    "post_progress"
+#define CL_CLINT_ACHIEVEMENT "achievement"
+#define CL_CLINT_CLOSE "close"
+#define CL_CLINT_LOGIN "login"
+#define CL_CLINT_PING "ping"
+#define CL_CLINT_START "start"
+#define CL_CLINT_STOP "stop"
 
 /* These are arbitrary and may need to be increased later. */
 #define CL_POST_DATA_SIZE 2048
