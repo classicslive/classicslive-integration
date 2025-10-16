@@ -17,32 +17,23 @@ void cle_run(void);
 #endif
 
 cl_session_t session;
-static cl_user_t user;
 
-bool cl_init_session(const char* json)
+static cl_error cl_init_session(const char* json)
 {
   const char *iterator;
-  char session_id[CL_SESSION_ID_LENGTH];
   char memory_str[2048];
   char script_str[2048];
   unsigned misc, i;
 
-  cl_log("=====\nResponse from server:\n=====\n%s\n=====\n", json);
-
-  /* Session-related */
-  if (cl_json_get(session_id, json, "session_id", CL_JSON_TYPE_STRING, sizeof(session_id)))
-    cl_network_init(session_id);
-  else
-    return false;
   if (cl_json_get(&session.game_name, json, "title", CL_JSON_TYPE_STRING, sizeof(session.game_name)))
     cl_message(CL_MSG_INFO, "Game name: %s\n", session.game_name);
   cl_json_get(&session.game_id, json, "game_id", CL_JSON_TYPE_NUMBER, sizeof(session.game_id));
 
   /* Memory-related */
-  iterator = &memory_str[0];
-  if (!cl_json_get(memory_str, json, "memory_notes", CL_JSON_TYPE_STRING, sizeof(memory_str)) ||
-     !cl_init_memory(&iterator))
-    return false;
+  //iterator = &memory_str[0];
+  //if (!cl_json_get(memory_str, json, "memory_notes", CL_JSON_TYPE_STRING, sizeof(memory_str)) ||
+  //   !cl_init_memory(&iterator))
+  //  return CL_ERR_SERVER;
 
   /* Get default endianness of memory regions */
   if (cl_json_get(&misc, json, "endianness", CL_JSON_TYPE_NUMBER, sizeof(misc)))
@@ -55,15 +46,14 @@ bool cl_init_session(const char* json)
       memory.regions[i].pointer_length = misc;
 
   if (!cl_fe_install_membanks())
-    return false;
-  session.ready = true;
+    return CL_ERR_CLIENT_RUNTIME;
 
   /* Script-related */
-  iterator = &script_str[0];
-  if (cl_json_get(script_str, json, "script", CL_JSON_TYPE_STRING, sizeof(script_str)))
-    cl_script_init(&iterator);
-  else
-    return false; /* TODO */
+  //iterator = &script_str[0];
+  //if (cl_json_get(script_str, json, "script", CL_JSON_TYPE_STRING, sizeof(script_str)))
+  //  cl_script_init(&iterator);
+  //else
+  //  return CL_ERR_SERVER; /* TODO */
 
   cl_json_get_array((void**)&session.achievements, &session.achievement_count,
     json, "achievements", CL_JSON_TYPE_ACHIEVEMENT);
@@ -71,106 +61,191 @@ bool cl_init_session(const char* json)
   cl_json_get_array((void**)&session.leaderboards, &session.leaderboard_count,
     json, "leaderboards", CL_JSON_TYPE_LEADERBOARD);
 
-  return true;
+  return CL_OK;
 }
 
-static void cl_cb_login(cl_network_response_t response)
+static void cl_start_cb(cl_network_response_t response)
 {
-  bool success = false;
-
-  if (response.error_code || !response.data)
-    cl_log("Network error on login: %u (%s)\n",
-      response.error_code,
-      response.error_msg);
+  if (response.error_code || cl_init_session(response.data) != CL_OK)
+  {
+    session.state = CL_SESSION_LOGGED_IN;
+    return;
+  }
   else
   {
-    if (!cl_json_get(&success, response.data, "success", CL_JSON_TYPE_BOOLEAN, 0))
-      cl_log("Malformed JSON output on login.\n");
-    else if (!success)
-    {
-      char reason[256];
-
-      if (cl_json_get(&reason, response.data, "reason", CL_JSON_TYPE_STRING, 0))
-        cl_message(CL_MSG_ERROR, reason);
-      else
-        cl_message(CL_MSG_ERROR, "Unknown error with login.");
-    }
-    else
-    {
-      success = cl_init_session(response.data);
-
-#if CL_HAVE_EDITOR == true
-      if (session.ready)
-      {
-        cl_update_memory();
-        cle_init();
-      }
+    session.state = CL_SESSION_STARTED;
+#if CL_HAVE_EDITOR
+    cl_update_memory();
+    cle_init();
 #endif
-    }
   }
 }
 
-bool cl_post_empty_login()
+cl_error cl_start(cl_game_identifier_t identifier)
 {
-  cl_message(CL_MSG_ERROR, "Please enter your password to sign in.");
+  if (session.state < CL_SESSION_LOGGED_IN)
+    return CL_ERR_CLIENT_RUNTIME;
+  else
+  {
+    char post_data[CL_POST_DATA_SIZE];
 
-  return false;
+    post_data[0] = '\0';
+    snprintf(post_data, sizeof(post_data),
+             "session_id=%s&library=%s&filename=%s",
+             session.id, cl_fe_library_name(), session.content_name);
+
+    if (identifier.type == CL_GAMEIDENTIFIER_FILE_HASH)
+    {
+      if (strlen(identifier.checksum) == 32)
+      {
+        strcat(post_data, "&md5=");
+        strcat(post_data, identifier.checksum);
+      }
+      else
+      {
+        cl_message(CL_MSG_ERROR, "Invalid identification checksum.");
+        return CL_ERR_CLIENT_RUNTIME;
+      }
+    }
+    else if (identifier.type == CL_GAMEIDENTIFIER_PRODUCT_CODE)
+    {
+      int success = 0;
+
+      if (strlen(identifier.product) > 0)
+      {
+        strcat(post_data, "&product=");
+        strcat(post_data, identifier.product);
+        success = 1;
+      }
+      if (strlen(identifier.version) > 0)
+      {
+        strcat(post_data, "&version=");
+        strcat(post_data, identifier.version);
+        success = 1;
+      }
+      if (!success)
+      {
+        cl_message(CL_MSG_ERROR, "No product code information passed.");
+        return CL_ERR_CLIENT_RUNTIME;
+      }
+    }
+    session.state = CL_SESSION_STARTING;
+    cl_network_post_clint(CL_END_CLINT_START, post_data, cl_start_cb);
+
+    return CL_OK;
+  }
 }
 
-static void cl_post_login()
+static void cl_login_cb(cl_network_response_t response)
 {
-  char post_data[2048];
+  if (response.error_code)
+    session.state = CL_SESSION_NONE;
+  else
+  {
+    unsigned char success;
 
-  snprintf
-  (
-    post_data, sizeof(post_data),
-    "hash=%.32s&username=%s&password=%s&filename=%s&library=%s%s%s",
-    session.checksum,
-    user.username,
-    user.password,
-    session.content_name,
-    cl_fe_library_name(),
-    !string_is_empty(user.language) ? "&lang=" : "",
-    !string_is_empty(user.language) ? user.language : ""
-  );
+    if (!cl_json_get(&success, response.data, "success",
+        CL_JSON_TYPE_BOOLEAN, 0))
+    {
+      cl_log("Malformed JSON output on login.\n");
+      return;
+    }
+    else if (!success)
+      return;
 
-  cl_network_post(CL_REQUEST_LOGIN, post_data, cl_cb_login);
+    if (cl_json_get(session.id, response.data, "session_id",
+        CL_JSON_TYPE_STRING, sizeof(session.id)))
+      session.state = CL_SESSION_LOGGED_IN;
+  }
 }
 
-bool cl_init(const void *data, const unsigned size, const char *path)
+static cl_error cl_login_internal(cl_network_cb_t callback)
 {
-  cl_log("Init CL\n");
+  cl_user_t user;
+  char post_data[256];
 
   /* Retrieve user login info */
-  cl_fe_user_data(&user, 0);
+  if (!cl_fe_user_data(&user, 0))
+  {
+    cl_message(CL_MSG_ERROR, "Unable to retreive CL login data.");
+    return CL_ERR_USER_CONFIG;
+  }
 
-  /* If the user hasn't entered a username, they probably aren't using CL */
-  if (string_is_empty(user.username))
-    return false;
-  else if (string_is_empty(user.password))
-    return cl_post_empty_login();
+  if (!strlen(user.username))
+    goto login_error;
+  else if (strlen(user.token))
+    snprintf(post_data, sizeof(post_data), "username=%s&token_clint=%s",
+      user.username, user.token);
+  else if (strlen(user.password))
+    snprintf(post_data, sizeof(post_data), "username=%s&password=%s",
+      user.username, user.password);
+  else
+    goto login_error;
+
+  session.state = CL_SESSION_LOGGING_IN;
+  cl_network_post_clint_login(post_data, callback);
+
+  return CL_OK;
+
+login_error:
+  cl_message(CL_MSG_ERROR, "Unable to retreive CL login data.\n"
+    "Please enter your username and password.");
+  return CL_ERR_USER_CONFIG;
+}
+
+static void cl_login_and_start_cb_2(cl_network_response_t response)
+{
+  if (response.error_code)
+    return;
   else
   {
-    /* Init session values */
-    session.checksum[0]      = '\0';
-    session.last_status_update = time(0);
-    session.ready          = true;
-#if CL_HAVE_FILESYSTEM
-    strncpy(session.content_name, path_basename(path),
-      sizeof(session.content_name) - 1);
-#endif
-
-    /* Pass information off to content identification code */
-    cl_identify(data, size, path, cl_fe_library_name(), session.checksum,
-                cl_post_login);
-
-    return true;
+    cl_login_cb(response);
+    cl_start(session.identifier);
   }
 }
 
-bool cl_run()
+static void cl_login_and_start_cb_1(cl_task_t *task)
 {
-  if (session.ready)
+  if (!task->error)
+    cl_login_internal(cl_login_and_start_cb_2);
+}
+
+cl_error cl_login(void)
+{
+  if (session.state == CL_SESSION_NONE)
+    return cl_login_internal(cl_login_cb);
+  else
+  {
+    cl_message(CL_MSG_ERROR, "cl_login state mismatch");
+    return CL_ERR_CLIENT_RUNTIME;
+  }
+}
+
+cl_error cl_login_and_start(cl_game_identifier_t identifier)
+{
+  if (session.state == CL_SESSION_NONE)
+  {
+    session.identifier = identifier;
+#if CL_HAVE_FILESYSTEM
+    strncpy(session.content_name, path_basename(identifier.filename),
+            sizeof(session.content_name) - 1);
+#endif
+
+    cl_identify(identifier.data, identifier.size, identifier.filename,
+                cl_fe_library_name(), session.identifier.checksum,
+                cl_login_and_start_cb_1);
+    return CL_OK;
+  }
+  else
+  {
+    cl_message(CL_MSG_ERROR, "cl_login_and_start state mismatch");
+    return CL_ERR_CLIENT_RUNTIME;
+  }
+}
+
+cl_error cl_run(void)
+{
+  if (session.state == CL_SESSION_STARTED)
   {
     cl_update_memory();
     cl_script_update();
@@ -179,22 +254,24 @@ bool cl_run()
     if (time(0) >= session.last_status_update + CL_PRESENCE_INTERVAL)
     {
       session.last_status_update = time(0);
-      cl_network_post(CL_REQUEST_PING, "", NULL);
+      cl_network_post_clint(CL_END_CLINT_PING, NULL, NULL);
     }
 
-#if CL_HAVE_EDITOR == true
+#if CL_HAVE_EDITOR
     cle_run();
 #endif
 
-    return true;
+    return CL_OK;
   }
 
-  return false;
+  return CL_ERR_CLIENT_RUNTIME;
 }
 
 void cl_free(void)
 {
-  cl_network_post(CL_REQUEST_CLOSE, "", NULL);
+  if (session.state >= CL_SESSION_LOGGED_IN)
+    cl_network_post_clint(CL_END_CLINT_CLOSE, NULL, NULL);
   cl_memory_free();
   cl_script_free();
+  memset(&session, 0, sizeof(session));
 }

@@ -114,7 +114,7 @@ static bool cl_act_post_achievement(cl_action_t *action)
   char data[CL_POST_DATA_SIZE];
 
   snprintf(data, CL_POST_DATA_SIZE, "ach_id=%llu", ach_id.intval.i64);
-  cl_network_post(CL_REQUEST_POST_ACHIEVEMENT, data, NULL);
+  cl_network_post_clint(CL_END_CLINT_ACHIEVEMENT, data, NULL);
 
   /* Clear this action so we don't re-submit the achievement */
   cl_free_action(action);
@@ -124,11 +124,11 @@ static bool cl_act_post_achievement(cl_action_t *action)
 
 static bool cl_act_post_progress(cl_action_t *action)
 {
-  unsigned key = action->arguments[0].uintval;
+  unsigned key = (unsigned)action->arguments[0].uintval;
   char data[CL_POST_DATA_SIZE];
 
   snprintf(data, CL_POST_DATA_SIZE, "ach_id=%u", key);
-  cl_network_post(CL_REQUEST_POST_PROGRESS, data, NULL);
+  cl_message(CL_MSG_ERROR, "Unimplemented endpoint");
 
   return true;
 }
@@ -141,7 +141,7 @@ static bool cl_act_post_leaderboard(cl_action_t *action)
   char data[CL_POST_DATA_SIZE];
 
   snprintf(data, CL_POST_DATA_SIZE, "ldb_id=%llu", ldb_id.intval.i64);
-  cl_network_post(CL_REQUEST_POST_LEADERBOARD, data, NULL);
+  cl_message(CL_MSG_ERROR, "Unimplemented endpoint");
    
   return true;
 }

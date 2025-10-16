@@ -87,7 +87,7 @@ static int cl_json_boolean_array(void *userdata, int istrue)
       switch (ud->field)
       {
       case CL_JSON_KEY_UNLOCKED:
-        *((bool*)ach->unlocked) = istrue ? true : false;
+        ach->unlocked = istrue ? true : false;
         break;
       default:
         break;

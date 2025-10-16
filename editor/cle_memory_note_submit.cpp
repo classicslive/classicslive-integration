@@ -19,7 +19,7 @@ CleMemoryNoteSubmit::CleMemoryNoteSubmit(cl_memnote_t note)
   m_Description->setPlaceholderText(tr("Description (optional)"));
 
   m_Footer = new QLabel(this);
-  snprintf(footer_text, sizeof(footer_text), "0x%08X - %u pointer passes",
+  snprintf(footer_text, sizeof(footer_text), "0x%016llX - %u pointer passes",
     note.address, note.pointer_passes);
   m_Footer->setText(footer_text);
 
@@ -78,7 +78,7 @@ void CleMemoryNoteSubmit::onClickSubmit(void)
       title,
       strlen(description) ? "&description=" : "",
       strlen(description) ? description : "");
-    cl_network_post(CL_REQUEST_ADD_MEMNOTE, post_data, nullptr);
+    cl_network_post_api(CL_END_MEMORYNOTE_ADD, post_data, nullptr);
 
     close();
   }

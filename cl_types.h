@@ -10,6 +10,19 @@
 
 #define CL_SESSION_ID_LENGTH 32
 
+typedef enum
+{
+  CL_OK = 0,
+
+  CL_ERR_UNKNOWN,
+  CL_ERR_USER_CONFIG,
+  CL_ERR_CLIENT_RUNTIME,
+  CL_ERR_CLIENT_COMPILE,
+  CL_ERR_SERVER,
+
+  CL_ERR_SIZE
+} cl_error;
+
 typedef struct
 {
   char title[64];
@@ -42,6 +55,31 @@ typedef union
   uint64_t uintval;
 } cl_arg_t;
 
+typedef enum
+{
+  CL_GAMEIDENTIFIER_INVALID = 0,
+
+  CL_GAMEIDENTIFIER_FILE_HASH,
+  CL_GAMEIDENTIFIER_PRODUCT_CODE,
+
+  CL_GAMEIDENTIFIER_SIZE
+} cl_game_identifer_type;
+
+typedef struct
+{
+  cl_game_identifer_type type;
+
+  const char *library;
+  const char *filename;
+
+  void *data;
+  unsigned size;
+  char checksum[64];
+
+  char product[32];
+  char version[32];
+} cl_game_identifier_t;
+
 typedef struct
 {
   const char *data;
@@ -63,6 +101,37 @@ typedef union cl_session_flags_t
   } bits;
 } cl_session_flags_t;
 
+typedef enum
+{
+  CL_SESSION_NONE = 0,
+
+  /**
+   * The integration is currently posting to the 'login' endpoint.
+   * The user does not have a session ID yet.
+   */
+  CL_SESSION_LOGGING_IN,
+
+  /**
+   * The integration has successfully posted to the 'login' endpoint.
+   * The user is "online" and has a session ID but is not yet playing a game.
+   */
+  CL_SESSION_LOGGED_IN,
+
+  /**
+   * The integration is currently posting to the 'start' endpoint.
+   * The user is "online" and has a session ID but is not yet playing a game.
+   */
+  CL_SESSION_STARTING,
+
+  /**
+   * The integration has successfully posted to the 'start' endpoint.
+   * The user is "online," has a session ID, and is playing a game.
+   */
+  CL_SESSION_STARTED,
+
+  CL_SESSION_SIZE
+} cl_session_state;
+
 typedef struct cl_session_t
 {
   char checksum[64];
@@ -73,7 +142,10 @@ typedef struct cl_session_t
   cl_session_flags_t flags;
   char id[CL_SESSION_ID_LENGTH];
   time_t last_status_update;
-  bool ready;
+
+  cl_session_state state;
+
+  cl_game_identifier_t identifier;
 
   cl_achievement_t *achievements;
   unsigned achievement_count;

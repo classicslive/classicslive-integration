@@ -3,9 +3,13 @@
 
 #include "cl_types.h"
 
-bool cl_init(const void *data, const unsigned size, const char *info_path);
+cl_error cl_login(void);
 
-bool cl_run(void);
+cl_error cl_start(cl_game_identifier_t identifier);
+
+cl_error cl_login_and_start(cl_game_identifier_t identifier);
+
+cl_error cl_run(void);
 
 void cl_free(void);
 
