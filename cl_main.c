@@ -267,11 +267,13 @@ cl_error cl_run(void)
   return CL_ERR_CLIENT_RUNTIME;
 }
 
-void cl_free(void)
+cl_error cl_free(void)
 {
   if (session.state >= CL_SESSION_LOGGED_IN)
     cl_network_post_clint(CL_END_CLINT_CLOSE, NULL, NULL);
   cl_memory_free();
   cl_script_free();
   memset(&session, 0, sizeof(session));
+
+  return CL_OK;
 }
