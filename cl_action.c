@@ -1,11 +1,11 @@
-#include <math.h>
-#include <string.h>
-
 #include "cl_action.h"
 #include "cl_common.h"
 #include "cl_memory.h"
 #include "cl_network.h"
 #include "cl_script.h"
+
+#include <stdio.h>
+#include <string.h>
 
 static bool cl_act_no_process(cl_action_t *action)
 {

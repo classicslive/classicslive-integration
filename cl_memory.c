@@ -1,5 +1,3 @@
-#include <string.h>
-
 #include "cl_common.h"
 #include "cl_config.h"
 #include "cl_frontend.h"
@@ -8,6 +6,8 @@
 #if CL_LIBRETRO
 #include <libretro.h>
 #endif
+
+#include <stdio.h>
 
 cl_memory_t memory;
 

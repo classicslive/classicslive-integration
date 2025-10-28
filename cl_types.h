@@ -1,10 +1,8 @@
 #ifndef CL_TYPES_H
 #define CL_TYPES_H
 
-#include <ctype.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 

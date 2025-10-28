@@ -1,8 +1,10 @@
+#include "cl_common.h"
+#include "cl_json.h"
+
 #include <formats/jsonsax.h>
 #include <string/stdstring.h>
 
-#include "cl_common.h"
-#include "cl_json.h"
+#include <stdio.h>
 
 static int cl_json_key(void *userdata, const char *name, size_t length)
 {

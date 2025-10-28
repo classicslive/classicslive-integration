@@ -1,9 +1,9 @@
-#include <stdarg.h>
-#include <string.h>
-
 #include "cl_frontend.h"
 #include "cl_memory.h"
 #include "cl_script.h"
+
+#include <stdarg.h>
+#include <stdio.h>
 
 cl_script_t script;
 
