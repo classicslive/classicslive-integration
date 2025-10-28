@@ -1,7 +1,7 @@
 #ifndef CL_ACTION_H
 #define CL_ACTION_H
 
-#include "cl_common.h"
+#include "cl_types.h"
 
 typedef enum
 {
@@ -71,14 +71,13 @@ enum
 
 typedef struct cl_action_t
 {
-  cl_arg_t *arguments;
-  unsigned argument_count;
-  unsigned executions;
-  bool (*function)();
-  bool if_type;
-  int indentation;
-  int type;
-  bool breakpoint;
+   cl_arg_t *arguments;
+   unsigned argument_count;
+   unsigned executions;
+   bool (*function)(struct cl_action_t *action);
+   bool if_type;
+   unsigned indentation;
+   unsigned type;
 
   /* TODO: Double-link actions together so the editor can easily insert new lines */ 
   struct cl_action_t *prev_action;
