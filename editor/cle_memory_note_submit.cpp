@@ -50,36 +50,28 @@ void CleMemoryNoteSubmit::onClickSubmit(void)
     return;
   else
   {
-    char post_data[2048];
-    char pointer_data[256] = {0};
-    std::string stdtitle = m_Title->text().toStdString();
-    std::string stddescription = m_Description->toPlainText().toStdString();
-    const char *title = stdtitle.c_str();
-    const char *description = stddescription.c_str();
+    QByteArray post;
+    post.append("game_id=" + QByteArray::number(session.game_id));
+    post.append("&address=" + QByteArray::number((qulonglong)m_MemoryNote.address));
+    post.append("&type=" + QByteArray::number(m_MemoryNote.type));
 
-    /* Implode offset array into space-separated string */
     if (m_MemoryNote.pointer_passes)
     {
-      QString passes;
-      unsigned i;
-
-      for (i = 0; i < m_MemoryNote.pointer_passes; i++)
-        passes += QString::number(m_MemoryNote.pointer_offsets[i]) + " ";
-      strncpy(pointer_data, passes.toStdString().c_str(),
-              static_cast<size_t>(passes.length() - 1));
+      QStringList offsets;
+      for (unsigned i = 0; i < m_MemoryNote.pointer_passes; ++i)
+        offsets << QString::number(m_MemoryNote.pointer_offsets[i]);
+      post.append("&offsets=" + QUrl::toPercentEncoding(offsets.join(" ")));
     }
 
-    snprintf(post_data, sizeof(post_data),
-      "game_id=%u&address=%u&type=%u&offsets=%s&title=%s%s%s",
-      session.game_id,
-      m_MemoryNote.address,
-      m_MemoryNote.type,
-      pointer_data,
-      title,
-      strlen(description) ? "&description=" : "",
-      strlen(description) ? description : "");
-    cl_network_post_api(CL_END_MEMORYNOTE_ADD, post_data, nullptr);
+    QString title = m_Title->text();
+    QString description = m_Description->toPlainText();
 
+    post.append("&title=" + QUrl::toPercentEncoding(title));
+
+    if (!description.isEmpty())
+      post.append("&description=" + QUrl::toPercentEncoding(description));
+
+    cl_network_post(CL_REQUEST_ADD_MEMNOTE, post.data(), NULL);
     close();
   }
 }
