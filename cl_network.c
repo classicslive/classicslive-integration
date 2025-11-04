@@ -4,7 +4,7 @@
 #include "cl_memory.h"
 #include "cl_network.h"
 
-#include <string.h>
+#include <stdio.h>
 
 static char generic_post_data[CL_POST_DATA_SIZE];
 
@@ -87,13 +87,11 @@ static void cl_network_post_internal(const char *url, const char *endpoint,
 }
 
 #if CL_HAVE_EDITOR
-
 void cl_network_post_api(const char *endpoint, const char *post_data,
   cl_network_cb_t callback)
 {
   cl_network_post_internal(CL_API_URL, endpoint, post_data, callback, false);
 }
-
 #endif
 
 void cl_network_post_clint(const char *endpoint, const char *post_data,
