@@ -71,13 +71,14 @@ enum
 
 typedef struct cl_action_t
 {
-   cl_arg_t *arguments;
-   unsigned argument_count;
-   unsigned executions;
-   bool (*function)(struct cl_action_t *action);
-   bool if_type;
-   unsigned indentation;
-   unsigned type;
+  cl_arg_t *arguments;
+  unsigned argument_count;
+  unsigned executions;
+  bool breakpoint;
+  bool (*function)(struct cl_action_t *action);
+  bool if_type;
+  unsigned indentation;
+  cl_action_id type;
 
   /* TODO: Double-link actions together so the editor can easily insert new lines */ 
   struct cl_action_t *prev_action;
