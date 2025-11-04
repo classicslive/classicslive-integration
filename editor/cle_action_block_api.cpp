@@ -28,9 +28,6 @@ CleActionBlockApi::CleActionBlockApi(cl_action_t *action,
   m_ImageLabel->setPixmap(QPixmap::fromImage(m_Image));
   m_Layout->addWidget(m_ImageLabel);
 
-  setType(type());
-  populate();
-
   setLayout(m_Layout);
 }
 
@@ -55,7 +52,7 @@ void CleActionBlockApi::populate(void)
   m_Index->setText(QString::number(m_Action->arguments[1].uintval));
 }
 
-void CleActionBlockApi::setType(int type)
+void CleActionBlockApi::setType(cl_action_id type)
 {
   switch (type)
   {

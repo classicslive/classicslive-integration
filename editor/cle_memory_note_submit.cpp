@@ -71,7 +71,7 @@ void CleMemoryNoteSubmit::onClickSubmit(void)
     if (!description.isEmpty())
       post.append("&description=" + QUrl::toPercentEncoding(description));
 
-    cl_network_post(CL_REQUEST_ADD_MEMNOTE, post.data(), NULL);
+    cl_network_post_api(CL_END_MEMORYNOTE_ADD, post.data(), NULL);
     close();
   }
 }

@@ -46,8 +46,6 @@ CleActionBlockCtrBinary::CleActionBlockCtrBinary(cl_action_t *action,
   m_ModifierStack->addWidget(m_ModifierValueComboBox);
   m_Layout->addWidget(m_ModifierStack);
 
-  setType(type());
-
   setLayout(m_Layout);
 }
 
@@ -87,7 +85,7 @@ void CleActionBlockCtrBinary::onChangeModifierType(int index)
   }
 }
 
-void CleActionBlockCtrBinary::setType(int type)
+void CleActionBlockCtrBinary::setType(cl_action_id type)
 {
   switch (type)
   {

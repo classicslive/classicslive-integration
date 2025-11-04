@@ -1,8 +1,3 @@
-extern "C"
-{
-  #include "../cl_script.h"
-}
-
 #include "cle_action_block_ctrunary.h"
 
 CleActionBlockCtrUnary::CleActionBlockCtrUnary(cl_action_t *action,
@@ -17,12 +12,10 @@ CleActionBlockCtrUnary::CleActionBlockCtrUnary(cl_action_t *action,
   m_CounterIndex->setGeometry(0, 0, 16, CLE_BLOCK_HEIGHT);
   m_Layout->addWidget(m_CounterIndex);
 
-  setType(type());
-
   setLayout(m_Layout);
 }
 
-void CleActionBlockCtrUnary::setType(int type)
+void CleActionBlockCtrUnary::setType(cl_action_id type)
 {
   switch (type)
   {

@@ -59,9 +59,6 @@ CleActionBlockComparison::CleActionBlockComparison(cl_action_t *action,
   m_RightStack->addWidget(m_RightComboBox);
   m_Layout->addWidget(m_RightStack);
 
-  setType(type());
-  populate();
-
   setLayout(m_Layout);
 }
 
@@ -88,23 +85,23 @@ void CleActionBlockComparison::onChangeRightType(int index)
 void CleActionBlockComparison::populate(void)
 {
   m_LeftType->setCurrentIndex(
-    m_LeftType->findData(m_Action->arguments[0].uintval));
+    m_LeftType->findData(static_cast<uint>(m_Action->arguments[0].uintval)));
 
   m_LeftComboBox->setCurrentIndex(
-    m_LeftComboBox->findData(m_Action->arguments[1].uintval));
+    m_LeftComboBox->findData(static_cast<uint>(m_Action->arguments[1].uintval)));
 
   m_ComparisonType->setCurrentIndex(
-    m_ComparisonType->findData(m_Action->arguments[4].uintval));
+    m_ComparisonType->findData(static_cast<uint>(m_Action->arguments[4].uintval)));
 
   m_RightType->setCurrentIndex(
-    m_RightType->findData(m_Action->arguments[2].uintval));
+    m_RightType->findData(static_cast<uint>(m_Action->arguments[2].uintval)));
   onChangeRightType(0);
 
   if (m_RightStack->currentIndex() == 0)
     m_RightLineEdit->setText(QString::number(m_Action->arguments[3].uintval));
   else
     m_RightType->setCurrentIndex(
-      m_RightComboBox->findData(m_Action->arguments[3].uintval));
+      m_RightComboBox->findData(static_cast<uint>(m_Action->arguments[3].uintval)));
 }
 
 int64_t CleActionBlockComparison::rightValue(void)
@@ -123,7 +120,7 @@ int64_t CleActionBlockComparison::rightValue(void)
   return 0;
 }
 
-void CleActionBlockComparison::setType(int type)
+void CleActionBlockComparison::setType(cl_action_id type)
 {
   switch (type)
   {

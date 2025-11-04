@@ -96,6 +96,8 @@ CleActionBlock *CleScriptEditorBlockCanvas::addBlock(cl_action_t *action,
   }
   if (block)
   {
+    block->setType(action->type);
+    block->populate();
     block->move(pos);
     connect(block, SIGNAL(onDrag(CleActionBlock*)),
             this, SLOT(checkSnaps(CleActionBlock*)));
@@ -177,7 +179,7 @@ void CleScriptEditorBlockCanvas::mousePressEvent(QMouseEvent *event)
     if (selectedSubAction)
     {
       cl_action_t *action = new cl_action_t;
-      int type = selectedSubAction->data().toInt();
+      cl_action_id type = static_cast<cl_action_id>(selectedSubAction->data().toInt());
 
       action->type = type;
       addBlock(action, event->pos());
