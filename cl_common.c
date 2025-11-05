@@ -12,7 +12,7 @@
 #ifdef __GNUC__
 __attribute__((__format__ (__printf__, 2, 0)))
 #endif
-void cl_message(unsigned level, const char *format, ...)
+void cl_message(cl_log_level level, const char *format, ...)
 {
 #if CL_SHOW_ERRORS
   char msg[256];
