@@ -61,10 +61,10 @@ void CleResultTablePointer::onClickResultAddMemoryNote()
 {
    cl_memnote_t note;
 
-   note.address         = m_Search.results[m_ClickedResult].address_initial;
-   note.type            = m_Search.params.value_type;
-   note.pointer_offsets = m_Search.results[m_ClickedResult].offsets;
-   note.pointer_passes  = m_Search.passes;
+   note.address = m_Search.results[m_ClickedResult].address_initial;
+   note.type = m_Search.params.value_type;
+   memcpy(note.pointer_offsets, m_Search.results[m_ClickedResult].offsets, sizeof(note.pointer_offsets));
+   note.pointer_passes = m_Search.passes;
 
    emit requestAddMemoryNote(note);
 }

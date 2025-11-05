@@ -309,14 +309,13 @@ void CleMemoryInspector::requestAddMemoryNote(cl_memnote_t note)
 
 void CleMemoryInspector::requestAddMemoryNote(cl_addr_t address)
 {
-   cl_memnote_t note;
+  cl_memnote_t note;
 
-   note.address         = address;
-   note.type            = getCurrentSizeType();
-   note.pointer_offsets = NULL;
-   note.pointer_passes  = 0;
+  note.address = address;
+  note.type = getCurrentSizeType();
+  note.pointer_passes = 0;
 
-   requestAddMemoryNote(note);
+  requestAddMemoryNote(note);
 }
 
 void CleMemoryInspector::requestPointerSearch(cl_addr_t address)
