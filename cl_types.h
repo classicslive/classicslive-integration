@@ -42,7 +42,7 @@ typedef struct
 
 typedef struct
 {
-  char title[64];
+  char title[256];
   char description[2048];
 } cl_memnote_ex_t;
 
@@ -85,7 +85,8 @@ typedef struct
   const char *error_msg;
 } cl_network_response_t;
 
-typedef void (*cl_network_cb_t)(cl_network_response_t);
+typedef void (*cl_network_cb_t)(const cl_network_response_t, void*);
+#define CL_NETWORK_CB(name) void name(const cl_network_response_t response, void *userdata)
 
 typedef union cl_session_flags_t
 {
@@ -155,6 +156,7 @@ typedef struct cl_session_t
 struct cl_task_t;
 
 typedef void (*CL_TASK_CB_T)(struct cl_task_t*);
+#define CL_TASK_CB(name) void name(struct cl_task_t *task)
 
 /**
  * A definition for a background task that the frontend will break off into a

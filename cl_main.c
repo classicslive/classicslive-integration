@@ -27,7 +27,9 @@ static cl_error cl_init_session(const char* json)
 
   if (cl_json_get(&session.game_name, json, "title", CL_JSON_TYPE_STRING, sizeof(session.game_name)))
     cl_message(CL_MSG_INFO, "Game name: %s\n", session.game_name);
-  cl_json_get(&session.game_id, json, "game_id", CL_JSON_TYPE_NUMBER, sizeof(session.game_id));
+
+  if (cl_json_get(&misc, json, "game_id", CL_JSON_TYPE_NUMBER, sizeof(misc)))
+    session.game_id = misc;
 
   /* Memory-related */
   //iterator = &memory_str[0];
@@ -64,7 +66,7 @@ static cl_error cl_init_session(const char* json)
   return CL_OK;
 }
 
-static void cl_start_cb(cl_network_response_t response)
+static CL_NETWORK_CB(cl_start_cb)
 {
   if (response.error_code || cl_init_session(response.data) != CL_OK)
   {
@@ -130,14 +132,15 @@ cl_error cl_start(cl_game_identifier_t identifier)
       }
     }
     session.state = CL_SESSION_STARTING;
-    cl_network_post_clint(CL_END_CLINT_START, post_data, cl_start_cb);
+    cl_network_post_clint(CL_END_CLINT_START, post_data, cl_start_cb, NULL);
 
     return CL_OK;
   }
 }
 
-static void cl_login_cb(cl_network_response_t response)
+static CL_NETWORK_CB(cl_login_cb)
 {
+  CL_UNUSED(userdata);
   if (response.error_code)
     session.state = CL_SESSION_NONE;
   else
@@ -147,7 +150,7 @@ static void cl_login_cb(cl_network_response_t response)
     if (!cl_json_get(&success, response.data, "success",
         CL_JSON_TYPE_BOOLEAN, 0))
     {
-      cl_log("Malformed JSON output on login.\n");
+      cl_log("Malformed JSON output on login.\n%s", response.data);
       return;
     }
     else if (!success)
@@ -193,18 +196,18 @@ login_error:
   return CL_ERR_USER_CONFIG;
 }
 
-static void cl_login_and_start_cb_2(cl_network_response_t response)
+static CL_NETWORK_CB(cl_login_and_start_cb_2)
 {
   if (response.error_code)
     return;
   else
   {
-    cl_login_cb(response);
+    cl_login_cb(response, userdata);
     cl_start(session.identifier);
   }
 }
 
-static void cl_login_and_start_cb_1(cl_task_t *task)
+static CL_TASK_CB(cl_login_and_start_cb_1)
 {
   if (!task->error)
     cl_login_internal(cl_login_and_start_cb_2);
@@ -230,7 +233,6 @@ cl_error cl_login_and_start(cl_game_identifier_t identifier)
     strncpy(session.content_name, path_basename(identifier.filename),
             sizeof(session.content_name) - 1);
 #endif
-
     cl_identify(identifier.data, identifier.size, identifier.filename,
                 cl_fe_library_name(), session.identifier.checksum,
                 cl_login_and_start_cb_1);
@@ -254,7 +256,7 @@ cl_error cl_run(void)
     if (time(0) >= session.last_status_update + CL_PRESENCE_INTERVAL)
     {
       session.last_status_update = time(0);
-      cl_network_post_clint(CL_END_CLINT_PING, NULL, NULL);
+      cl_network_post_clint(CL_END_CLINT_PING, NULL, NULL, NULL);
     }
 
 #if CL_HAVE_EDITOR
@@ -270,7 +272,7 @@ cl_error cl_run(void)
 cl_error cl_free(void)
 {
   if (session.state >= CL_SESSION_LOGGED_IN)
-    cl_network_post_clint(CL_END_CLINT_CLOSE, NULL, NULL);
+    cl_network_post_clint(CL_END_CLINT_CLOSE, NULL, NULL, NULL);
   cl_memory_free();
   cl_script_free();
   memset(&session, 0, sizeof(session));

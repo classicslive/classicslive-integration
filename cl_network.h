@@ -28,11 +28,11 @@
 
 #if CL_HAVE_EDITOR
 void cl_network_post_api(const char *endpoint, const char *post_data,
-  cl_network_cb_t callback);
+  cl_network_cb_t callback, void *userdata);
 #endif
 
 void cl_network_post_clint(const char *endpoint, const char *post_data,
-  cl_network_cb_t callback);
+  cl_network_cb_t callback, void *userdata);
 
 void cl_network_post_clint_login(const char *post_data,
   cl_network_cb_t callback);

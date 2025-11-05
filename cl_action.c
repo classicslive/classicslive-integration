@@ -114,7 +114,7 @@ static bool cl_act_post_achievement(cl_action_t *action)
   char data[CL_POST_DATA_SIZE];
 
   snprintf(data, CL_POST_DATA_SIZE, "ach_id=%llu", ach_id.intval.i64);
-  cl_network_post_clint(CL_END_CLINT_ACHIEVEMENT, data, NULL);
+  cl_network_post_clint(CL_END_CLINT_ACHIEVEMENT, data, NULL, NULL);
 
   /* Clear this action so we don't re-submit the achievement */
   cl_free_action(action);

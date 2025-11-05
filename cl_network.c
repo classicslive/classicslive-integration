@@ -44,13 +44,14 @@ static bool cl_update_generic_post_data(void)
   return true;
 }
 
-void cl_default_network_cb(cl_network_response_t response)
+static CL_NETWORK_CB(cl_default_network_cb)
 {
+  CL_UNUSED(userdata);
   cl_log(response.data);
 }
 
 static void cl_network_post_internal(const char *url, const char *endpoint,
-  const char *post_data, cl_network_cb_t callback, bool force)
+  const char *post_data, cl_network_cb_t callback, void *userdata, bool force)
 {
   if (session.state < CL_SESSION_LOGGED_IN && !force)
   {
@@ -81,28 +82,32 @@ static void cl_network_post_internal(const char *url, const char *endpoint,
     /* Create the full endpoint URL */
     snprintf(endpoint_url, sizeof(endpoint_url), "%s%s", url, endpoint);
 
-    cl_fe_network_post(endpoint_url, generic_post_data,
-                       callback ? callback : cl_default_network_cb);
+    cl_fe_network_post(endpoint_url,
+                       generic_post_data,
+                       callback ? callback : cl_default_network_cb,
+                       userdata);
   }
 }
 
 #if CL_HAVE_EDITOR
 void cl_network_post_api(const char *endpoint, const char *post_data,
-  cl_network_cb_t callback)
+  cl_network_cb_t callback, void *userdata)
 {
-  cl_network_post_internal(CL_API_URL, endpoint, post_data, callback, false);
+  cl_network_post_internal(CL_API_URL, endpoint,
+                           post_data, callback, userdata, false);
 }
 #endif
 
 void cl_network_post_clint(const char *endpoint, const char *post_data,
-  cl_network_cb_t callback)
+  cl_network_cb_t callback, void *userdata)
 {
-  cl_network_post_internal(CL_CLINT_URL, endpoint, post_data, callback, false);
+  cl_network_post_internal(CL_CLINT_URL, endpoint,
+                           post_data, callback, userdata, false);
 }
 
 void cl_network_post_clint_login(const char *post_data,
   cl_network_cb_t callback)
 {
-  cl_network_post_internal(CL_CLINT_URL, CL_END_CLINT_LOGIN, post_data,
-    callback, true);
+  cl_network_post_internal(CL_CLINT_URL, CL_END_CLINT_LOGIN,
+                           post_data, callback, NULL, true);
 }
