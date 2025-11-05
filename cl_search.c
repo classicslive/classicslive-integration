@@ -335,8 +335,9 @@ uint32_t cl_search_step(cl_search_t *search, void *value)
   {
     cl_searchbank_t *sbank;
     bool compare_result;
-    uint32_t left, right;
-    uint32_t matches  = 0;
+    uint32_t left = 0;
+    uint32_t right = 0;
+    uint32_t matches = 0;
     uint8_t  cmp_type = search->params.compare_type;
     uint8_t  size    = search->params.size;
     uint8_t  val_type = search->params.value_type;
@@ -417,7 +418,7 @@ uint32_t cl_search_step(cl_search_t *search, void *value)
         sbank->any_valid = false;
       else
         matches += matches_this_bank;
-      memcpy(sbank->backup,   sbank->region->base_host,   sbank->region->size);
+      memcpy(sbank->backup, sbank->region->base_host, sbank->region->size);
       sbank->last_valid = last_valid;
     }
     search->matches = matches;
