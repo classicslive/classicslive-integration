@@ -20,6 +20,8 @@ typedef enum
   CL_SRCTYPE_SIZE
 } cl_src_t;
 
+#define CL_POINTER_MAX_PASSES 8
+
 #define CLE_CMPTYPE_EQUAL     1
 #define CLE_CMPTYPE_GREATER   2
 #define CLE_CMPTYPE_LESS      3
@@ -120,8 +122,8 @@ typedef struct cl_memory_region_t
  */
 typedef struct cl_memnote_t
 {
-  unsigned  key;
-  unsigned  order;
+  unsigned key;
+  unsigned order;
   cl_addr_t address;
   cl_addr_t address_initial;
 
@@ -134,8 +136,8 @@ typedef struct cl_memnote_t
   cl_counter_t last_unique;
 
   /* For following pointers to get RAM values */
-  unsigned *pointer_offsets;
-  unsigned  pointer_passes;
+  unsigned pointer_offsets[CL_POINTER_MAX_PASSES];
+  unsigned pointer_passes;
 
 #if CL_HAVE_EDITOR
   /* Metadata for generated human-readable strings in Live Editor */
@@ -286,6 +288,13 @@ bool cl_write_memnote_from_key(unsigned key, const cl_counter_t *value);
  * given key does not exist.
  **/
 cl_memnote_t* cl_find_memnote(uint32_t key);
+
+/**
+ * Adds a new memory note to the global memory context.
+ * @param note The memory note to be added.
+ * @return An error code representing the result of the operation.
+ */
+cl_error cl_memory_add_note(const cl_memnote_t *note);
 
 extern cl_memory_t memory;
 

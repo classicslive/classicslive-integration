@@ -51,9 +51,8 @@ cl_memnote_t* cl_find_memnote(unsigned key)
 
 void cl_free_memnote(cl_memnote_t *note)
 {
-  free(note->pointer_offsets);
-  note->pointer_passes = 0;
-  note->pointer_offsets = NULL;
+  /* Stubbed until something actually needs freeing */
+  CL_UNUSED(note);
 }
 
 void cl_memory_free(void)
@@ -239,7 +238,6 @@ bool cl_init_memory(const char **pos)
     {
       unsigned j;
 
-      new_memnote->pointer_offsets = (uint32_t*)calloc(new_memnote->pointer_passes, sizeof(uint32_t));
       for (j = 0; j < new_memnote->pointer_passes; j++)
       {
         if (!cl_strto(pos, &new_memnote->pointer_offsets[j], sizeof(int32_t), true))
@@ -252,6 +250,29 @@ bool cl_init_memory(const char **pos)
   cl_log("End of memory.\n");
 
   return true;
+}
+
+cl_error cl_memory_add_note(const cl_memnote_t *note)
+{
+  cl_memnote_t *new_array;
+
+  /* Attempt to reallocate with another element */
+  new_array = (cl_memnote_t*)realloc(memory.notes,
+    (memory.note_count + 1) * sizeof(cl_memnote_t));
+  if (!new_array)
+    return CL_ERR_CLIENT_RUNTIME;
+
+  memory.notes = new_array;
+  memory.notes[memory.note_count] = *note;
+  memory.note_count++;
+
+  cl_log("Added memnote {%03u} - S: %u, P: %u, A: %08X\n",
+    note->key,
+    cl_sizeof_memtype(note->type),
+    note->pointer_passes,
+    note->address_initial);
+
+  return CL_OK;
 }
 
 unsigned cl_read_memory_internal(void *value, const cl_memory_region_t *bank,

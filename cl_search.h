@@ -4,8 +4,6 @@
 #include "cl_memory.h"
 #include "cl_types.h"
 
-#define CL_POINTER_MAX_PASSES 4
-
 typedef struct cl_search_params_t
 {
    uint8_t compare_type;
