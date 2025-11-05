@@ -346,6 +346,7 @@ bool cl_json_get(void *data, const char *json, const char *key, unsigned type,
   };
   cl_json_t value;
 
+  memset(&value, 0, sizeof(value));
   value.data = data;
   value.element_count = 0;
   value.element_num = 0;
