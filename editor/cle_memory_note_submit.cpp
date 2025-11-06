@@ -3,6 +3,7 @@
 extern "C"
 {
   #include "../cl_json.h"
+  #include "../cl_network.h"
 }
 
 static CL_NETWORK_CB(cle_memory_note_add_cb)

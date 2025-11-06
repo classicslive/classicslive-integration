@@ -69,11 +69,11 @@ void CleScriptEditor::run()
       m_Table->setItem(i, 2, new QTableWidgetItem(QString(temp_string)));
 
       /* Highlight this row if it is the one the debugger breaks on. */
-      if (script.status == CL_SCRSTATUS_PAUSED && script.current_action == action)
+      if (script.status == CL_SCRIPT_STATUS_PAUSED && script.current_action == action)
          m_Table->item(i, 0)->setBackground(Qt::red);
    }
 
-   if (script.status == CL_SCRSTATUS_PAUSED)
+   if (script.status == CL_SCRIPT_STATUS_PAUSED)
       m_Label->setText(script.error_msg);
    else
       m_Label->setText("Counter 0: " + QString::number(script.pages[0].counters[0].intval.i64));

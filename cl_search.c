@@ -293,7 +293,6 @@ uint32_t cl_search_ascii(cl_search_t *search, const char *needle, uint8_t length
   {
     cl_searchbank_t *sbank;
     const char *haystack;
-    char *position;
     uint32_t matches = 0;
     uint8_t  i;
     uint32_t j;
@@ -319,7 +318,7 @@ uint32_t cl_search_ascii(cl_search_t *search, const char *needle, uint8_t length
         sbank->any_valid = false;
       else
         matches += matches_this_bank;
-      memcpy(sbank->backup,   sbank->region->base_host,   sbank->region->size);
+      memcpy(sbank->backup, sbank->region->base_host, sbank->region->size);
     }
     search->matches = matches;
 
