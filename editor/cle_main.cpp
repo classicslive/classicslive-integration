@@ -36,12 +36,15 @@ void cle_init()
   m_MemoryInspector = new CleMemoryInspector();
   m_MemoryInspector->show();
 
+  m_MemoryNotes = new CleMemoryNotes(nullptr);
+  m_MemoryNotes->show();
+
   m_ScriptEditor = new CleScriptEditorBlock();
   m_ScriptEditor->show();
 }
 
 void cle_run()
 {
-   /* TODO */
+  m_MemoryNotes->update();
 }
 }
