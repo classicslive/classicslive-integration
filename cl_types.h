@@ -136,7 +136,7 @@ typedef struct cl_session_t
   char checksum[64];
   char content_name[256];
   unsigned game_id;
-  char game_name[256];
+  char game_title[256];
   char generic_post[2048];
   cl_session_flags_t flags;
   char id[CL_SESSION_ID_LENGTH];
