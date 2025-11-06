@@ -21,23 +21,26 @@ cl_session_t session;
 static cl_error cl_init_session(const char* json)
 {
   const char *iterator;
-  char memory_str[2048];
   char script_str[2048];
   unsigned misc, i;
 
-  if (cl_json_get(&session.game_title, json, "title", CL_JSON_TYPE_STRING, sizeof(session.game_title)))
+  /* Get game info */
+  if (cl_json_get(&session.game_title, json, "title",
+                  CL_JSON_TYPE_STRING, sizeof(session.game_title)))
     cl_message(CL_MSG_INFO, "Game title: %s\n", session.game_title);
-
-  if (cl_json_get(&misc, json, "game_id", CL_JSON_TYPE_NUMBER, sizeof(misc)))
+  if (cl_json_get(&misc, json, "game_id",
+                  CL_JSON_TYPE_NUMBER, sizeof(misc)))
     session.game_id = misc;
 
   /* Get default endianness of memory regions */
-  if (cl_json_get(&misc, json, "endianness", CL_JSON_TYPE_NUMBER, sizeof(misc)))
+  if (cl_json_get(&misc, json, "endianness",
+                  CL_JSON_TYPE_NUMBER, sizeof(misc)))
     for (i = 0; i < memory.region_count; i++)
       memory.regions[i].endianness = misc;
 
   /* Get default pointer length of memory regions */
-  if (cl_json_get(&misc, json, "pointer_size", CL_JSON_TYPE_NUMBER, sizeof(misc)))
+  if (cl_json_get(&misc, json, "pointer_size",
+                  CL_JSON_TYPE_NUMBER, sizeof(misc)))
     for (i = 0; i < memory.region_count; i++)
       memory.regions[i].pointer_length = misc;
 
@@ -172,6 +175,10 @@ static cl_error cl_login_internal(cl_network_cb_t callback)
     return CL_ERR_USER_CONFIG;
   }
 
+  /**
+   * Add login info; username is required, one of either token or password
+   * must be present. Token is preferred.
+   */
   if (!strlen(user.username))
     goto login_error;
   else if (strlen(user.token))
@@ -182,6 +189,11 @@ static cl_error cl_login_internal(cl_network_cb_t callback)
       user.username, user.password);
   else
     goto login_error;
+
+  /* Append editor flag if available */
+#if CL_HAVE_EDITOR
+  strcat(post_data, "&editor=true");
+#endif
 
   session.state = CL_SESSION_LOGGING_IN;
   cl_network_post_clint_login(post_data, callback);
