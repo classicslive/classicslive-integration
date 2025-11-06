@@ -34,7 +34,7 @@
 /**
  * Radix used in output retrieved from the server.
  */
-#define CL_RADIX 16
+#define CL_RADIX 10
 
 #define CL_SHOW_ERRORS true
 

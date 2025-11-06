@@ -1,6 +1,5 @@
 #include "cl_common.h"
 #include "cl_config.h"
-#include "cl_frontend.h"
 #include "cl_memory.h"
 
 #if CL_LIBRETRO
