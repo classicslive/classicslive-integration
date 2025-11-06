@@ -196,60 +196,54 @@ bool cl_init_membanks_libretro(const struct retro_memory_descriptor **descs,
 }
 #endif
 
-bool cl_init_memory(const char **pos)
+cl_error cl_memory_init_notes(void)
 {
-  cl_memnote_t *new_memnote;
-  uint32_t    i;
-
-  if (!cl_strto(pos, &memory.note_count, sizeof(memory.note_count), false))
-    return false;
-  memory.notes = (cl_memnote_t*)calloc(memory.note_count, sizeof(cl_memnote_t));
+  unsigned i;
 
   cl_log("Memory notes: %u\n", memory.note_count);
 
+  if (!memory.notes || memory.note_count == 0)
+    return CL_ERR_CLIENT_RUNTIME;
+
   for (i = 0; i < memory.note_count; i++)
   {
-    cl_counter_t new_ctr;
-    new_memnote = &memory.notes[i];
+    cl_counter_t counter;
+    cl_memnote_t *note = &memory.notes[i];
 
-    if (!(cl_strto(pos, &new_memnote->key,        4, false) &&
-        cl_strto(pos, &new_memnote->address_initial, sizeof(cl_addr_t), false) &&
-        cl_strto(pos, &new_memnote->type,        4, false) &&
-        cl_strto(pos, &new_memnote->flags,       4, false) &&
-        cl_strto(pos, &new_memnote->pointer_passes, 4, false)))
-      return false;
+    cl_log("Memory note {%04u} - S: %u, P: %u, A: %08X",
+      note->key,
+      cl_sizeof_memtype(note->type),
+      note->pointer_passes,
+      note->address_initial);
 
-    cl_log("Memory note {%03u} - S: %u, P: %u, A: %08X",
-     new_memnote->key,
-     cl_sizeof_memtype(new_memnote->type),
-     new_memnote->pointer_passes,
-     new_memnote->address_initial);
-
-    /* Initialize the tracked values based on the data type of the memnote */
-    new_ctr.floatval.fp = 0;
-    new_ctr.intval.i64 = 0;
-    new_ctr.type = new_memnote->type;
-    new_memnote->current    = new_ctr;
-    new_memnote->previous   = new_ctr;
-    new_memnote->last_unique = new_ctr;
-
-    /* Initialize offsets for pointer-chain variables */
-    if (new_memnote->pointer_passes > 0)
+    if (note->pointer_passes > 0)
     {
       unsigned j;
 
-      for (j = 0; j < new_memnote->pointer_passes; j++)
-      {
-        if (!cl_strto(pos, &new_memnote->pointer_offsets[j], sizeof(int32_t), true))
-          return false;
-        cl_log(" + %i", new_memnote->pointer_offsets[j]);
-      }
+      for (j = 0; j < note->pointer_passes; j++)
+        cl_log(" + %u", note->pointer_offsets[j]);
     }
+
+#if CL_HAVE_EDITOR
+    if (note->details.title[0] != '\0')
+      cl_log("\nTitle:\n%s", note->details.title);
+    if (note->details.description[0] != '\0')
+      cl_log("\nDescription:\n%s", note->details.description);
+#endif
+
     cl_log("\n");
+
+    /* Initialize the counters based on the data type of the note */
+    counter.floatval.fp = 0;
+    counter.intval.i64 = 0;
+    counter.type = note->type;
+    note->current = counter;
+    note->previous = counter;
+    note->last_unique = counter;
   }
   cl_log("End of memory.\n");
 
-  return true;
+  return CL_OK;
 }
 
 cl_error cl_memory_add_note(const cl_memnote_t *note)
@@ -266,7 +260,7 @@ cl_error cl_memory_add_note(const cl_memnote_t *note)
   memory.notes[memory.note_count] = *note;
   memory.note_count++;
 
-  cl_log("Added memnote {%03u} - S: %u, P: %u, A: %08X\n",
+  cl_log("Added memnote {%04u} - S: %u, P: %u, A: %08X\n",
     note->key,
     cl_sizeof_memtype(note->type),
     note->pointer_passes,

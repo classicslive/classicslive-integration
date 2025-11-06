@@ -25,17 +25,11 @@ static cl_error cl_init_session(const char* json)
   char script_str[2048];
   unsigned misc, i;
 
-  if (cl_json_get(&session.game_name, json, "title", CL_JSON_TYPE_STRING, sizeof(session.game_name)))
-    cl_message(CL_MSG_INFO, "Game name: %s\n", session.game_name);
+  if (cl_json_get(&session.game_title, json, "title", CL_JSON_TYPE_STRING, sizeof(session.game_title)))
+    cl_message(CL_MSG_INFO, "Game title: %s\n", session.game_title);
 
   if (cl_json_get(&misc, json, "game_id", CL_JSON_TYPE_NUMBER, sizeof(misc)))
     session.game_id = misc;
-
-  /* Memory-related */
-  //iterator = &memory_str[0];
-  //if (!cl_json_get(memory_str, json, "memory_notes", CL_JSON_TYPE_STRING, sizeof(memory_str)) ||
-  //   !cl_init_memory(&iterator))
-  //  return CL_ERR_SERVER;
 
   /* Get default endianness of memory regions */
   if (cl_json_get(&misc, json, "endianness", CL_JSON_TYPE_NUMBER, sizeof(misc)))
@@ -62,6 +56,10 @@ static cl_error cl_init_session(const char* json)
 
   cl_json_get_array((void**)&session.leaderboards, &session.leaderboard_count,
     json, "leaderboards", CL_JSON_TYPE_LEADERBOARD);
+
+  cl_json_get_array((void**)&memory.notes, &memory.note_count,
+    json, "memory_notes", CL_JSON_TYPE_MEMORY_NOTE);
+  cl_memory_init_notes();
 
   return CL_OK;
 }

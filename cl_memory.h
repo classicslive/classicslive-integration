@@ -122,13 +122,29 @@ typedef struct cl_memory_region_t
  */
 typedef struct cl_memnote_t
 {
+  /* Random unique identifier for the memory note, between 0 and 9999 */
   unsigned key;
+
+  /* The order of this memory note in the list */
   unsigned order;
+
+  /**
+   * The final virtual address this memory note points to, after pointer
+   * dereferencing. This value is expected to change between frames, and is
+   * only guaranteed to be valid after calling `cl_memory_update`.
+   */
   cl_addr_t address;
+
+  /**
+   * The initial address or base pointer for this memory note, before pointer
+   * dereferencing.
+   */
   cl_addr_t address_initial;
 
   unsigned flags;
-  unsigned type;
+
+  /* The data type this memory note represents */
+  cl_value_type type;
 
   /* Stored values */
   cl_counter_t current;
@@ -163,18 +179,18 @@ typedef struct cl_memory_t
  * Looks up which memory bank a given virtual address is contained in.
  * @param address A virtual memory address.
  * @return A pointer to the memory bank, or NULL if one is not found.
- **/
+ */
 cl_memory_region_t* cl_find_memory_region(cl_addr_t address);
 
 /**
  * Frees all values contained within the global memory context.
- **/
+ */
 void cl_memory_free(void);
 
 /**
  * Frees a memory note. Called automatically as part of cl_free_memory.
  * @param note The memory note to be freed.
- **/
+ */
 void cl_free_memnote(cl_memnote_t *note);
 
 #if CL_LIBRETRO
@@ -184,10 +200,10 @@ void cl_free_memnote(cl_memnote_t *note);
  * @param descs An array of libretro memory descriptors.
  * @param num_descs The count of elements in descs.
  * @return Whether or not memory banks could be initialized.
- **/
+ */
 struct retro_memory_descriptor;
 bool cl_init_membanks_libretro(const struct retro_memory_descriptor **descs,
-   const unsigned num_descs);
+                               const unsigned num_descs);
 #endif
 
 /**
@@ -283,7 +299,7 @@ bool cl_write_memnote_from_key(unsigned key, const cl_counter_t *value);
 
 /**
  * Looks up a memory note based on its key.
- * @param key The memory note key to look up. Currently a value between 0-999.
+ * @param key The memory note key to look up. Currently a value between 0-9999.
  * @return A pointer to the appropriate memory note, or NULL if one with the
  * given key does not exist.
  **/
@@ -295,6 +311,13 @@ cl_memnote_t* cl_find_memnote(uint32_t key);
  * @return An error code representing the result of the operation.
  */
 cl_error cl_memory_add_note(const cl_memnote_t *note);
+
+/**
+ * Verifies and initializes all memory notes in the global memory context.
+ * Prints information about each note to the log.
+ * @return An error code representing the result of the operation.
+ */
+cl_error cl_memory_init_notes(void);
 
 extern cl_memory_t memory;
 
