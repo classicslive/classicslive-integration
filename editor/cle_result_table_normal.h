@@ -34,7 +34,7 @@ public:
    uint8_t getValueType() override { return m_Search.params.value_type; }
 
    void setCompareType(const uint8_t new_type) override { m_Search.params.compare_type = new_type; }
-   void setValueType(const uint8_t new_type) override { m_Search.params.value_type = new_type; m_Search.params.size = cl_sizeof_memtype(new_type); }
+   void setValueType(const cl_value_type new_type) override { m_Search.params.value_type = new_type; m_Search.params.size = cl_sizeof_memtype(new_type); }
 
 public slots:
    void onClickResultAddMemoryNote();

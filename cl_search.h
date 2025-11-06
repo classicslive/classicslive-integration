@@ -8,7 +8,7 @@ typedef struct cl_search_params_t
 {
    uint8_t compare_type;
    uint8_t size;
-   uint8_t value_type;
+   cl_value_type value_type;
 } cl_search_params_t;
 
 typedef struct cl_searchbank_t

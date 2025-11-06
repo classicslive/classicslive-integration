@@ -130,9 +130,9 @@ uint8_t CleMemoryInspector::getCurrentCompareType(void)
    return m_CompareDropdown->itemData(m_CompareDropdown->currentIndex()).toUInt();
 }
 
-uint8_t CleMemoryInspector::getCurrentSizeType(void)
+cl_value_type CleMemoryInspector::getCurrentSizeType(void)
 {
-   return m_SizeDropdown->itemData(m_SizeDropdown->currentIndex()).toUInt();
+   return static_cast<cl_value_type>(m_SizeDropdown->itemData(m_SizeDropdown->currentIndex()).toUInt());
 }
 
 void CleMemoryInspector::onAddressChanged(cl_addr_t address)

@@ -52,7 +52,7 @@ public:
    virtual uint8_t getValueType() { return 0; }
 
    virtual void setCompareType(const uint8_t new_type) = 0;
-   virtual void setValueType(const uint8_t new_type) = 0;
+   virtual void setValueType(const cl_value_type new_type) = 0;
 
 public slots:
    virtual void onResultClick(QTableWidgetItem *item) = 0;
