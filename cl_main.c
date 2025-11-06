@@ -47,22 +47,27 @@ static cl_error cl_init_session(const char* json)
   if (!cl_fe_install_membanks())
     return CL_ERR_CLIENT_RUNTIME;
 
-  /* Script-related */
-  //iterator = &script_str[0];
-  //if (cl_json_get(script_str, json, "script", CL_JSON_TYPE_STRING, sizeof(script_str)))
-  //  cl_script_init(&iterator);
-  //else
-  //  return CL_ERR_SERVER; /* TODO */
-
-  cl_json_get_array((void**)&session.achievements, &session.achievement_count,
-    json, "achievements", CL_JSON_TYPE_ACHIEVEMENT);
-
-  cl_json_get_array((void**)&session.leaderboards, &session.leaderboard_count,
-    json, "leaderboards", CL_JSON_TYPE_LEADERBOARD);
-
+  /* Get memory notes */
   cl_json_get_array((void**)&memory.notes, &memory.note_count,
     json, "memory_notes", CL_JSON_TYPE_MEMORY_NOTE);
   cl_memory_init_notes();
+
+  /* Get script */
+  iterator = &script_str[0];
+  if (cl_json_get(script_str, json, "script", CL_JSON_TYPE_STRING, sizeof(script_str)))
+  {
+    if (!cl_script_init(&iterator))
+    {
+      cl_message(CL_MSG_ERROR, "Failed to initialize CL script.");
+      return CL_ERR_SERVER;
+    }
+
+    cl_json_get_array((void**)&session.achievements, &session.achievement_count,
+      json, "achievements", CL_JSON_TYPE_ACHIEVEMENT);
+
+    cl_json_get_array((void**)&session.leaderboards, &session.leaderboard_count,
+      json, "leaderboards", CL_JSON_TYPE_LEADERBOARD);
+  }
 
   return CL_OK;
 }
