@@ -45,7 +45,7 @@ CleMemoryNoteSubmit::CleMemoryNoteSubmit(cl_memnote_t note)
 
   m_Footer = new QLabel(this);
   snprintf(footer_text, sizeof(footer_text), "0x%016llX - %u pointer passes",
-    note.address, note.pointer_passes);
+    note.address_initial, note.pointer_passes);
   m_Footer->setText(footer_text);
 
   Layout->addWidget(m_Title,        0, 0, 1, 2);
@@ -79,7 +79,7 @@ void CleMemoryNoteSubmit::onClickSubmit(void)
     QByteArray post;
 
     post.append("game_id=" + QByteArray::number(session.game_id));
-    post.append("&address=" + QByteArray::number((qulonglong)m_MemoryNote.address));
+    post.append("&address=" + QByteArray::number((qulonglong)m_MemoryNote.address_initial));
     post.append("&type=" + QByteArray::number(m_MemoryNote.type));
 
     /* Set the pointer parameters */

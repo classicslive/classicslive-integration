@@ -311,7 +311,7 @@ void CleMemoryInspector::requestAddMemoryNote(cl_addr_t address)
 {
   cl_memnote_t note;
 
-  note.address = address;
+  note.address_initial = address;
   note.type = getCurrentSizeType();
   note.pointer_passes = 0;
 
