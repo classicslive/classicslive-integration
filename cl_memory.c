@@ -6,7 +6,12 @@
 #include <libretro.h>
 #endif
 
+#if CL_HAVE_EDITOR
+#include <string.h>
+#include <ctype.h>
+#include <stdlib.h>
 #include <stdio.h>
+#endif
 
 cl_memory_t memory;
 
@@ -195,6 +200,121 @@ bool cl_init_membanks_libretro(const struct retro_memory_descriptor **descs,
 }
 #endif
 
+#if CL_HAVE_EDITOR
+static void cl_memnote_ex_populate_values(cl_memnote_ex_t *ex)
+{
+  const char *desc;
+  char linebuf[512];
+  size_t i = 0;
+  unsigned count = 0;
+
+  if (!ex)
+    return;
+
+  desc = ex->description;
+  if (!desc || desc[0] == '\0')
+    return;
+
+  memset(ex->values, 0, sizeof(ex->values));
+
+  while (*desc && count < 64)
+  {
+    /* Extract one line */
+    i = 0;
+    while (*desc && *desc != '\n' && i < sizeof(linebuf) - 1)
+      linebuf[i++] = *desc++;
+    linebuf[i] = '\0';
+
+    /* Skip newline */
+    if (*desc == '\n')
+      desc++;
+
+    /* Trim leading spaces */
+    char *p = linebuf;
+    while (isspace((unsigned char)*p))
+      p++;
+
+    /* Must start with a digit to be valid */
+    if (!isdigit((unsigned char)*p))
+      continue;
+
+    /* Parse number before '=' */
+    char *eq = strchr(p, '=');
+    if (!eq)
+      continue;
+
+    *eq = '\0';
+    unsigned val = (unsigned)strtoul(p, NULL, 0);
+
+    /* Extract title text */
+    const char *title = eq + 1;
+    while (isspace((unsigned char)*title))
+      title++;
+
+    /* Trim trailing whitespace from title */
+    size_t len = strlen(title);
+    while (len > 0 && isspace((unsigned char)title[len - 1]))
+      len--;
+
+    /* Copy into structure */
+    cl_memnote_ex_value_t *entry = &ex->values[count];
+    entry->value = val;
+    strncpy(entry->title, title, len);
+    entry->title[len] = '\0';
+
+    cl_log("Value meaning for %u: %s\n", entry->value, entry->title);
+
+    count++;
+  }
+
+  /* Clear remaining entries */
+  for (; count < 64; count++)
+  {
+    ex->values[count].title[0] = '\0';
+    ex->values[count].value = 0;
+  }
+}
+#endif
+
+static cl_error cl_memory_init_note(cl_memnote_t *note)
+{
+  cl_counter_t counter;
+
+  cl_log("Memory note {%04u} - S: %u, P: %u, A: %08X",
+         note->key,
+         cl_sizeof_memtype(note->type),
+         note->pointer_passes,
+         note->address_initial);
+
+  if (note->pointer_passes > 0)
+  {
+    unsigned j;
+
+    for (j = 0; j < note->pointer_passes; j++)
+      cl_log(" + %u", note->pointer_offsets[j]);
+  }
+
+#if CL_HAVE_EDITOR
+  if (note->details.title[0] != '\0')
+    cl_log("\nTitle:\n%s", note->details.title);
+  if (note->details.description[0] != '\0')
+    cl_log("\nDescription:\n%s", note->details.description);
+  cl_memnote_ex_populate_values(&note->details);
+#endif
+
+  cl_log("\n");
+
+  /* Initialize the counters based on the data type of the note */
+  counter.floatval.fp = 0;
+  counter.intval.i64 = 0;
+  counter.type = note->type;
+  note->current = counter;
+  note->previous = counter;
+  note->last_unique = counter;
+
+  return CL_OK;
+}
+
 cl_error cl_memory_init_notes(void)
 {
   unsigned i;
@@ -205,41 +325,7 @@ cl_error cl_memory_init_notes(void)
     return CL_ERR_CLIENT_RUNTIME;
 
   for (i = 0; i < memory.note_count; i++)
-  {
-    cl_counter_t counter;
-    cl_memnote_t *note = &memory.notes[i];
-
-    cl_log("Memory note {%04u} - S: %u, P: %u, A: %08X",
-      note->key,
-      cl_sizeof_memtype(note->type),
-      note->pointer_passes,
-      note->address_initial);
-
-    if (note->pointer_passes > 0)
-    {
-      unsigned j;
-
-      for (j = 0; j < note->pointer_passes; j++)
-        cl_log(" + %u", note->pointer_offsets[j]);
-    }
-
-#if CL_HAVE_EDITOR
-    if (note->details.title[0] != '\0')
-      cl_log("\nTitle:\n%s", note->details.title);
-    if (note->details.description[0] != '\0')
-      cl_log("\nDescription:\n%s", note->details.description);
-#endif
-
-    cl_log("\n");
-
-    /* Initialize the counters based on the data type of the note */
-    counter.floatval.fp = 0;
-    counter.intval.i64 = 0;
-    counter.type = note->type;
-    note->current = counter;
-    note->previous = counter;
-    note->last_unique = counter;
-  }
+    cl_memory_init_note(&memory.notes[i]);
   cl_log("End of memory.\n");
 
   return CL_OK;

@@ -42,8 +42,15 @@ typedef struct
 
 typedef struct
 {
+  char title[64];
+  unsigned value;
+} cl_memnote_ex_value_t;
+
+typedef struct
+{
   char title[256];
   char description[2048];
+  cl_memnote_ex_value_t values[64];
 } cl_memnote_ex_t;
 
 typedef union
