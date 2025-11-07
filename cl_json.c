@@ -270,11 +270,30 @@ static int cl_json_array_index_count(void *userdata, unsigned index)
   return 0;
 }
 
+static void unescape(char *s)
+{
+  char *src = s;
+  char *dst = s;
+
+  while (*src)
+  {
+    if (src[0] == '\\' && src[1] == 'n')
+    {
+      *dst++ = '\n';
+      src += 2;
+    }
+    else
+      *dst++ = *src++;
+  }
+  *dst = '\0';
+}
+
 static void cl_json_strcpy(char *dst, size_t dstlen, const char *src,
   size_t srclen)
 {
   snprintf(dst, dstlen, "%s", src);
   dst[srclen] = '\0';
+  unescape(dst);
 }
 
 static bool cl_json_parse_offsets(cl_memnote_t *note, const char *string)
