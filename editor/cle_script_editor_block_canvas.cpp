@@ -178,9 +178,10 @@ void CleScriptEditorBlockCanvas::mousePressEvent(QMouseEvent *event)
 
     if (selectedSubAction)
     {
-      cl_action_t *action = new cl_action_t;
       cl_action_id type = static_cast<cl_action_id>(selectedSubAction->data().toInt());
+      cl_action_t* action = new cl_action_t;
 
+      memset(action, 0, sizeof(cl_action_t));
       action->type = type;
       addBlock(action, event->pos());
     }

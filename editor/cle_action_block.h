@@ -121,6 +121,13 @@ protected:
 
   cl_action_t *m_Action = nullptr;
   QHBoxLayout *m_Layout = nullptr;
+
+  /**
+   * Whether or not this object owns its associated action. If true, it should
+   * be freed if the block is deleted.
+   */
+  bool m_Owned = false;
+
   bool m_Selected = false;
   cle_block_snap m_SnapDirection = CLE_SNAP_NONE;
   QRect m_SnapZone;

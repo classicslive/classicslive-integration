@@ -52,13 +52,7 @@ void CleMemoryNotes::rebuild(void)
     QString type = QString::number(note->type);
     QString key  = QString::number(note->key);
     QString offsets;
-    QString title;
-
-#if CL_HAVE_EDITOR
-    title = note->details.title[0] ? note->details.title : "(No title)";
-#else
-    title = "(No title)";
-#endif
+    QString title = note->details.title[0] ? note->details.title : "(No title)";
 
     // Build offset string
     for (unsigned j = 0; j < note->pointer_passes; j++)

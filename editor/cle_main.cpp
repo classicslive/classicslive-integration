@@ -4,7 +4,7 @@
 
 /* these must last for the lifetime of the QApplication */
 static int app_argc = 1;
-static char app_name[] = "retroarch";
+static char app_name[] = "Live Editor";
 static char *app_argv[] = { app_name, nullptr };
 
 extern "C"

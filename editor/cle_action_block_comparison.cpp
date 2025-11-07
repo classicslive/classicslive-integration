@@ -59,6 +59,13 @@ CleActionBlockComparison::CleActionBlockComparison(cl_action_t *action,
   m_RightStack->addWidget(m_RightComboBox);
   m_Layout->addWidget(m_RightStack);
 
+  if (!m_Action->arguments)
+  {
+    m_Action->argument_count = 5;
+    m_Action->arguments = (cl_arg_t*)calloc(m_Action->argument_count, sizeof(cl_arg_t));
+    m_Owned = true;
+  }
+
   setLayout(m_Layout);
 }
 
