@@ -221,17 +221,22 @@ cle_result_t CleScriptEditorBlockCanvas::toString(void)
   else if (next->isEnd())
     return { "No actions enclosed in start and end points", false };
 
+  i = 1;
   do
   {
     /* Serialize this block */
     auto next_string = next->toString();
     if (!next_string.success)
+    {
+      next_string.text.prepend(QString("Error in action %1: ").arg(i));
       return next_string;
+    }
 
     string += "\n" + next_string.text;
     actionCount++;
 
     next = next->next();
+    i++;
 
     /* Sanity check: prevent infinite loops */
     if (actionCount > blocks.size())
