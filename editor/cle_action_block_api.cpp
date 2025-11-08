@@ -3,6 +3,7 @@
 extern "C"
 {
   #include "../cl_main.h"
+  #include "../cl_network.h"
 }
 
 #include <QCompleter>
@@ -97,7 +98,7 @@ void CleActionBlockApi::setAchievementIconByIndex(unsigned index)
 
   // Load from URL
   const cl_achievement_t *ach = &session.achievements[index];
-  QUrl url("http://classicslive.doggylongface.com/images/game_icon/9026eb2ec1298be33a7c18a2b13620f7.jpeg");
+  QUrl url(QString(CL_URL_SITE "/%1").arg(QString::fromUtf8(ach->icon_url)));
 
   // Make sure network manager exists
   static QNetworkAccessManager *manager = new QNetworkAccessManager(this);
