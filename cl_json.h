@@ -13,9 +13,9 @@ typedef enum
   CL_JSON_KEY_ID,
   CL_JSON_KEY_OFFSETS,
   CL_JSON_KEY_ORDER,
-  CL_JSON_KEY_UNLOCKED,
   CL_JSON_KEY_TITLE,
   CL_JSON_KEY_TYPE,
+  CL_JSON_KEY_UNLOCKED,
 
   CL_JSON_KEY_SIZE
 } cl_json_field;
@@ -36,60 +36,30 @@ typedef enum
   CL_JSON_TYPE_SIZE
 } cl_json_type;
 
-typedef enum
-{
-  CL_JSON_STATE_INVALID = 0,
+/**
+ * @brief Extracts a single value from a JSON document.
+ * @param data A pointer to a buffer that will be filled with the value.
+ * @param json The JSON text to parse.
+ * @param key The key of the value to extract.
+ * @param type The type of the value.
+ * @param size The size, in bytes, of the buffer to be written into.
+ * @return true if the value was successfully extracted; false otherwise.
+ */
+bool cl_json_get(void *data, const char *json, const char *key,
+  cl_json_type type, unsigned size);
 
-  CL_JSON_STATE_STARTING,
-  CL_JSON_STATE_KEY_FOUND,
-  CL_JSON_STATE_ARRAY_STARTED,
-  CL_JSON_STATE_ARRAY_ENDED,
-  CL_JSON_STATE_FINISHED,
-  CL_JSON_STATE_ERROR,
-
-  CL_JSON_STATE_SIZE
-} cl_json_state;
-
-typedef struct cl_json_t
-{
-  /** The buffer to write our value into */
-  void *data;
-
-  /** The JSON key that reperesents the value we want */
-  const char *key;
-
-  /** Internal; whether the currently processed JSON element is what we want */
-  bool is_current;
-
-  /** Internal; whether the currently processed JSON element is in an array */
-  unsigned array_level;
-
-  /** Internal; whether the currently processed JSON element is an object */
-  bool is_object;
-
-  /** Whether or not the requested element was copied into the buffer */
-  cl_json_state state;
-
-  /** The size, in bytes, of the buffer to be written into */
-  unsigned size;
-
-  /** The type of JSON data we are looking for */
-  cl_json_type type;
-
-  /** The current field when decoding an object */
-  cl_json_field field;
-
-  /** In array decoding, the index of the current element */
-  unsigned element_num;
-
-  /** In array decoding, the total number of elements */
-  unsigned element_count;
-} cl_json_t;
-
-bool cl_json_get(void *data, const char *json, const char *key, unsigned type,
-  unsigned size);
-
+/**
+ * @brief Extracts an array of elements from a JSON document.
+ * @param data A pointer to a buffer that will be allocated to hold the array.
+ *   The caller is responsible for freeing this buffer.
+ * @param elements A pointer to an unsigned that will be filled with the number
+ *   of elements in the array.
+ * @param json The JSON text to parse.
+ * @param key The key of the array to extract.
+ * @param type The type of elements in the array.
+ * @return true if the array was successfully extracted; false otherwise.
+ */
 bool cl_json_get_array(void **data, unsigned *elements, const char *json,
-  const char *key, unsigned type);
+  const char *key, cl_json_type type);
 
 #endif

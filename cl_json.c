@@ -7,6 +7,56 @@
 
 #include <stdio.h>
 
+typedef enum
+{
+  CL_JSON_STATE_INVALID = 0,
+
+  CL_JSON_STATE_STARTING,
+  CL_JSON_STATE_KEY_FOUND,
+  CL_JSON_STATE_ARRAY_STARTED,
+  CL_JSON_STATE_ARRAY_ENDED,
+  CL_JSON_STATE_FINISHED,
+  CL_JSON_STATE_ERROR,
+
+  CL_JSON_STATE_SIZE
+} cl_json_state;
+
+typedef struct cl_json_t
+{
+  /** The buffer to write our value into */
+  void *data;
+
+  /** The JSON key that reperesents the value we want */
+  const char *key;
+
+  /** Internal; whether the currently processed JSON element is what we want */
+  bool is_current;
+
+  /** Internal; whether the currently processed JSON element is in an array */
+  unsigned array_level;
+
+  /** Internal; whether the currently processed JSON element is an object */
+  bool is_object;
+
+  /** Whether or not the requested element was copied into the buffer */
+  cl_json_state state;
+
+  /** The size, in bytes, of the buffer to be written into */
+  unsigned size;
+
+  /** The type of JSON data we are looking for */
+  cl_json_type type;
+
+  /** The current field when decoding an object */
+  cl_json_field field;
+
+  /** In array decoding, the index of the current element */
+  unsigned element_num;
+
+  /** In array decoding, the total number of elements */
+  unsigned element_count;
+} cl_json_t;
+
 typedef struct cl_json_key_map_t
 {
   cl_json_field field;
@@ -277,10 +327,40 @@ static void unescape(char *s)
 
   while (*src)
   {
-    if (src[0] == '\\' && src[1] == 'n')
+    if (*src == '\\')
     {
-      *dst++ = '\n';
-      src += 2;
+      src++;
+      switch (*src)
+      {
+        case 'n': *dst++ = '\n'; break;
+        case 'r': *dst++ = '\r'; break;
+        case 't': *dst++ = '\t'; break;
+        case 'b': *dst++ = '\b'; break;
+        case 'f': *dst++ = '\f'; break;
+        case 'v': *dst++ = '\v'; break;
+        case 'a': *dst++ = '\a'; break;
+        case '\\': *dst++ = '\\'; break;
+        case '\'': *dst++ = '\''; break;
+        case '"': *dst++ = '"'; break;
+        case 'x':
+        {
+          src++;
+          int val = 0;
+          for (int i = 0; i < 2 && isxdigit((unsigned char)*src); i++, src++)
+          {
+            val = val * 16 + (isdigit(*src) ? *src - '0' :
+                              (tolower(*src) - 'a' + 10));
+          }
+          *dst++ = (char)val;
+          src--;
+          break;
+        }
+        default:
+          *dst++ = '\\';
+          *dst++ = *src;
+          break;
+      }
+      src++;
     }
     else
       *dst++ = *src++;
@@ -446,8 +526,8 @@ static int cl_json_string_array(void *userdata, const char *string,
   return 0;
 }
 
-bool cl_json_get(void *data, const char *json, const char *key, unsigned type,
-  unsigned size)
+bool cl_json_get(void *data, const char *json, const char *key,
+  cl_json_type type, unsigned size)
 {
   const jsonsax_handlers_t handlers =
   {
@@ -485,7 +565,7 @@ bool cl_json_get(void *data, const char *json, const char *key, unsigned type,
 }
 
 bool cl_json_get_array(void **data, unsigned *elements, const char *json,
-  const char *key, unsigned type)
+  const char *key, cl_json_type type)
 {
   /**
    * Do a first pass of the document to see how many elements are in the
