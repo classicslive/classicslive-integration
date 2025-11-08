@@ -113,11 +113,16 @@ static bool cl_act_post_achievement(cl_action_t *action)
                                              action->arguments[1].uintval);
   char data[CL_POST_DATA_SIZE];
 
+#if !CL_HAVE_EDITOR
   snprintf(data, CL_POST_DATA_SIZE, "ach_id=%lu", ach_id.intval.raw);
   cl_network_post_clint(CL_END_CLINT_ACHIEVEMENT, data, NULL, NULL);
 
   /* Clear this action so we don't re-submit the achievement */
   cl_free_action(action);
+#else
+  cl_message(CL_MSG_INFO, "Editor mode: Achievement %lu unlocked.",
+    ach_id.intval.raw);
+#endif
 
   return true;
 }
@@ -225,7 +230,7 @@ static bool cl_act_write(cl_action_t *action)
 /**
  * A template for command actions that only use one argument, for a counter
  * index that operates on itself.
- **/
+ */
 #define CL_TEMPLATE_CTR_UNARY \
   cl_counter_t *ctr = cl_get_mutable_value(CL_SRCTYPE_COUNTER, \
                                            action->arguments[0].uintval); \
@@ -237,7 +242,7 @@ static bool cl_act_write(cl_action_t *action)
 /**
  * A template for command actions that use one argument for a mutable counter
  * index and two for a compare value lookup.
- **/
+ */
 #define CL_TEMPLATE_CTR_BINARY \
   cl_counter_t *ctr = cl_get_mutable_value(CL_SRCTYPE_COUNTER, \
                                            action->arguments[0].uintval); \

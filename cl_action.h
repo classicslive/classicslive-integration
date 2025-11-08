@@ -35,6 +35,10 @@ typedef enum
   CL_ACTTYPE_POST_PROGRESS,
   CL_ACTTYPE_POST_POLL,
   CL_ACTTYPE_POST_INFO,
+
+  CL_ACTTYPE_ELSE,
+
+  CL_ACTTYPE_SIZE
 } cl_action_id;
 
 typedef struct
