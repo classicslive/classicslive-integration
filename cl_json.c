@@ -65,26 +65,65 @@ typedef struct cl_json_key_map_t
 
 static const cl_json_key_map_t cl_json_key_map[] =
 {
-  { CL_JSON_KEY_ADDRESS,     "address"     },
-  { CL_JSON_KEY_DESCRIPTION, "description" },
-  { CL_JSON_KEY_DETAILS,     "details"     },
-  { CL_JSON_KEY_FLAGS,       "flags"       },
-  { CL_JSON_KEY_ICON_URL,    "icon_url"    },
-  { CL_JSON_KEY_ID,          "id"          },
-  { CL_JSON_KEY_OFFSETS,     "offsets"     },
-  { CL_JSON_KEY_ORDER,       "order"       },
-  { CL_JSON_KEY_UNLOCKED,    "unlocked"    },
-  { CL_JSON_KEY_TITLE,       "title"       },
-  { CL_JSON_KEY_TYPE,        "type"        },
+  { CL_JSON_KEY_ACHIEVEMENTS,   "achievements"   },
+  { CL_JSON_KEY_ADDRESS,        "address"        },
+  { CL_JSON_KEY_DESCRIPTION,    "description"    },
+  { CL_JSON_KEY_DETAILS,        "details"        },
+  { CL_JSON_KEY_ENDIANNESS,     "endianness"     },
+  { CL_JSON_KEY_FLAGS,          "flags"          },
+  { CL_JSON_KEY_GAME_ID,        "game_id"        },
+  { CL_JSON_KEY_ICON_URL,       "icon_url"       },
+  { CL_JSON_KEY_ID,             "id"             },
+  { CL_JSON_KEY_LEADERBOARDS,   "leaderboards"   },
+  { CL_JSON_KEY_MEMORY_NOTE_ID, "memory_note_id" },
+  { CL_JSON_KEY_MEMORY_NOTES,   "memory_notes"   },
+  { CL_JSON_KEY_OFFSETS,        "offsets"        },
+  { CL_JSON_KEY_ORDER,          "order"          },
+  { CL_JSON_KEY_POINTER_SIZE,   "pointer_size"   },
+  { CL_JSON_KEY_REASON,         "reason"         },
+  { CL_JSON_KEY_SCRIPT,         "script"         },
+  { CL_JSON_KEY_SESSION_ID,     "session_id"     },
+  { CL_JSON_KEY_SUCCESS,        "success"        },
+  { CL_JSON_KEY_TITLE,          "title"          },
+  { CL_JSON_KEY_TYPE,           "type"           },
+  { CL_JSON_KEY_UNLOCKED,       "unlocked"       },
 
-  { CL_JSON_KEY_NONE,        NULL          }
+  { CL_JSON_KEY_NONE,           NULL             }
 };
+
+static const char *cl_json_key_name(cl_json_field field)
+{
+  const cl_json_key_map_t *map;
+
+  for (map = cl_json_key_map; map->name != NULL; map++)
+  {
+    if (map->field == field)
+      return map->name;
+  }
+
+  return NULL;
+}
+
+static cl_json_field cl_json_key_field(const char *name, size_t length)
+{
+  const cl_json_key_map_t *map;
+
+  for (map = cl_json_key_map; map->name != NULL; map++)
+  {
+    if (!strncmp(map->name, name, length))
+      return map->field;
+  }
+
+  return CL_JSON_KEY_NONE;
+}
 
 static int cl_json_key(void *userdata, const char *name, size_t length)
 {
   cl_json_t *ud = (cl_json_t*)userdata;
 
-  if (ud->state != CL_JSON_STATE_FINISHED && !ud->array_level && !ud->is_object)
+  if (ud->state != CL_JSON_STATE_FINISHED &&
+      !ud->array_level &&
+      !ud->is_object)
   {
     ud->is_current = !strncmp(ud->key, name, length);
     if (ud->is_current)
@@ -99,18 +138,7 @@ static int cl_json_key_array(void *userdata, const char *name, size_t length)
   cl_json_t *ud = (cl_json_t*)userdata;
 
   if (ud->state == CL_JSON_STATE_ARRAY_STARTED)
-  {
-    const cl_json_key_map_t *map;
-
-    for (map = cl_json_key_map; map->name != NULL; map++)
-    {
-      if (!strncmp(map->name, name, length))
-      {
-        ud->field = map->field;
-        break;
-      }
-    }
-  }
+    ud->field = cl_json_key_field(name, length);
   else if (ud->state != CL_JSON_STATE_FINISHED)
   {
     ud->is_current = !strncmp(ud->key, name, length);
@@ -526,7 +554,7 @@ static int cl_json_string_array(void *userdata, const char *string,
   return 0;
 }
 
-bool cl_json_get(void *data, const char *json, const char *key,
+bool cl_json_get(void *data, const char *json, cl_json_field key,
   cl_json_type type, unsigned size)
 {
   const jsonsax_handlers_t handlers =
@@ -553,7 +581,7 @@ bool cl_json_get(void *data, const char *json, const char *key,
   value.is_current = false;
   value.field = CL_JSON_KEY_NONE;
   value.state = CL_JSON_STATE_STARTING;
-  value.key = key;
+  value.key = cl_json_key_name(key);
   value.size = size;
   value.type = type;
 
@@ -565,7 +593,7 @@ bool cl_json_get(void *data, const char *json, const char *key,
 }
 
 bool cl_json_get_array(void **data, unsigned *elements, const char *json,
-  const char *key, cl_json_type type)
+  cl_json_field key, cl_json_type type)
 {
   /**
    * Do a first pass of the document to see how many elements are in the
@@ -609,7 +637,7 @@ bool cl_json_get_array(void **data, unsigned *elements, const char *json,
   value.element_num = 0;
   value.field = CL_JSON_KEY_NONE;
   value.is_current = false;
-  value.key = key;
+  value.key = cl_json_key_name(key);
   value.size = 0;
   value.state = CL_JSON_STATE_STARTING;
   value.type = type;
@@ -646,7 +674,7 @@ bool cl_json_get_array(void **data, unsigned *elements, const char *json,
   value.element_num = 0;
   value.field = CL_JSON_KEY_NONE;
   value.is_current = false;
-  value.key = key;
+  value.key = cl_json_key_name(key);
   value.size = 0;
   value.state = CL_JSON_STATE_STARTING;
   value.type = type;

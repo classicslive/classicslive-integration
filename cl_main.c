@@ -25,21 +25,21 @@ static cl_error cl_init_session(const char* json)
   unsigned misc, i;
 
   /* Get game info */
-  if (cl_json_get(&session.game_title, json, "title",
+  if (cl_json_get(&session.game_title, json, CL_JSON_KEY_TITLE,
                   CL_JSON_TYPE_STRING, sizeof(session.game_title)))
     cl_message(CL_MSG_INFO, "Game title: %s\n", session.game_title);
-  if (cl_json_get(&misc, json, "game_id",
+  if (cl_json_get(&misc, json, CL_JSON_KEY_GAME_ID,
                   CL_JSON_TYPE_NUMBER, sizeof(misc)))
     session.game_id = misc;
 
   /* Get default endianness of memory regions */
-  if (cl_json_get(&misc, json, "endianness",
+  if (cl_json_get(&misc, json, CL_JSON_KEY_ENDIANNESS,
                   CL_JSON_TYPE_NUMBER, sizeof(misc)))
     for (i = 0; i < memory.region_count; i++)
       memory.regions[i].endianness = misc;
 
   /* Get default pointer length of memory regions */
-  if (cl_json_get(&misc, json, "pointer_size",
+  if (cl_json_get(&misc, json, CL_JSON_KEY_POINTER_SIZE,
                   CL_JSON_TYPE_NUMBER, sizeof(misc)))
     for (i = 0; i < memory.region_count; i++)
       memory.regions[i].pointer_length = misc;
@@ -49,25 +49,25 @@ static cl_error cl_init_session(const char* json)
 
   /* Get memory notes */
   cl_json_get_array((void**)&memory.notes, &memory.note_count,
-    json, "memory_notes", CL_JSON_TYPE_MEMORY_NOTE);
+    json, CL_JSON_KEY_MEMORY_NOTES, CL_JSON_TYPE_MEMORY_NOTE);
   cl_memory_init_notes();
 
   /* Get script */
-  iterator = &script_str[0];
-  if (cl_json_get(script_str, json, "script", CL_JSON_TYPE_STRING, sizeof(script_str)))
-  {
-    if (!cl_script_init(&iterator))
-    {
-      cl_message(CL_MSG_ERROR, "Failed to initialize CL script.");
-      return CL_ERR_SERVER;
-    }
+  //iterator = &script_str[0];
+  //if (cl_json_get(script_str, json, CL_JSON_KEY_SCRIPT, CL_JSON_TYPE_STRING, sizeof(script_str)))
+  //{
+  //  if (!cl_script_init(&iterator))
+  //  {
+  //    cl_message(CL_MSG_ERROR, "Failed to initialize CL script.");
+  //    return CL_ERR_SERVER;
+  //  }
 
     cl_json_get_array((void**)&session.achievements, &session.achievement_count,
-      json, "achievements", CL_JSON_TYPE_ACHIEVEMENT);
+      json, CL_JSON_KEY_ACHIEVEMENTS, CL_JSON_TYPE_ACHIEVEMENT);
 
     cl_json_get_array((void**)&session.leaderboards, &session.leaderboard_count,
-      json, "leaderboards", CL_JSON_TYPE_LEADERBOARD);
-  }
+      json, CL_JSON_KEY_LEADERBOARDS, CL_JSON_TYPE_LEADERBOARD);
+  //}
 
   return CL_OK;
 }
@@ -153,7 +153,7 @@ static CL_NETWORK_CB(cl_login_cb)
   {
     unsigned char success;
 
-    if (!cl_json_get(&success, response.data, "success",
+    if (!cl_json_get(&success, response.data, CL_JSON_KEY_SUCCESS,
         CL_JSON_TYPE_BOOLEAN, 0))
     {
       cl_log("Malformed JSON output on login.\n%s", response.data);
@@ -162,7 +162,7 @@ static CL_NETWORK_CB(cl_login_cb)
     else if (!success)
       return;
 
-    if (cl_json_get(session.id, response.data, "session_id",
+    if (cl_json_get(session.id, response.data, CL_JSON_KEY_SESSION_ID,
         CL_JSON_TYPE_STRING, sizeof(session.id)))
       session.state = CL_SESSION_LOGGED_IN;
   }

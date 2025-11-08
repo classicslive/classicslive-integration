@@ -5,14 +5,25 @@ typedef enum
 {
   CL_JSON_KEY_NONE = 0,
 
+  CL_JSON_KEY_ACHIEVEMENTS,
   CL_JSON_KEY_ADDRESS,
   CL_JSON_KEY_DESCRIPTION,
   CL_JSON_KEY_DETAILS,
+  CL_JSON_KEY_ENDIANNESS,
   CL_JSON_KEY_FLAGS,
+  CL_JSON_KEY_GAME_ID,
   CL_JSON_KEY_ICON_URL,
   CL_JSON_KEY_ID,
+  CL_JSON_KEY_LEADERBOARDS,
+  CL_JSON_KEY_MEMORY_NOTES,
+  CL_JSON_KEY_MEMORY_NOTE_ID,
   CL_JSON_KEY_OFFSETS,
   CL_JSON_KEY_ORDER,
+  CL_JSON_KEY_POINTER_SIZE,
+  CL_JSON_KEY_REASON,
+  CL_JSON_KEY_SCRIPT,
+  CL_JSON_KEY_SESSION_ID,
+  CL_JSON_KEY_SUCCESS,
   CL_JSON_KEY_TITLE,
   CL_JSON_KEY_TYPE,
   CL_JSON_KEY_UNLOCKED,
@@ -45,7 +56,7 @@ typedef enum
  * @param size The size, in bytes, of the buffer to be written into.
  * @return true if the value was successfully extracted; false otherwise.
  */
-bool cl_json_get(void *data, const char *json, const char *key,
+bool cl_json_get(void *data, const char *json, cl_json_field key,
   cl_json_type type, unsigned size);
 
 /**
@@ -60,6 +71,6 @@ bool cl_json_get(void *data, const char *json, const char *key,
  * @return true if the array was successfully extracted; false otherwise.
  */
 bool cl_json_get_array(void **data, unsigned *elements, const char *json,
-  const char *key, cl_json_type type);
+  cl_json_field key, cl_json_type type);
 
 #endif

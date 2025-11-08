@@ -14,7 +14,7 @@ static CL_NETWORK_CB(cle_memory_note_add_cb)
   {
     unsigned memory_note_id;
 
-    if (cl_json_get(&memory_note_id, response.data, "memory_note_id",
+    if (cl_json_get(&memory_note_id, response.data, CL_JSON_KEY_MEMORY_NOTE_ID,
                     CL_JSON_TYPE_NUMBER, sizeof(memory_note_id)))
     {
       cl_memnote_t *note = (cl_memnote_t*)userdata;
