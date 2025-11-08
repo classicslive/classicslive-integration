@@ -196,10 +196,10 @@ void CleScriptEditorBlockCanvas::paintEvent(QPaintEvent *event)
 
 cle_result_t CleScriptEditorBlockCanvas::toString(void)
 {
-  const QString error = "0";
   CleActionBlock *next = nullptr;
   CleActionBlock *start = nullptr;
-  QString string = QString::number(1, 16);
+  QString string;
+  unsigned actionCount = 0;
   unsigned i;
 
   /* Find our starting point */
@@ -215,29 +215,36 @@ cle_result_t CleScriptEditorBlockCanvas::toString(void)
     return { "Unable to find start point", false };
 
   /* Iterate through all blocks after the starting bookend */
-  i = 0;
   next = start->next();
   if (!next)
     return { "No actions follow the start point", false };
   else if (next->isEnd())
     return { "No actions enclosed in start and end points", false };
-  else do
-  {
-    auto next_string = next->toString();
 
-    if (next_string.success)
-      string += "\n" + next->toString().text;
-    else
+  do
+  {
+    /* Serialize this block */
+    auto next_string = next->toString();
+    if (!next_string.success)
       return next_string;
+
+    string += "\n" + next_string.text;
+    actionCount++;
+
     next = next->next();
-    i++;
-    if (i > blocks.size())
+
+    /* Sanity check: prevent infinite loops */
+    if (actionCount > blocks.size())
       return { "Possible infinite recursion error", false };
   } while (next && !next->isEnd());
 
   /* Return final string only if the code block was closed with a bookend */
-  if (next->isEnd())
-    return { string, true };
-  else
+  if (!next || !next->isEnd())
     return { "Unable to find end point", false };
+
+  /* Prepend number of pages and number of actions on the page */
+  QString header = QString("%1\n%2").arg(1).arg(actionCount);  /** @todo Only 1 page for now */
+  string = header + string;
+
+  return { string, true };
 }
