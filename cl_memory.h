@@ -267,7 +267,7 @@ unsigned cl_read_memory_external(void *value, const cl_memory_region_t *bank,
  * @param type A type of memory value. For example, CL_MEMTYPE_8BIT.
  * @return The number of bytes the memory type takes up, or 0 if invalid.
  **/
-unsigned cl_sizeof_memtype(const unsigned type);
+unsigned cl_sizeof_memtype(const cl_value_type type);
 
 /**
  * Steps through all memory notes and updates their values. Should be called 

@@ -380,7 +380,7 @@ unsigned cl_read_memory_external(void *value, const cl_memory_region_t *bank,
 }
 #endif
 
-unsigned cl_sizeof_memtype(const unsigned type)
+unsigned cl_sizeof_memtype(const cl_value_type type)
 {
   switch (type)
   {
@@ -397,9 +397,11 @@ unsigned cl_sizeof_memtype(const unsigned type)
   case CL_MEMTYPE_INT64:
   case CL_MEMTYPE_DOUBLE:
     return 8;
+  default:
+    /* Should not be reached */
+    cl_message(CL_MSG_ERROR, "%s bad value %u", __FUNCTION__, type);
+    return 0;
   }
-
-  return 0;
 }
 
 /**
