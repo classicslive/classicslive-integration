@@ -508,7 +508,7 @@ bool cl_pointersearch_init(cl_pointersearch_t *search,
     cl_memory_region_t *region;
     cl_pointerresult_t *result;
     cl_addr_t target;
-    uint32_t current_match, matches, prev_value, value;
+    uint32_t matches, prev_value, value;
     bool exact_only;
     uint32_t i, j;
 

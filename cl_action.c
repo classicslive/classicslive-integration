@@ -111,9 +111,9 @@ static bool cl_act_post_achievement(cl_action_t *action)
 {
   cl_counter_t ach_id = cl_get_compare_value(action->arguments[0].uintval,
                                              action->arguments[1].uintval);
+#if !CL_HAVE_EDITOR
   char data[CL_POST_DATA_SIZE];
 
-#if !CL_HAVE_EDITOR
   snprintf(data, CL_POST_DATA_SIZE, "ach_id=%lu", ach_id.intval.raw);
   cl_network_post_clint(CL_END_CLINT_ACHIEVEMENT, data, NULL, NULL);
 
