@@ -168,8 +168,9 @@ bool cl_init_membanks_libretro(const struct retro_memory_descriptor **descs,
     region->base_guest = desc->start;
     region->base_host = desc->ptr;
     region->endianness = desc->flags & RETRO_MEMDESC_BIGENDIAN ?
-                                     CL_ENDIAN_BIG : CL_ENDIAN_LITTLE;
-    region->flags = (cl_memory_region_flags){ .bits.read=1, .bits.write=1 };
+      CL_ENDIAN_BIG : CL_ENDIAN_LITTLE;
+    region->flags.bits.read = 1;
+    region->flags.bits.write = desc->flags & RETRO_MEMDESC_CONST ? 0 : 1;
     /**
      * @todo Is there a commonly used libretro flag for this? Not a huge deal
      * since this gets overwritten by the server later
@@ -179,11 +180,10 @@ bool cl_init_membanks_libretro(const struct retro_memory_descriptor **descs,
 
     /* Setup the title of the memory bank */
     if (desc->addrspace)
-      snprintf(region->title, sizeof(region->title),
-            "%s", desc->addrspace);
+      snprintf(region->title, sizeof(region->title), "%s", desc->addrspace);
     else
-      snprintf(region->title, sizeof(region->title),
-            "Memory bank %u/%u", i + 1, memory.region_count);
+      snprintf(region->title, sizeof(region->title), "Memory bank %u/%u",
+               i + 1, memory.region_count);
   }
 
   cl_sort_memory_regions(memory.regions, memory.region_count);
