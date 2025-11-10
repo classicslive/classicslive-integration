@@ -60,7 +60,7 @@ static cl_error cl_init_session(const char* json)
     {
       cl_message(CL_MSG_ERROR, "Failed to initialize CL script.");
 #if !CL_HAVE_EDITOR
-      return CL_ERR_SERVER;
+      return CL_ERR_SERVER_UNEXPECTED_RESPONSE;
 #endif
     }
 
@@ -72,7 +72,7 @@ static cl_error cl_init_session(const char* json)
   }
 #if !CL_HAVE_EDITOR
   else
-    return CL_ERR_SERVER;
+    return CL_ERR_SERVER_UNEXPECTED_RESPONSE;
 #endif
 
   return CL_OK;

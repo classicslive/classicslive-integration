@@ -75,16 +75,51 @@ typedef enum
 
 typedef struct
 {
+  /** The type of game identifier being used. */
   cl_game_identifer_type type;
 
+  /**
+   * The name of the emulator library or game being launched.
+   * Required in all cases.
+   */
   const char *library;
+
+  /**
+   * The filename of the game content.
+   * Required in all cases.
+   */
   const char *filename;
 
+  /**
+   * A pointer to game data to be checksummed.
+   * Required when using CL_GAMEIDENTIFIER_FILE_HASH.
+   */
   void *data;
+
+  /**
+   * The size, in bytes, of the game data to be checksummed.
+   * Required when using CL_GAMEIDENTIFIER_FILE_HASH.
+   */
   unsigned size;
+
+  /**
+   * The MD5 checksum of the game data.
+   * Required when using CL_GAMEIDENTIFIER_FILE_HASH.
+   */
   char checksum[64];
 
+  /**
+   * When using CL_GAMEIDENTIFIER_PRODUCT_CODE, the product code.
+   * Required when using CL_GAMEIDENTIFIER_PRODUCT_CODE.
+   * The exact format depends on the platform.
+   */
   char product[32];
+
+  /**
+   * When using CL_GAMEIDENTIFIER_PRODUCT_CODE, the version string.
+   * Required when using CL_GAMEIDENTIFIER_PRODUCT_CODE, optional otherwise.
+   * The exact format depends on the platform.
+   */
   char version[32];
 } cl_game_identifier_t;
 
@@ -96,7 +131,8 @@ typedef struct
 } cl_network_response_t;
 
 typedef void (*cl_network_cb_t)(const cl_network_response_t, void*);
-#define CL_NETWORK_CB(name) void name(const cl_network_response_t response, void *userdata)
+#define CL_NETWORK_CB(name) \
+  void name(const cl_network_response_t response, void *userdata)
 
 typedef union cl_session_flags_t
 {
