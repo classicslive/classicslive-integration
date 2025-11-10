@@ -8,7 +8,7 @@
 
 static char generic_post_data[CL_POST_DATA_SIZE];
 
-static bool cl_update_generic_post_data(void)
+static cl_error cl_update_generic_post_data(void)
 {
   cl_counter_t value;
   unsigned i;
@@ -32,16 +32,16 @@ static bool cl_update_generic_post_data(void)
             snprintf(generic_post_data, sizeof(generic_post_data), "%s&m%u=%f",
               generic_post_data, note->key, value.floatval.fp);
           else
-            snprintf(generic_post_data, sizeof(generic_post_data), "%s&m%u=%lli",
+            snprintf(generic_post_data, sizeof(generic_post_data), "%s&m%u=%li",
               generic_post_data, note->key, value.intval.i64);
         }
         else
-          return false;
+          return CL_ERR_CLIENT_RUNTIME;
       }
     }
   }
 
-  return true;
+  return CL_OK;
 }
 
 static CL_NETWORK_CB(cl_default_network_cb)
@@ -72,7 +72,6 @@ static void cl_network_post_internal(const char *url, const char *endpoint,
     if (post_data)
       snprintf(generic_post_data, sizeof(generic_post_data), "%s&%s",
         generic_post_data, post_data);
-
     cl_log("cl_network_post:\nPOST: %s\n", generic_post_data);
 
     /* Apply default callback if none is specified */
