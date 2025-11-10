@@ -6,11 +6,12 @@
 #include <libretro.h>
 #endif
 
+#include <stdio.h>
+
 #if CL_HAVE_EDITOR
 #include <string.h>
 #include <ctype.h>
 #include <stdlib.h>
-#include <stdio.h>
 #endif
 
 cl_memory_t memory;
