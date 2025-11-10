@@ -53,27 +53,34 @@ static cl_error cl_init_session(const char* json)
   cl_memory_init_notes();
 
   /* Get script */
-  //iterator = &script_str[0];
-  //if (cl_json_get(script_str, json, CL_JSON_KEY_SCRIPT, CL_JSON_TYPE_STRING, sizeof(script_str)))
-  //{
-  //  if (!cl_script_init(&iterator))
-  //  {
-  //    cl_message(CL_MSG_ERROR, "Failed to initialize CL script.");
-  //    return CL_ERR_SERVER;
-  //  }
+  iterator = &script_str[0];
+  if (cl_json_get(script_str, json, CL_JSON_KEY_SCRIPT, CL_JSON_TYPE_STRING, sizeof(script_str)))
+  {
+    if (!cl_script_init(&iterator))
+    {
+      cl_message(CL_MSG_ERROR, "Failed to initialize CL script.");
+#if !CL_HAVE_EDITOR
+      return CL_ERR_SERVER;
+#endif
+    }
 
     cl_json_get_array((void**)&session.achievements, &session.achievement_count,
       json, CL_JSON_KEY_ACHIEVEMENTS, CL_JSON_TYPE_ACHIEVEMENT);
 
     cl_json_get_array((void**)&session.leaderboards, &session.leaderboard_count,
       json, CL_JSON_KEY_LEADERBOARDS, CL_JSON_TYPE_LEADERBOARD);
-  //}
+  }
+#if !CL_HAVE_EDITOR
+  else
+    return CL_ERR_SERVER;
+#endif
 
   return CL_OK;
 }
 
 static CL_NETWORK_CB(cl_start_cb)
 {
+  CL_UNUSED(userdata);
   if (response.error_code || cl_init_session(response.data) != CL_OK)
   {
     session.state = CL_SESSION_LOGGED_IN;
