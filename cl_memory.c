@@ -9,6 +9,7 @@
 #include <stdio.h>
 
 #if CL_HAVE_EDITOR
+#include "cl_frontend.h"
 #include <string.h>
 #include <ctype.h>
 #include <stdlib.h>
