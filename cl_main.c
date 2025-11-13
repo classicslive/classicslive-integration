@@ -144,6 +144,7 @@ cl_error cl_start(cl_game_identifier_t identifier)
         return CL_ERR_CLIENT_RUNTIME;
       }
     }
+    session.identifier = identifier;
     session.state = CL_SESSION_STARTING;
     cl_network_post_clint(CL_END_CLINT_START, post_data, cl_start_cb, NULL);
 
@@ -252,12 +253,19 @@ cl_error cl_login_and_start(cl_game_identifier_t identifier)
   {
     session.identifier = identifier;
 #if CL_HAVE_FILESYSTEM
-    strncpy(session.content_name, path_basename(identifier.filename),
-            sizeof(session.content_name) - 1);
+    if (identifier.filename)
+      strncpy(session.content_name, path_basename(identifier.filename),
+              sizeof(session.content_name) - 1);
 #endif
-    cl_identify(identifier.data, identifier.size, identifier.filename,
-                cl_fe_library_name(), session.identifier.checksum,
-                cl_login_and_start_cb_1);
+    if (identifier.type == CL_GAMEIDENTIFIER_FILE_HASH)
+      cl_identify(identifier.data, identifier.size, identifier.filename,
+                  cl_fe_library_name(), session.identifier.checksum,
+                  cl_login_and_start_cb_1);
+    else if (identifier.type == CL_GAMEIDENTIFIER_PRODUCT_CODE)
+      cl_login_internal(cl_login_and_start_cb_2);
+    else
+      return CL_ERR_CLIENT_RUNTIME;
+
     return CL_OK;
   }
   else
