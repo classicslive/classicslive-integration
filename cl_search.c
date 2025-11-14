@@ -40,6 +40,9 @@ bool cl_search_free(cl_search_t *search)
     {
       free(search->searchbanks[i].backup);
       free(search->searchbanks[i].valid);
+#if CL_EXTERNAL_MEMORY
+      free(search->searchbanks[i].region->base_host);
+#endif
     }
     free(search->searchbanks);
 
@@ -70,6 +73,9 @@ bool cl_search_init(cl_search_t *search)
 
       sbank->any_valid = true;
       sbank->region = &memory.regions[i];
+#if CL_EXTERNAL_MEMORY
+      sbank->region->base_host = malloc(memory.regions[i].size);
+#endif
       sbank->backup = (uint8_t*)malloc(memory.regions[i].size);
       sbank->valid = (uint8_t*)malloc(memory.regions[i].size);
     }
