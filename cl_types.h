@@ -88,7 +88,7 @@ typedef struct
    * The filename of the game content.
    * Required in all cases.
    */
-  const char *filename;
+  char filename[256];
 
   /**
    * A pointer to game data to be checksummed.
@@ -180,7 +180,6 @@ typedef enum
 typedef struct cl_session_t
 {
   char checksum[64];
-  char content_name[256];
   unsigned game_id;
   char game_title[256];
   char generic_post[2048];

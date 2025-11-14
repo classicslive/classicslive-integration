@@ -107,7 +107,7 @@ cl_error cl_start(cl_game_identifier_t identifier)
     post_data[0] = '\0';
     snprintf(post_data, sizeof(post_data),
              "session_id=%s&library=%s&filename=%s",
-             session.id, cl_fe_library_name(), session.content_name);
+             session.id, cl_fe_library_name(), identifier.filename);
 
     if (identifier.type == CL_GAMEIDENTIFIER_FILE_HASH)
     {
@@ -252,11 +252,6 @@ cl_error cl_login_and_start(cl_game_identifier_t identifier)
   if (session.state == CL_SESSION_NONE)
   {
     session.identifier = identifier;
-#if CL_HAVE_FILESYSTEM
-    if (identifier.filename)
-      strncpy(session.content_name, path_basename(identifier.filename),
-              sizeof(session.content_name) - 1);
-#endif
     if (identifier.type == CL_GAMEIDENTIFIER_FILE_HASH)
       cl_identify(identifier.data, identifier.size, identifier.filename,
                   cl_fe_library_name(), session.identifier.checksum,
