@@ -71,11 +71,15 @@ CleActionBlock *CleScriptEditorBlockCanvas::addBlock(cl_action_t *action,
   switch (action->type)
   {
   case CL_ACTTYPE_ADDITION:
-  case CL_ACTTYPE_SUBTRACTION:
-  case CL_ACTTYPE_MULTIPLICATION:
-  case CL_ACTTYPE_DIVISION:
   case CL_ACTTYPE_AND:
+  case CL_ACTTYPE_DIVISION:
+  case CL_ACTTYPE_MODULO:
+  case CL_ACTTYPE_MULTIPLICATION:
   case CL_ACTTYPE_OR:
+  case CL_ACTTYPE_SET:
+  case CL_ACTTYPE_SHIFT_LEFT:
+  case CL_ACTTYPE_SHIFT_RIGHT:
+  case CL_ACTTYPE_SUBTRACTION:
   case CL_ACTTYPE_XOR:
     block = new CleActionBlockCtrBinary(action, this);
     break;
@@ -91,7 +95,7 @@ CleActionBlock *CleScriptEditorBlockCanvas::addBlock(cl_action_t *action,
   case CL_ACTTYPE_COMPARE:
     block = new CleActionBlockComparison(action, this);
     break;
-  default:
+  case CL_ACTTYPE_NO_PROCESS:
     block = new CleActionBlockNop(action, this);
   }
   if (block)

@@ -37,15 +37,18 @@ static cl_error cl_print_counter_values(char *buffer, unsigned len)
   if (!buffer || len == 0)
     return CL_ERR_CLIENT_RUNTIME;
 
-  buffer[0] = '\0';
-
   for (i = 0; i < CL_COUNTERS_SIZE; i++)
   {
     counter = &script.current_page->counters[i];
 
     /* Get counter value to temporary buffer */
-    snprintf(counter_buffer, sizeof(counter_buffer), "&c%u=%lu",
-             i, counter->intval.raw);
+    if (counter->type == CL_MEMTYPE_FLOAT ||
+        counter->type == CL_MEMTYPE_DOUBLE)
+      snprintf(counter_buffer, sizeof(counter_buffer), "&c%u=%f",
+               i, counter->floatval.fp);
+    else
+      snprintf(counter_buffer, sizeof(counter_buffer), "&c%u=%lu",
+               i, counter->intval.raw);
 
     /* Check destination buffer can hold it */
     current_len = strlen(buffer);
@@ -327,6 +330,15 @@ static bool cl_act_bitwise_xor(cl_action_t *action)
   }
 }
 
+static bool cl_act_set(cl_action_t *action)
+{
+  CL_TEMPLATE_CTR_BINARY
+  {
+    *ctr = src;
+    return true;
+  }
+}
+
 static bool cl_act_shift_left(cl_action_t *action)
 {
   CL_TEMPLATE_CTR_BINARY
@@ -402,6 +414,7 @@ static const cl_acttype_t action_types[] =
   { CL_ACTTYPE_MULTIPLICATION, false, 3, 3, 0, cl_act_multiplication },
   { CL_ACTTYPE_DIVISION,       false, 3, 3, 0, cl_act_division },
   { CL_ACTTYPE_MODULO,         false, 3, 3, 0, cl_act_modulo },
+  { CL_ACTTYPE_SET,            false, 3, 3, 0, cl_act_set },
 
   /* Counter bitwise arithmetic */
   { CL_ACTTYPE_AND,         false, 3, 3, 0, cl_act_bitwise_and },

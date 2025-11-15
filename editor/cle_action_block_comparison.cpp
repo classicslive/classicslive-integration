@@ -231,9 +231,9 @@ cle_result_t CleActionBlockComparison::toString(void)
     .arg(type(), 0, CL_RADIX)
     .arg(m_LeftType->currentData().toUInt(), 0, CL_RADIX)
     .arg(m_LeftComboBox->currentData().toUInt(), 0, CL_RADIX)
-    .arg(m_ComparisonType->currentData().toUInt(), 0, CL_RADIX)
     .arg(m_RightType->currentData().toUInt(), 0, CL_RADIX)
-    .arg(rightValue(), 0, CL_RADIX);
+    .arg(rightValue(), 0, CL_RADIX)
+    .arg(m_ComparisonType->currentData().toUInt(), 0, CL_RADIX);
 
   return { string, true };
 }

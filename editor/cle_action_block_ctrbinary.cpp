@@ -117,6 +117,10 @@ void CleActionBlockCtrBinary::setType(cl_action_id type)
     m_LabelA->setText("Right shift counter");
     m_LabelB->setText("by");
     break;
+  case CL_ACTTYPE_SET:
+    m_LabelA->setText("Set counter");
+    m_LabelB->setText("to");
+    break;
   default:
     m_LabelA->setText("Invalid ctrbinary action " + QString::number(type));
   }

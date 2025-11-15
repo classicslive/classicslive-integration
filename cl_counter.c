@@ -15,7 +15,7 @@ bool cl_ctr_is_float(const cl_counter_t *counter)
     return false;
 }
 
-bool cl_ctr_store(cl_counter_t *counter, const void *src, unsigned type)
+bool cl_ctr_store(cl_counter_t *counter, const void *src, cl_value_type type)
 {
   switch (type)
   {
@@ -56,7 +56,7 @@ bool cl_ctr_store_float(cl_counter_t *counter, double value)
 {
   counter->intval.i64 = (int64_t)value;
   counter->floatval.fp = value;
-  /** @todo Can we add this back? counter->type = CL_MEMTYPE_DOUBLE; */
+  counter->type = CL_MEMTYPE_DOUBLE;
 
   return true;
 }
@@ -251,7 +251,7 @@ bool cl_ctr_modulo(cl_counter_t *left, const cl_counter_t *right)
 }
 
 /* TODO */
-bool cl_ctr_change_type(cl_counter_t *counter, unsigned type)
+bool cl_ctr_change_type(cl_counter_t *counter, cl_value_type type)
 {
   counter->type = type;
 

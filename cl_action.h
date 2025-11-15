@@ -12,6 +12,7 @@ typedef enum
   CL_ACTTYPE_SUBTRACTION,
   CL_ACTTYPE_MULTIPLICATION,
   CL_ACTTYPE_DIVISION,
+  CL_ACTTYPE_SET,
   CL_ACTTYPE_MODULO,
 
   /* Counter bitwise arithmetic */

@@ -1,7 +1,7 @@
 #ifndef CL_COUNTER_H
 #define CL_COUNTER_H
 
-#include "cl_types.h"
+#include "cl_common.h"
 
 typedef struct cl_counter_t
 {
@@ -15,10 +15,10 @@ typedef struct cl_counter_t
     double fp;
     uint64_t raw;
   } floatval;
-  unsigned type;
+  cl_value_type type;
 } cl_counter_t;
 
-bool cl_ctr_store(cl_counter_t *counter, const void *src, unsigned type);
+bool cl_ctr_store(cl_counter_t *counter, const void *src, cl_value_type type);
 bool cl_ctr_store_int(cl_counter_t *counter, int64_t value);
 bool cl_ctr_store_float(cl_counter_t *counter, double value);
 
@@ -69,6 +69,6 @@ bool cl_ctr_multiply(cl_counter_t *left, const cl_counter_t *right);
 bool cl_ctr_divide(cl_counter_t *left, const cl_counter_t *right);
 bool cl_ctr_modulo(cl_counter_t *left, const cl_counter_t *right);
 
-bool cl_ctr_change_type(cl_counter_t *counter, unsigned type);
+bool cl_ctr_change_type(cl_counter_t *counter, cl_value_type type);
 
 #endif
