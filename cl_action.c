@@ -88,7 +88,9 @@ static cl_counter_t cl_get_compare_value(cl_src_t source, int64_t offset)
   {
     cl_memnote_t *memnote = cl_find_memnote((unsigned)offset);
 
-    if (source == CL_SRCTYPE_CURRENT_RAM)
+    if (!memnote)
+      counter.type = CL_MEMTYPE_NOT_SET;
+    else if (source == CL_SRCTYPE_CURRENT_RAM)
       counter = memnote->current;
     else if (source == CL_SRCTYPE_PREVIOUS_RAM)
       counter = memnote->previous;
