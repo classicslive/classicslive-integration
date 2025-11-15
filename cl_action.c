@@ -27,6 +27,39 @@ bool cl_free_action(cl_action_t *action)
   return false;
 }
 
+static cl_error cl_print_counter_values(char *buffer, unsigned len)
+{
+  const cl_counter_t *counter;
+  char counter_buffer[32];
+  unsigned current_len, append_len;
+  unsigned i;
+
+  if (!buffer || len == 0)
+    return CL_ERR_CLIENT_RUNTIME;
+
+  buffer[0] = '\0';
+
+  for (i = 0; i < CL_COUNTERS_SIZE; i++)
+  {
+    counter = &script.current_page->counters[i];
+
+    /* Get counter value to temporary buffer */
+    snprintf(counter_buffer, sizeof(counter_buffer), "&c%u=%lu",
+             i, counter->intval.raw);
+
+    /* Check destination buffer can hold it */
+    current_len = strlen(buffer);
+    append_len = strlen(counter_buffer);
+    if (current_len + append_len + 1 >= len)
+      return CL_ERR_CLIENT_RUNTIME;
+
+    /* Append to destination buffer */
+    strncat(buffer, counter_buffer, len - current_len - 1);
+  }
+
+  return CL_OK;
+}
+
 /**
  * @brief Returns a copy of a counter's data. Used in cases where the requested
  *   counter should not be directly mutated.
@@ -133,7 +166,10 @@ static bool cl_act_post_progress(cl_action_t *action)
   char data[CL_POST_DATA_SIZE];
 
   snprintf(data, CL_POST_DATA_SIZE, "ach_id=%u", key);
-  cl_message(CL_MSG_ERROR, "Unimplemented endpoint");
+  if (cl_print_counter_values(data, sizeof(data)) != CL_OK)
+    cl_message(CL_MSG_ERROR, "Unable to allocate progress data.");
+  else
+    cl_message(CL_MSG_ERROR, "Unimplemented endpoint progress\n%s", data);
 
   return true;
 }
@@ -146,7 +182,10 @@ static bool cl_act_post_leaderboard(cl_action_t *action)
   char data[CL_POST_DATA_SIZE];
 
   snprintf(data, CL_POST_DATA_SIZE, "ldb_id=%lu", ldb_id.intval.raw);
-  cl_message(CL_MSG_ERROR, "Unimplemented endpoint");
+  if (cl_print_counter_values(data, sizeof(data)) != CL_OK)
+    cl_message(CL_MSG_ERROR, "Unable to allocate leaderboard data.");
+  else
+    cl_message(CL_MSG_ERROR, "Unimplemented endpoint leaderboard\n%s", data);
    
   return true;
 }
