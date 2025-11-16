@@ -42,6 +42,8 @@ typedef enum
   CL_ACTTYPE_SIZE
 } cl_action_id;
 
+typedef struct cl_action_t cl_action_t;
+
 typedef struct
 {
   cl_action_id id;
@@ -59,7 +61,7 @@ typedef struct
   unsigned modulo_after_minimum;
 
   /* The function of the action */
-  bool (*function)();
+  bool (*function)(cl_action_t*);
 } cl_acttype_t;
 
 enum

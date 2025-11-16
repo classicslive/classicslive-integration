@@ -1,11 +1,13 @@
-#include <lrc_hash.h>
-#include <retro_timers.h>
-#include <string/stdstring.h>
-
 #include "cl_config.h"
 #include "cl_frontend.h"
 #include "cl_identify.h"
 #include "cl_memory.h"
+
+#include <lrc_hash.h>
+#include <retro_timers.h>
+#include <string/stdstring.h>
+
+#include <stdio.h>
 
 #if CL_HAVE_FILESYSTEM
 #include <streams/file_stream.h>
