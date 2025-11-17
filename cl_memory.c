@@ -363,14 +363,14 @@ unsigned cl_read_memory_internal(void *value, const cl_memory_region_t *bank,
   {
     bank = cl_find_memory_region(address);
     if (!bank)
-      return false;
+      return 0;
     else
       address -= bank->base_guest;
   }
   if (bank->base_host && address < bank->size)
     return cl_read(value, bank->base_host, address, size, bank->endianness);
 
-  return false;
+  return 0;
 }
 
 #if CL_EXTERNAL_MEMORY
