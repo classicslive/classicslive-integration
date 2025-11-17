@@ -354,6 +354,10 @@ cl_error cl_memory_add_note(const cl_memnote_t *note)
     note->pointer_passes,
     note->address_initial);
 
+#if CL_HAVE_EDITOR
+  cl_memnote_ex_populate_values(&memory.notes[memory.note_count].details);
+#endif
+
   return CL_OK;
 }
 
