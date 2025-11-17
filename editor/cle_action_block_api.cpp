@@ -135,16 +135,36 @@ void CleActionBlockApi::setAchievementIconByIndex(unsigned index)
 
 void CleActionBlockApi::populate(void)
 {
-  unsigned current_id = m_Action->arguments[1].uintval;
-  for (unsigned i = 0; i < session.achievement_count; i++)
+  unsigned current_id;
+
+  if (!m_Action || m_Action->argument_count < 2)
+    return;
+
+  current_id = m_Action->arguments[1].uintval;
+  m_ComboBox->setEditText(QString::number(current_id));
+  if (m_Action->type == CL_ACTTYPE_POST_ACHIEVEMENT ||
+      m_Action->type == CL_ACTTYPE_POST_PROGRESS)
   {
-    if (session.achievements[i].id == current_id)
+    for (unsigned i = 0; i < session.achievement_count; i++)
     {
-      m_ComboBox->setCurrentIndex(i);
-      return;
+      if (session.achievements[i].id == current_id)
+      {
+        m_ComboBox->setCurrentIndex(i);
+        return;
+      }
     }
   }
-  m_ComboBox->setEditText(QString::number(current_id));
+  else if (m_Action->type == CL_ACTTYPE_POST_LEADERBOARD)
+  {
+    for (unsigned i = 0; i < session.leaderboard_count; i++)
+    {
+      if (session.leaderboards[i].id == current_id)
+      {
+        m_ComboBox->setCurrentIndex(i);
+        return;
+      }
+    }
+  }
 }
 
 void CleActionBlockApi::setType(cl_action_id type)
