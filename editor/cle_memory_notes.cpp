@@ -81,13 +81,28 @@ void CleMemoryNotes::update(void)
   for (unsigned i = 0; i < memory.note_count; i++)
   {
     const cl_memnote_t* note = &memory.notes[i];
+    const cl_memnote_ex_value_t *value = &note->details.values[0];
     QTableWidgetItem* valueItem = m_Table->item(i, 3);
+
     if (valueItem)
     {
+      /* Format note value */
       if (note->type == CL_MEMTYPE_FLOAT || note->type == CL_MEMTYPE_DOUBLE)
         valueItem->setText(QString::number(note->current.floatval.fp));
       else
         valueItem->setText(QString::number(note->current.intval.raw));
+
+      /* Check for known values from description */
+      while (value->title[0] != '\0')
+      {
+        if (note->current.intval.raw == value->value)
+        {
+          valueItem->setText(valueItem->text() + " (" + value->title + ")");
+          break;
+        }
+        else
+          value++;
+      }
     }
   }
 }
