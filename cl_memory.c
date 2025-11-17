@@ -275,6 +275,7 @@ static void cl_memnote_ex_populate_values(cl_memnote_ex_t *ex)
     ex->values[count].title[0] = '\0';
     ex->values[count].value = 0;
   }
+  ex->value_count = count;
 }
 #endif
 

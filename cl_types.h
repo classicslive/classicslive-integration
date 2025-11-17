@@ -54,6 +54,7 @@ typedef struct
   char title[256];
   char description[2048];
   cl_memnote_ex_value_t values[64];
+  unsigned value_count;
 } cl_memnote_ex_t;
 
 typedef union
