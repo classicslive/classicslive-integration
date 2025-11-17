@@ -65,6 +65,11 @@ int64_t CleActionBlockCtrBinary::modifierValue(void)
   return 0;
 }
 
+void CleActionBlockCtrBinary::populate(void)
+{
+
+}
+
 void CleActionBlockCtrBinary::onChangeModifierType(int index)
 {
   Q_UNUSED(index)
