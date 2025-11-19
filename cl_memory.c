@@ -213,11 +213,12 @@ static void cl_memnote_ex_populate_values(cl_memnote_ex_t *ex)
   if (!ex)
     return;
 
+  memset(ex->values, 0, sizeof(ex->values));
+  ex->value_count = 0;
+
   desc = ex->description;
   if (!desc || desc[0] == '\0')
     return;
-
-  memset(ex->values, 0, sizeof(ex->values));
 
   while (*desc && count < 64)
   {
@@ -346,6 +347,9 @@ cl_error cl_memory_add_note(const cl_memnote_t *note)
 
   memory.notes = new_array;
   memory.notes[memory.note_count] = *note;
+#if CL_HAVE_EDITOR
+  cl_memnote_ex_populate_values(&memory.notes[memory.note_count].details);
+#endif
   memory.note_count++;
 
   cl_log("Added memnote {%04u} - S: %u, P: %u, A: %08X\n",
@@ -353,10 +357,6 @@ cl_error cl_memory_add_note(const cl_memnote_t *note)
     cl_sizeof_memtype(note->type),
     note->pointer_passes,
     note->address_initial);
-
-#if CL_HAVE_EDITOR
-  cl_memnote_ex_populate_values(&memory.notes[memory.note_count].details);
-#endif
 
   return CL_OK;
 }
