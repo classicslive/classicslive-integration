@@ -382,7 +382,8 @@ unsigned cl_read_memory_internal(void *value, const cl_memory_region_t *bank,
 unsigned cl_read_memory_external(void *value, const cl_memory_region_t *bank,
   cl_addr_t address, unsigned size)
 {
-  CL_UNUSED(bank);
+  if (bank)
+    address += bank->base_guest;
   return cl_fe_memory_read(&memory, value, address, size);
 }
 #endif
