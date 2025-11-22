@@ -59,7 +59,7 @@ void CleMemoryNotes::rebuild(void)
     {
       if (j > 0)
         offsets += " ";
-      offsets += QString("0x%X").arg(note->pointer_offsets[j]);
+      offsets += QString("%1").arg(note->pointer_offsets[j]);
     }
 
     // Populate row

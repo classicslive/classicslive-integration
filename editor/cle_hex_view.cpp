@@ -295,7 +295,7 @@ void CleHexWidget::repaintRect(const void *buffer, uint8_t index)
    {
       uint64_t val = 0;
 
-      cl_read(&val, reinterpret_cast<const uint8_t*>(buffer), index * m_Size, m_Size, m_UseByteSwap ? CL_ENDIAN_LITTLE : CL_ENDIAN_BIG);
+      cl_read(&val, reinterpret_cast<const uint8_t*>(buffer), index * m_Size, m_Size, m_UseByteSwap ? CL_ENDIAN_BIG : CL_ENDIAN_LITTLE);
 
       switch (m_Size)
       {
