@@ -470,7 +470,7 @@ bool add_pass(cl_pointersearch_t* search, uint32_t range, uint32_t max_results)
 
       for (k = 0; k < region->size; k += region->pointer_length)
       {
-        cl_read_memory(&value, region, k, region->pointer_length);
+        cl_read_memory_internal(&value, region, k, region->pointer_length);
 
         if (value <= target && value >= target - range)
         {
@@ -513,9 +513,7 @@ bool cl_pointersearch_init(cl_pointersearch_t *search,
   {
     cl_memory_region_t *region;
     cl_pointerresult_t *result;
-    cl_addr_t target;
     uint32_t matches, prev_value, value;
-    bool exact_only;
     uint32_t i, j;
 
     /* Is the address we're looking for valid? */
@@ -532,10 +530,6 @@ bool cl_pointersearch_init(cl_pointersearch_t *search,
     search->params.size      = cl_sizeof_memtype(val_type);
     search->params.value_type  = val_type;
 
-    /* Only one memory bank; all pointed addresses are probably relative */
-    if (memory.region_count == 1)
-      exact_only = false;
-
     /* We create a temporary array of max size and trim it down after */
     search->results = (cl_pointerresult_t*)calloc(
       max_results, sizeof(cl_pointerresult_t));
@@ -546,17 +540,19 @@ bool cl_pointersearch_init(cl_pointersearch_t *search,
     {
       region = &memory.regions[i];
 
-      /* This is where per-console hacks were being inserted */
-      target = exact_only ? region->base_guest + address : address;
-
       if (region->size < region->pointer_length)
         continue;
 
+#if CL_EXTERNAL_MEMORY
+      region->base_host = malloc(region->size);
+      cl_read_memory_external(region->base_host, NULL, region->base_guest, region->size);
+#endif
+
       for (j = 0; j < region->size; j += region->pointer_length)
       {
-        cl_read_memory(&value, region, j, region->pointer_length);
+        cl_read_memory_internal(&value, region, j, region->pointer_length);
 
-        if (value <= target && value >= target - range)
+        if (value <= address && value >= address - range)
         {
           result = &search->results[matches];
 
@@ -587,6 +583,10 @@ bool cl_pointersearch_init(cl_pointersearch_t *search,
     search->result_count = matches;
     search->results = (cl_pointerresult_t*)realloc(
       search->results, matches * sizeof(cl_pointerresult_t));
+#if CL_EXTERNAL_MEMORY
+    free(region->base_host);
+    region->base_host = NULL;
+#endif
 
     cl_log("Pointer search for %08X found %u results.\n", address, matches);
 

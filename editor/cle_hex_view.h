@@ -91,9 +91,9 @@ private:
    bool     m_UseByteSwap;
 
    /* Values that define the area being viewed. */
-   cl_addr_t m_Position;
-   cl_addr_t m_PositionMax;
-   cl_addr_t m_PositionMin;
+   cl_addr_t m_Position = -1;
+   cl_addr_t m_PositionMax = -1;
+   cl_addr_t m_PositionMin = -1;
 
    QRect    m_Cursor;
    uint8_t  m_CursorNybble;

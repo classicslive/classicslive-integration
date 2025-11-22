@@ -290,40 +290,43 @@ void CleHexWidget::repaintAscii(char new_char, uint8_t index)
 
 void CleHexWidget::repaintRect(const void *buffer, uint8_t index)
 {
-   /* Update the hex value drawn over the given rect */
-   if (buffer)
-   {
-      uint64_t val = 0;
+  uint64_t val = 0;
 
-      cl_read(&val, reinterpret_cast<const uint8_t*>(buffer), index * m_Size, m_Size, m_UseByteSwap ? CL_ENDIAN_BIG : CL_ENDIAN_LITTLE);
+  /* Update the hex value drawn over the given rect */
+  if (buffer)
+  {
+    cl_read(&val, reinterpret_cast<const uint8_t*>(buffer), index * m_Size, m_Size, m_UseByteSwap ? CL_ENDIAN_BIG : CL_ENDIAN_LITTLE);
 
-      switch (m_Size)
-      {
-      case 1:
-        snprintf(m_Texts[index], 16, "%02X", val);
-          break;
-      case 2:
-        snprintf(m_Texts[index], 16, "%04X", val);
-          break;
-      case 4:
-        snprintf(m_Texts[index], 16, "%08X", val);
-          break;
-      case 8:
-        snprintf(m_Texts[index], 16, "%016llX", val);
-          break;
-      default:
-        snprintf(m_Texts[index], 16, "Err", val);
-      }
-   }
+    switch (m_Size)
+    {
+    case 1:
+      snprintf(m_Texts[index], 16, "%02X", val);
+      break;
+    case 2:
+      snprintf(m_Texts[index], 16, "%04X", val);
+      break;
+    case 4:
+      snprintf(m_Texts[index], 16, "%08X", val);
+      break;
+    case 8:
+      snprintf(m_Texts[index], 16, "%016llX", val);
+      break;
+    default:
+      snprintf(m_Texts[index], 16, "Err", val);
+    }
 
-   /* Draw rect */
-   m_Painter->setBrush(m_RectColors[index]);
-   m_Painter->setPen(Qt::NoPen);
-   m_Painter->drawRect(m_Rects[index]);
+    /* Draw rect */
+    m_Painter->setBrush(m_RectColors[index]);
+    m_Painter->setPen(Qt::NoPen);
+    m_Painter->drawRect(m_Rects[index]);
 
-   /* Draw text */
-   m_Painter->setPen(QColor("white"));
-   m_Painter->drawText(m_Rects[index], Qt::AlignCenter, m_Texts[index]);
+    /* Draw text */
+    if (val >= m_PositionMin && val < m_PositionMax)
+      m_Painter->setPen(QColor(200, 180, 255));
+    else
+      m_Painter->setPen(QColor(255, 255, 255));
+    m_Painter->drawText(m_Rects[index], Qt::AlignCenter, m_Texts[index]);
+  }
 }
 
 void CleHexWidget::resetColors()
@@ -369,30 +372,29 @@ void CleHexWidget::setCursorOffset(cl_addr_t offset)
 
 void CleHexWidget::setOffset(cl_addr_t offset)
 {
-   uint8_t i;
+  uint8_t i;
 
-   /* Only deal with rows of 16 bytes */
-   offset &= ~0xF;
-   if (offset == m_Position)
-      return;
+  /* Only deal with rows of 16 bytes */
+  offset &= ~0xF;
+  if (offset == m_Position)
+    return;
 
-   m_Painter->setBrush(palette().color(backgroundRole()));
-   m_Painter->setFont(m_Font);
-   m_Painter->setPen(Qt::NoPen);
-   m_Painter->drawRect(QRect(0, 0, 64, 256));
+  m_Painter->setBrush(palette().color(backgroundRole()));
+  m_Painter->setFont(m_Font);
+  m_Painter->setPen(Qt::NoPen);
+  m_Painter->drawRect(QRect(0, 0, 64, 256));
 
-   for (i = 0; i < 16; i++)
-   {
-      snprintf(m_AddrTexts[i], 16, "%8X", offset + i * 16);
-      
-      m_Painter->setPen(QColor("grey"));
-      m_Painter->drawText(m_AddrRects[i], Qt::AlignRight | Qt::AlignVCenter, m_AddrTexts[i]);
-   }
-   resetColors();
-   setCursorOffset(m_CursorOffset);
+  for (i = 0; i < 16; i++)
+  {
+    snprintf(m_AddrTexts[i], 16, "%8X", offset + i * 16);
+    m_Painter->setPen(QColor("grey"));
+    m_Painter->drawText(m_AddrRects[i], Qt::AlignRight | Qt::AlignVCenter, m_AddrTexts[i]);
+  }
+  resetColors();
+  setCursorOffset(m_CursorOffset);
+  m_Position = offset;
 
-   m_Position = offset;
-   emit offsetEdited(offset);
+  emit offsetEdited(offset);
 }
 
 void CleHexWidget::setRange(cl_addr_t min, cl_addr_t max)
