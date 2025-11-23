@@ -266,6 +266,8 @@ cl_error cl_login_and_start(cl_game_identifier_t identifier)
 
     return CL_OK;
   }
+  else if (session.state == CL_SESSION_LOGGED_IN)
+    return cl_start(identifier);
   else
   {
     cl_message(CL_MSG_ERROR, "cl_login_and_start state mismatch");
