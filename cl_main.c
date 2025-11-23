@@ -104,6 +104,9 @@ cl_error cl_start(cl_game_identifier_t identifier)
   {
     char post_data[CL_POST_DATA_SIZE];
 
+    /* Trim path from filename */
+    strncpy(identifier.filename, path_basename(identifier.filename), sizeof(identifier.filename));
+
     post_data[0] = '\0';
     snprintf(post_data, sizeof(post_data),
              "session_id=%s&library=%s&filename=%s",

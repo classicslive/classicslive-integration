@@ -365,9 +365,9 @@ bool cl_identify(const void *info_data, const unsigned info_size,
   char      path[CL_MAX_PATH];
   unsigned  size = 0;
 
-  strcpy(path, info_path);
-  strcpy(extension, path_get_extension(path));
-  strcpy(extension, string_to_upper(extension));
+  strncpy(path, info_path, sizeof(path));
+  strncpy(extension, path_get_extension(path), sizeof(extension));
+  strncpy(extension, string_to_upper(extension), sizeof(extension));
 
   /*
     Hashing GC or Wii discs uses a background task that waits until the
