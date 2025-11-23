@@ -321,7 +321,8 @@ void CleHexWidget::repaintRect(const void *buffer, uint8_t index)
     m_Painter->drawRect(m_Rects[index]);
 
     /* Draw text */
-    if (val >= m_PositionMin && val < m_PositionMax)
+    if (m_PositionMin && m_Size == 4 && (val >= m_PositionMin && val < m_PositionMax))
+      /* Draw likely pointers in a different color */
       m_Painter->setPen(QColor(200, 180, 255));
     else
       m_Painter->setPen(QColor(255, 255, 255));
