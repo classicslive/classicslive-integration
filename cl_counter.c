@@ -260,6 +260,8 @@ bool cl_ctr_change_type(cl_counter_t *counter, cl_value_type type)
 
 #if CL_TESTS
 
+#include <stdio.h>
+
 static void cl_ctr_test_add(void)
 {
   cl_counter_t a, b;

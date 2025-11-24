@@ -71,4 +71,8 @@ bool cl_ctr_modulo(cl_counter_t *left, const cl_counter_t *right);
 
 bool cl_ctr_change_type(cl_counter_t *counter, cl_value_type type);
 
+#if CL_TESTS
+int cl_ctr_tests(void);
+#endif
+
 #endif
