@@ -372,9 +372,11 @@ static void unescape(char *s)
         case '"': *dst++ = '"'; break;
         case 'x':
         {
-          src++;
           int val = 0;
-          for (int i = 0; i < 2 && isxdigit((unsigned char)*src); i++, src++)
+          int i;
+
+          src++;
+          for (i = 0; i < 2 && isxdigit((unsigned char)*src); i++, src++)
           {
             val = val * 16 + (isdigit(*src) ? *src - '0' :
                               (tolower(*src) - 'a' + 10));
