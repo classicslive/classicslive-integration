@@ -58,7 +58,6 @@ contains(DEFINES, CL_HAVE_EDITOR=1) {
         $$CL_EDITOR_DIR/cle_result_table.cpp \
         $$CL_EDITOR_DIR/cle_result_table_normal.cpp \
         $$CL_EDITOR_DIR/cle_result_table_pointer.cpp \
-        $$CL_EDITOR_DIR/cle_script_editor.cpp \
         $$CL_EDITOR_DIR/cle_script_editor_block.cpp \
         $$CL_EDITOR_DIR/cle_script_editor_block_canvas.cpp
 
@@ -80,7 +79,6 @@ contains(DEFINES, CL_HAVE_EDITOR=1) {
         $$CL_EDITOR_DIR/cle_result_table.h \
         $$CL_EDITOR_DIR/cle_result_table_normal.h \
         $$CL_EDITOR_DIR/cle_result_table_pointer.h \
-        $$CL_EDITOR_DIR/cle_script_editor.h \
         $$CL_EDITOR_DIR/cle_script_editor_block.h \
         $$CL_EDITOR_DIR/cle_script_editor_block_canvas.h
 }
