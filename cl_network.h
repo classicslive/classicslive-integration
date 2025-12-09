@@ -2,7 +2,7 @@
 #define CL_NETWORK_H
 
 #include "cl_config.h"
-#include "cl_frontend.h"
+#include "cl_types.h"
 
 #if CL_HAVE_SSL
   #define CL_URL_SITE "https://" CL_URL_HOSTNAME
@@ -10,7 +10,6 @@
   #define CL_URL_SITE "http://" CL_URL_HOSTNAME
 #endif
 
-#define CL_API_URL CL_URL_SITE "/api/v1/"
 #define CL_CLINT_URL CL_URL_SITE "/api/clint/v1/"
 
 #define CL_END_CLINT_ACHIEVEMENT "achievement"
@@ -20,7 +19,13 @@
 #define CL_END_CLINT_START "start"
 #define CL_END_CLINT_STOP "stop"
 
+#if CL_HAVE_EDITOR
+#define CL_API_URL CL_URL_SITE "/api/v1/"
+
 #define CL_END_MEMORYNOTE_ADD "memory_note/add"
+#define CL_END_SCRIPT_ADD "script/add"
+#define CL_END_SCRIPT_EDIT "script/edit"
+#endif
 
 /* These are arbitrary and may need to be increased later. */
 #define CL_POST_DATA_SIZE 2048
