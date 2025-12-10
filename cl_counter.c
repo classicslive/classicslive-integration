@@ -178,6 +178,8 @@ bool cl_ctr_shift_left(cl_counter_t *counter, const cl_counter_t *value)
   {
     counter->floatval.raw <<= value->intval.raw;
     counter->intval.raw = counter->floatval.raw;
+
+    return true;
   }
   else
     return cl_ctr_store_int(counter, counter->intval.raw << value->intval.raw);
@@ -189,6 +191,8 @@ bool cl_ctr_shift_right(cl_counter_t *counter, const cl_counter_t *value)
   {
     counter->floatval.raw >>= value->intval.raw;
     counter->intval.raw = counter->floatval.raw;
+
+    return true;
   }
   else
     return cl_ctr_store_int(counter, counter->intval.raw >> value->intval.raw);
