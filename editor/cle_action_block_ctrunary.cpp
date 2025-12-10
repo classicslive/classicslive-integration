@@ -15,6 +15,15 @@ CleActionBlockCtrUnary::CleActionBlockCtrUnary(cl_action_t *action,
   setLayout(m_Layout);
 }
 
+void CleActionBlockCtrUnary::populate(void)
+{
+  if (!m_Action || m_Action->argument_count != 1 || !m_Action->arguments)
+    return;
+
+  /* Counter number */
+  m_CounterIndex->setText(QString::number(m_Action->arguments[0].uintval));
+}
+
 void CleActionBlockCtrUnary::setType(cl_action_id type)
 {
   switch (type)
