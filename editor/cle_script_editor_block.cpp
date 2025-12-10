@@ -33,7 +33,7 @@ void CleScriptEditorBlock::onSaveButtonClicked(void)
     QByteArray post;
 
     query.addQueryItem("script_id", "core");
-    query.addQueryItem("script", result.text);
+    query.addQueryItem("script", result.text.replace('\n', ' '));
     post = query.query(QUrl::FullyEncoded).toUtf8();
     cl_network_post_api(CL_END_SCRIPT_EDIT, post.data(), nullptr, nullptr);
     QMessageBox::information(this, "CLScript result", result.text);

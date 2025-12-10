@@ -65,14 +65,25 @@ static void cl_network_post_internal(const char *url, const char *endpoint,
   }
   else
   {
+    char final_data[1024];
     char endpoint_url[256];
 
-    cl_update_generic_post_data();
+    if (cl_update_generic_post_data() != CL_OK)
+    {
+      cl_log("Error in cl_update_generic_post_data");
+      return;
+    }
+
     /* Add additional POST data if given */
     if (post_data)
-      snprintf(generic_post_data, sizeof(generic_post_data), "%s&%s",
-        generic_post_data, post_data);
-    cl_log("cl_network_post:\nPOST: %s\n", generic_post_data);
+      snprintf(final_data, sizeof(final_data), "%s%s%s",
+               post_data,
+               generic_post_data[0] == '\0' ? "" : "&",
+               generic_post_data);
+    else
+      snprintf(final_data, sizeof(final_data), "%s",
+               generic_post_data);
+    cl_log("cl_network_post:\nPOST: %s\n", final_data);
 
     /* Apply default callback if none is specified */
     if (!callback)
@@ -82,7 +93,7 @@ static void cl_network_post_internal(const char *url, const char *endpoint,
     snprintf(endpoint_url, sizeof(endpoint_url), "%s%s", url, endpoint);
 
     cl_fe_network_post(endpoint_url,
-                       generic_post_data,
+                       final_data,
                        callback ? callback : cl_default_network_cb,
                        userdata);
   }

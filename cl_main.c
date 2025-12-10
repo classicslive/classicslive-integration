@@ -109,8 +109,8 @@ cl_error cl_start(cl_game_identifier_t identifier)
 
     post_data[0] = '\0';
     snprintf(post_data, sizeof(post_data),
-             "session_id=%s&library=%s&filename=%s",
-             session.id, cl_fe_library_name(), identifier.filename);
+             "library=%s&filename=%s",
+             cl_fe_library_name(), identifier.filename);
 
     if (identifier.type == CL_GAMEIDENTIFIER_FILE_HASH)
     {
