@@ -14,9 +14,14 @@ class CleScriptEditorBlock : public QWidget
 public:
   CleScriptEditorBlock(QWidget *parent = nullptr);
 
+  void rebuild(void) { m_Canvas->buildFromScript(); }
+  QString script(void) { return m_Script; }
+
 private:
-  CleScriptEditorBlockCanvas *m_Canvas;
-  QPushButton *m_SaveButton;
+  CleScriptEditorBlockCanvas *m_Canvas = nullptr;
+  QPushButton *m_SaveButton = nullptr;
+  QPushButton *m_SubmitButton = nullptr;
+  QString m_Script;
 
 private slots:
   void onSaveButtonClicked(void);

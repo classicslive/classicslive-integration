@@ -19,6 +19,27 @@ extern "C"
 CleScriptEditorBlockCanvas::CleScriptEditorBlockCanvas(QWidget *parent)
   : QWidget(parent)
 {
+  /* If the C integration has an active script, build from that */
+  if (buildFromScript() != CL_OK)
+    buildNew();
+
+  setMinimumSize(640, 480);
+  setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+  setAttribute(Qt::WA_OpaquePaintEvent);
+  setFocusPolicy(Qt::StrongFocus);
+  setAutoFillBackground(true);
+}
+
+cl_error CleScriptEditorBlockCanvas::buildFromScript(void)
+{
+  if (!script.page_count ||
+      !script.pages ||
+      !script.pages[0].action_count ||
+      !script.pages[0].actions)
+    return CL_ERR_CLIENT_RUNTIME;
+
+  blocks.clear();
+
   auto start = new CleActionBlockBookend(false, this);
   connect(start, SIGNAL(onDrag(CleActionBlock*)),
           this, SLOT(checkSnaps(CleActionBlock*)));
@@ -29,38 +50,41 @@ CleScriptEditorBlockCanvas::CleScriptEditorBlockCanvas(QWidget *parent)
           this, SLOT(checkSnaps(CleActionBlock*)));
   blocks.push_back(end);
 
-  if (script.page_count &&
-      script.pages &&
-      script.pages[0].action_count &&
-      script.pages[0].actions)
+  auto prev = addBlock(&script.pages[0].actions[0]);
+  unsigned i;
+
+  prev->attachTo(start, 0);
+  for (i = 1; i < script.pages[0].action_count; i++)
   {
-    auto prev = addBlock(&script.pages[0].actions[0]);
-    unsigned i;
-
-    prev->attachTo(start, 0);
-    for (i = 1; i < script.pages[0].action_count; i++)
-    {
-      auto next = addBlock(&script.pages[0].actions[i]);
-      next->attachTo(prev, script.pages[0].actions[i].indentation);
-      prev = next;
-    }
-    end->attachTo(prev, 0);
+    auto next = addBlock(&script.pages[0].actions[i]);
+    next->attachTo(prev, script.pages[0].actions[i].indentation);
+    prev = next;
   }
-  else
-  {
-    cl_action_t *action = new cl_action_t;
-    action->type = CL_ACTTYPE_ADDITION;
-    auto middle = addBlock(action);
+  end->attachTo(prev, 0);
 
-    middle->attachTo(start, 0);
-    end->attachTo(middle, 0);
-  }
+  return CL_OK;
+}
 
-  setMinimumSize(640, 480);
-  setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-  setAttribute(Qt::WA_OpaquePaintEvent);
-  setFocusPolicy(Qt::StrongFocus);
-  setAutoFillBackground(true);
+cl_error CleScriptEditorBlockCanvas::buildNew(void)
+{
+  auto start = new CleActionBlockBookend(false, this);
+  connect(start, SIGNAL(onDrag(CleActionBlock*)),
+          this, SLOT(checkSnaps(CleActionBlock*)));
+  blocks.push_back(start);
+
+  auto end = new CleActionBlockBookend(true, this);
+  connect(end, SIGNAL(onDrag(CleActionBlock*)),
+          this, SLOT(checkSnaps(CleActionBlock*)));
+  blocks.push_back(end);
+
+  cl_action_t *action = new cl_action_t;
+  action->type = CL_ACTTYPE_ADDITION;
+  auto middle = addBlock(action);
+
+  middle->attachTo(start, 0);
+  end->attachTo(middle, 0);
+
+  return CL_OK;
 }
 
 CleActionBlock *CleScriptEditorBlockCanvas::addBlock(cl_action_t *action,
@@ -183,7 +207,7 @@ void CleScriptEditorBlockCanvas::mousePressEvent(QMouseEvent *event)
     if (selectedSubAction)
     {
       cl_action_id type = static_cast<cl_action_id>(selectedSubAction->data().toInt());
-      cl_action_t* action = new cl_action_t;
+      cl_action_t *action = new cl_action_t;
 
       memset(action, 0, sizeof(cl_action_t));
       action->type = type;

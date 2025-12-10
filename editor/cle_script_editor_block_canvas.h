@@ -14,6 +14,9 @@ class CleScriptEditorBlockCanvas : public QWidget
 public:
   CleScriptEditorBlockCanvas(QWidget *parent = nullptr);
 
+  cl_error buildFromScript(void);
+  cl_error buildNew(void);
+
   cle_result_t toString(void);
 
 public slots:
