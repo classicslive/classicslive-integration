@@ -78,8 +78,7 @@ void CleMemoryNoteSubmit::onClickSubmit(void)
     cl_memnote_t *note;
     QByteArray post;
 
-    post.append("game_id=" + QByteArray::number(session.game_id));
-    post.append("&address=" + QByteArray::number((qulonglong)m_MemoryNote.address_initial));
+    post.append("address=" + QByteArray::number((qulonglong)m_MemoryNote.address_initial));
     post.append("&type=" + QByteArray::number(m_MemoryNote.type));
 
     /* Set the pointer parameters */
