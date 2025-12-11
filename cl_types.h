@@ -237,4 +237,8 @@ typedef struct
 /** A virtual address for the emulated system. */
 typedef uintptr_t cl_addr_t;
 
+#define CL_KB(a) ((cl_addr_t)(a) << 10)
+#define CL_MB(a) ((cl_addr_t)(a) << 20)
+#define CL_GB(a) ((cl_addr_t)(a) << 30)
+
 #endif
