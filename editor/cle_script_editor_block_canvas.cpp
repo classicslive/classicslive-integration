@@ -228,7 +228,7 @@ void CleScriptEditorBlockCanvas::mousePressEvent(QMouseEvent *event)
 void CleScriptEditorBlockCanvas::paintEvent(QPaintEvent *event)
 {
   QPainter painter(this);
-  painter.fillRect(event->rect(), parentWidget()->palette().color(QPalette::Background));
+  painter.fillRect(event->rect(), parentWidget()->palette().color(QPalette::Window));
 }
 
 cle_result_t CleScriptEditorBlockCanvas::toString(void)
