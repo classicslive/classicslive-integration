@@ -33,6 +33,7 @@ private:
 
   CleActionBlock *addBlock(cl_action_t *action);
   CleActionBlock *addBlock(cl_action_t *action, QPoint pos);
+  void destroyBlocks(void);
 };
 
 #endif

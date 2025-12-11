@@ -30,6 +30,13 @@ CleScriptEditorBlockCanvas::CleScriptEditorBlockCanvas(QWidget *parent)
   setAutoFillBackground(true);
 }
 
+void CleScriptEditorBlockCanvas::destroyBlocks(void)
+{
+  for (auto block : blocks)
+    delete block;
+  blocks.clear();
+}
+
 cl_error CleScriptEditorBlockCanvas::buildFromScript(void)
 {
   if (!script.page_count ||
@@ -38,7 +45,7 @@ cl_error CleScriptEditorBlockCanvas::buildFromScript(void)
       !script.pages[0].actions)
     return CL_ERR_CLIENT_RUNTIME;
 
-  blocks.clear();
+  destroyBlocks();
 
   auto start = new CleActionBlockBookend(false, this);
   connect(start, SIGNAL(onDrag(CleActionBlock*)),
@@ -67,6 +74,8 @@ cl_error CleScriptEditorBlockCanvas::buildFromScript(void)
 
 cl_error CleScriptEditorBlockCanvas::buildNew(void)
 {
+  destroyBlocks();
+
   auto start = new CleActionBlockBookend(false, this);
   connect(start, SIGNAL(onDrag(CleActionBlock*)),
           this, SLOT(checkSnaps(CleActionBlock*)));
