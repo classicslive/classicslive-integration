@@ -64,7 +64,7 @@ typedef struct
   bool (*function)(cl_action_t*);
 } cl_acttype_t;
 
-enum
+typedef enum
 {
   CL_CMPTYPE_INVALID = 0,
 
@@ -74,7 +74,7 @@ enum
   CL_CMPTYPE_IFNEQUAL,
   
   CL_CMPTYPE_SIZE
-};
+} cl_compare_type;
 
 typedef struct cl_action_t
 {
