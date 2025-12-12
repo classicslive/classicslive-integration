@@ -51,11 +51,13 @@ cl_error CleScriptEditorBlockCanvas::buildFromScript(void)
   connect(start, SIGNAL(onDrag(CleActionBlock*)),
           this, SLOT(checkSnaps(CleActionBlock*)));
   blocks.push_back(start);
+  start->show();
 
   auto end = new CleActionBlockBookend(true, this);
   connect(end, SIGNAL(onDrag(CleActionBlock*)),
           this, SLOT(checkSnaps(CleActionBlock*)));
   blocks.push_back(end);
+  end->show();
 
   auto prev = addBlock(&script.pages[0].actions[0]);
   unsigned i;
