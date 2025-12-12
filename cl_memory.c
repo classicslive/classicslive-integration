@@ -1,12 +1,18 @@
-#include <string.h>
-
 #include "cl_common.h"
 #include "cl_config.h"
-#include "cl_frontend.h"
 #include "cl_memory.h"
 
 #if CL_LIBRETRO
 #include <libretro.h>
+#endif
+
+#include <stdio.h>
+
+#if CL_HAVE_EDITOR
+#include "cl_frontend.h"
+#include <string.h>
+#include <ctype.h>
+#include <stdlib.h>
 #endif
 
 cl_memory_t memory;
@@ -51,9 +57,8 @@ cl_memnote_t* cl_find_memnote(unsigned key)
 
 void cl_free_memnote(cl_memnote_t *note)
 {
-  free(note->pointer_offsets);
-  note->pointer_passes = 0;
-  note->pointer_offsets = NULL;
+  /* Stubbed until something actually needs freeing */
+  CL_UNUSED(note);
 }
 
 void cl_memory_free(void)
@@ -165,8 +170,9 @@ bool cl_init_membanks_libretro(const struct retro_memory_descriptor **descs,
     region->base_guest = desc->start;
     region->base_host = desc->ptr;
     region->endianness = desc->flags & RETRO_MEMDESC_BIGENDIAN ?
-                                     CL_ENDIAN_BIG : CL_ENDIAN_LITTLE;
-    region->flags = (cl_memory_region_flags){ .bits.read=1, .bits.write=1 };
+      CL_ENDIAN_BIG : CL_ENDIAN_LITTLE;
+    region->flags.bits.read = 1;
+    region->flags.bits.write = desc->flags & RETRO_MEMDESC_CONST ? 0 : 1;
     /**
      * @todo Is there a commonly used libretro flag for this? Not a huge deal
      * since this gets overwritten by the server later
@@ -176,11 +182,10 @@ bool cl_init_membanks_libretro(const struct retro_memory_descriptor **descs,
 
     /* Setup the title of the memory bank */
     if (desc->addrspace)
-      snprintf(region->title, sizeof(region->title),
-            "%s", desc->addrspace);
+      snprintf(region->title, sizeof(region->title), "%s", desc->addrspace);
     else
-      snprintf(region->title, sizeof(region->title),
-            "Memory bank %u/%u", i + 1, memory.region_count);
+      snprintf(region->title, sizeof(region->title), "Memory bank %u/%u",
+               i + 1, memory.region_count);
   }
 
   cl_sort_memory_regions(memory.regions, memory.region_count);
@@ -197,61 +202,163 @@ bool cl_init_membanks_libretro(const struct retro_memory_descriptor **descs,
 }
 #endif
 
-bool cl_init_memory(const char **pos)
+#if CL_HAVE_EDITOR
+static void cl_memnote_ex_populate_values(cl_memnote_ex_t *ex)
 {
-  cl_memnote_t *new_memnote;
-  uint32_t    i;
+  const char *desc;
+  char linebuf[512];
+  size_t i = 0;
+  unsigned count = 0;
 
-  if (!cl_strto(pos, &memory.note_count, sizeof(memory.note_count), false))
-    return false;
-  memory.notes = (cl_memnote_t*)calloc(memory.note_count, sizeof(cl_memnote_t));
+  if (!ex)
+    return;
+
+  memset(ex->values, 0, sizeof(ex->values));
+  ex->value_count = 0;
+
+  desc = ex->description;
+  if (!desc || desc[0] == '\0')
+    return;
+
+  while (*desc && count < 64)
+  {
+    /* Extract one line */
+    i = 0;
+    while (*desc && *desc != '\n' && i < sizeof(linebuf) - 1)
+      linebuf[i++] = *desc++;
+    linebuf[i] = '\0';
+
+    /* Skip newline */
+    if (*desc == '\n')
+      desc++;
+
+    /* Trim leading spaces */
+    char *p = linebuf;
+    while (isspace((unsigned char)*p))
+      p++;
+
+    /* Must start with a digit to be valid */
+    if (!isdigit((unsigned char)*p))
+      continue;
+
+    /* Parse number before '=' */
+    char *eq = strchr(p, '=');
+    if (!eq)
+      continue;
+
+    *eq = '\0';
+    unsigned val = (unsigned)strtoul(p, NULL, 0);
+
+    /* Extract title text */
+    const char *title = eq + 1;
+    while (isspace((unsigned char)*title))
+      title++;
+
+    /* Trim trailing whitespace from title */
+    size_t len = strlen(title);
+    while (len > 0 && isspace((unsigned char)title[len - 1]))
+      len--;
+
+    /* Copy into structure */
+    cl_memnote_ex_value_t *entry = &ex->values[count];
+    entry->value = val;
+    strncpy(entry->title, title, len);
+    entry->title[len] = '\0';
+
+    cl_log("Value meaning for %u: %s\n", entry->value, entry->title);
+
+    count++;
+  }
+
+  /* Clear remaining entries */
+  for (; count < 64; count++)
+  {
+    ex->values[count].title[0] = '\0';
+    ex->values[count].value = 0;
+  }
+  ex->value_count = count;
+}
+#endif
+
+static cl_error cl_memory_init_note(cl_memnote_t *note)
+{
+  cl_counter_t counter;
+
+  cl_log("Memory note {%04u} - S: %u, P: %u, A: %08X",
+         note->key,
+         cl_sizeof_memtype(note->type),
+         note->pointer_passes,
+         note->address_initial);
+
+  if (note->pointer_passes > 0)
+  {
+    unsigned j;
+
+    for (j = 0; j < note->pointer_passes; j++)
+      cl_log(" + %u", note->pointer_offsets[j]);
+  }
+
+#if CL_HAVE_EDITOR
+  if (note->details.title[0] != '\0')
+    cl_log("\nTitle:\n%s", note->details.title);
+  if (note->details.description[0] != '\0')
+    cl_log("\nDescription:\n%s", note->details.description);
+  cl_memnote_ex_populate_values(&note->details);
+#endif
+
+  cl_log("\n");
+
+  /* Initialize the counters based on the data type of the note */
+  counter.floatval.fp = 0;
+  counter.intval.i64 = 0;
+  counter.type = note->type;
+  note->current = counter;
+  note->previous = counter;
+  note->last_unique = counter;
+
+  return CL_OK;
+}
+
+cl_error cl_memory_init_notes(void)
+{
+  unsigned i;
 
   cl_log("Memory notes: %u\n", memory.note_count);
 
+  if (!memory.notes || memory.note_count == 0)
+    return CL_ERR_CLIENT_RUNTIME;
+
   for (i = 0; i < memory.note_count; i++)
-  {
-    cl_counter_t new_ctr;
-    new_memnote = &memory.notes[i];
-
-    if (!(cl_strto(pos, &new_memnote->key,        4, false) &&
-        cl_strto(pos, &new_memnote->address_initial, sizeof(cl_addr_t), false) &&
-        cl_strto(pos, &new_memnote->type,        4, false) &&
-        cl_strto(pos, &new_memnote->flags,       4, false) &&
-        cl_strto(pos, &new_memnote->pointer_passes, 4, false)))
-      return false;
-
-    cl_log("Memory note {%03u} - S: %u, P: %u, A: %08X",
-     new_memnote->key,
-     cl_sizeof_memtype(new_memnote->type),
-     new_memnote->pointer_passes,
-     new_memnote->address_initial);
-
-    /* Initialize the tracked values based on the data type of the memnote */
-    new_ctr.floatval.fp = 0;
-    new_ctr.intval.i64 = 0;
-    new_ctr.type = new_memnote->type;
-    new_memnote->current    = new_ctr;
-    new_memnote->previous   = new_ctr;
-    new_memnote->last_unique = new_ctr;
-
-    /* Initialize offsets for pointer-chain variables */
-    if (new_memnote->pointer_passes > 0)
-    {
-      unsigned j;
-
-      new_memnote->pointer_offsets = (uint32_t*)calloc(new_memnote->pointer_passes, sizeof(uint32_t));
-      for (j = 0; j < new_memnote->pointer_passes; j++)
-      {
-        if (!cl_strto(pos, &new_memnote->pointer_offsets[j], sizeof(int32_t), true))
-          return false;
-        cl_log(" + %i", new_memnote->pointer_offsets[j]);
-      }
-    }
-    cl_log("\n");
-  }
+    cl_memory_init_note(&memory.notes[i]);
   cl_log("End of memory.\n");
 
-  return true;
+  return CL_OK;
+}
+
+cl_error cl_memory_add_note(const cl_memnote_t *note)
+{
+  cl_memnote_t *new_array;
+
+  /* Attempt to reallocate with another element */
+  new_array = (cl_memnote_t*)realloc(memory.notes,
+    (memory.note_count + 1) * sizeof(cl_memnote_t));
+  if (!new_array)
+    return CL_ERR_CLIENT_RUNTIME;
+
+  memory.notes = new_array;
+  memory.notes[memory.note_count] = *note;
+#if CL_HAVE_EDITOR
+  cl_memnote_ex_populate_values(&memory.notes[memory.note_count].details);
+#endif
+  memory.note_count++;
+
+  cl_log("Added memnote {%04u} - S: %u, P: %u, A: %08X\n",
+    note->key,
+    cl_sizeof_memtype(note->type),
+    note->pointer_passes,
+    note->address_initial);
+
+  return CL_OK;
 }
 
 unsigned cl_read_memory_internal(void *value, const cl_memory_region_t *bank,
@@ -261,26 +368,27 @@ unsigned cl_read_memory_internal(void *value, const cl_memory_region_t *bank,
   {
     bank = cl_find_memory_region(address);
     if (!bank)
-      return false;
+      return 0;
     else
       address -= bank->base_guest;
   }
   if (bank->base_host && address < bank->size)
     return cl_read(value, bank->base_host, address, size, bank->endianness);
 
-  return false;
+  return 0;
 }
 
 #if CL_EXTERNAL_MEMORY
 unsigned cl_read_memory_external(void *value, const cl_memory_region_t *bank,
   cl_addr_t address, unsigned size)
 {
-  CL_UNUSED(bank);
+  if (bank)
+    address += bank->base_guest;
   return cl_fe_memory_read(&memory, value, address, size);
 }
 #endif
 
-unsigned cl_sizeof_memtype(const unsigned type)
+unsigned cl_sizeof_memtype(const cl_value_type type)
 {
   switch (type)
   {
@@ -297,9 +405,11 @@ unsigned cl_sizeof_memtype(const unsigned type)
   case CL_MEMTYPE_INT64:
   case CL_MEMTYPE_DOUBLE:
     return 8;
+  default:
+    /* Should not be reached */
+    cl_message(CL_MSG_ERROR, "cl_sizeof_memtype bad value %u", type);
+    return 0;
   }
-
-  return 0;
 }
 
 /**

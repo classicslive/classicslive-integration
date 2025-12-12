@@ -7,7 +7,8 @@
  * A -1 value to represent invalid addresses in memory regions, as 0 for NULL
  * may be a valid address on some emulated systems.
  */
-#define CL_ADDRESS_INVALID (void*)0xFFFFFFFFFFFFFFFF
+#define CL_ADDRESS_INVALID_INT 0xFFFFFFFFFFFFFFFF
+#define CL_ADDRESS_INVALID ((void*)CL_ADDRESS_INVALID_INT)
 
 /**
  * Maximum size, in bytes, to use when generating an MD5 hash of raw content
@@ -34,7 +35,7 @@
 /**
  * Radix used in output retrieved from the server.
  */
-#define CL_RADIX 16
+#define CL_RADIX 10
 
 #define CL_SHOW_ERRORS true
 
@@ -55,8 +56,10 @@
 
 typedef enum
 {
+  CL_ENDIAN_INVALID = 0,
+
   /* EFCDAB8967452301 */
-  CL_ENDIAN_LITTLE = 0,
+  CL_ENDIAN_LITTLE,
 
   /* 0123456789ABCDEF */
   CL_ENDIAN_BIG,

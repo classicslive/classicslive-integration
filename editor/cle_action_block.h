@@ -56,7 +56,7 @@ public:
 
   virtual bool isEnd(void) { return false; }
 
-  virtual void setType(int type) { if (m_Action) m_Action->type = type; }
+  virtual void setType(cl_action_id type) { if (m_Action) m_Action->type = type; }
 
   virtual cle_result_t toString(void) { return { "Uninitialized action", false }; }
 
@@ -84,7 +84,7 @@ public:
 
   QRect snapZone(void) { return m_SnapZone; }
 
-  int type(void) { return m_Action ? m_Action->type : CL_ACTTYPE_NO_PROCESS; }
+  cl_action_id type(void) { return m_Action ? m_Action->type : CL_ACTTYPE_NO_PROCESS; }
 
   void setIndentation(int indentation)
   {
@@ -121,6 +121,13 @@ protected:
 
   cl_action_t *m_Action = nullptr;
   QHBoxLayout *m_Layout = nullptr;
+
+  /**
+   * Whether or not this object owns its associated action. If true, it should
+   * be freed if the block is deleted.
+   */
+  bool m_Owned = false;
+
   bool m_Selected = false;
   cle_block_snap m_SnapDirection = CLE_SNAP_NONE;
   QRect m_SnapZone;

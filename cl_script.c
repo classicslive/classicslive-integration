@@ -1,9 +1,9 @@
-#include <stdarg.h>
-#include <string.h>
-
 #include "cl_frontend.h"
 #include "cl_memory.h"
 #include "cl_script.h"
+
+#include <stdarg.h>
+#include <stdio.h>
 
 cl_script_t script;
 
@@ -78,7 +78,7 @@ bool cl_init_page(const char **pos, cl_page_t *page)
 
 bool cl_script_init(const char **pos)
 {
-  script.status = CL_SCRSTATUS_INACTIVE;
+  script.status = CL_SCRIPT_STATUS_INACTIVE;
 
   if (!cl_strto(pos, &script.page_count, sizeof(script.page_count), false))
     return false;
@@ -90,7 +90,7 @@ bool cl_script_init(const char **pos)
     for (i = 0; i < script.page_count; i++)
       if (!cl_init_page(pos, &script.pages[i]))
         return false;
-    script.status = CL_SRCSTATUS_ACTIVE;
+    script.status = CL_SCRIPT_STATUS_ACTIVE;
 
     return true;
   }
@@ -145,7 +145,7 @@ bool cl_process_actions(cl_page_t *page)
   {
     script.current_action = &page->actions[i];
 
-    if (script.status != CL_SRCSTATUS_ACTIVE)
+    if (script.status != CL_SCRIPT_STATUS_ACTIVE)
       break;
     else if (page->actions[i].if_type)
       i = cl_process_if_statements(page, i);
@@ -162,7 +162,7 @@ bool cl_process_actions(cl_page_t *page)
 
 bool cl_script_update(void)
 {
-  if (script.status != CL_SRCSTATUS_ACTIVE)
+  if (script.status != CL_SCRIPT_STATUS_ACTIVE)
     return false;
   else
   {
@@ -183,7 +183,7 @@ void cl_script_break(bool fatal, const char *format, ...)
 {
   va_list args;
 
-  script.status = CL_SCRSTATUS_PAUSED;
+  script.status = CL_SCRIPT_STATUS_PAUSED;
   script.error_fatal = fatal;
 
   va_start(args, format);

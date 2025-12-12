@@ -4,15 +4,15 @@
 #include "cl_action.h"
 #include "cl_counter.h"
 
-enum
+typedef enum
 {
-  CL_SCRSTATUS_INACTIVE = 0,
+  CL_SCRIPT_STATUS_INACTIVE = 0,
 
-  CL_SRCSTATUS_ACTIVE,
-  CL_SCRSTATUS_PAUSED,
+  CL_SCRIPT_STATUS_ACTIVE,
+  CL_SCRIPT_STATUS_PAUSED,
 
-  CL_SCRSTATUS_LAST
-};
+  CL_SCRIPT_STATUS_SIZE
+} cl_script_status;
 
 /* TODO: Arbitrary! Have pages allocate more/less depending on need */
 #define CL_COUNTERS_SIZE 16
@@ -41,8 +41,8 @@ typedef struct cl_script_t
 
   bool evaluation;
 
-  /* The status of the script. For example, CL_SRCSTATUS_ACTIVE. */
-  uint8_t status;
+  /* The status of the script. For example, CL_SCRIPT_STATUS_ACTIVE. */
+  cl_script_status status;
 
   /* Whether or not the last script break was triggered by a fatal error. */
   bool error_fatal;

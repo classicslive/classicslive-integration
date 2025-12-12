@@ -7,12 +7,10 @@ CleActionBlockNop::CleActionBlockNop(cl_action_t *action,
   m_Label = new QLabel(this);
   m_Layout->addWidget(m_Label);
 
-  setType(type());
-
   setLayout(m_Layout);
 }
 
-void CleActionBlockNop::setType(int type)
+void CleActionBlockNop::setType(cl_action_id type)
 {
   m_Label->setText("Invalid action " + QString::number(type));
 }

@@ -24,6 +24,11 @@ CleActionBlock::CleActionBlock(cl_action_t *action, QWidget *parent = nullptr)
 CleActionBlock::~CleActionBlock()
 {
   detach();
+  if (m_Owned)
+  {
+    cl_free_action(m_Action);
+    free(m_Action);
+  }
 }
 
 void CleActionBlock::mouseMoveEvent(QMouseEvent *event)

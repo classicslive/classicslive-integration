@@ -17,21 +17,35 @@ public:
 
   virtual void populate(void) override;
 
-  virtual void setType(int type) override;
+  virtual void setType(cl_action_id type) override;
 
   virtual cle_result_t toString(void) override;
 
 private:
   QLabel *m_Label;
   
+  /* Left operand type */
   QComboBox *m_LeftType;
+
+  /* Left operand value (memory note selection) */
   QComboBox *m_LeftComboBox;
 
+  /* Comparison type selection */
   QComboBox *m_ComparisonType;
 
+  /* Right operand type selection */
   QComboBox *m_RightType;
+
+  /* Right operand value (manually-typed immediate) */
   QLineEdit *m_RightLineEdit;
-  QComboBox *m_RightComboBox;
+
+  /* Right operand value (memory note selection) */
+  QComboBox *m_RightComboBoxNotes;
+
+  /* Right operand value (memory note friendly value selection) */
+  QComboBox *m_RightComboBoxValues;
+
+  /* Holder for the different right operand value types */
   QStackedWidget *m_RightStack;
 
   /**
@@ -42,6 +56,7 @@ private:
   int64_t rightValue(void);
 
 private slots:
+  void onChangeLeftNote(int index);
   void onChangeRightType(int index);
 };
 

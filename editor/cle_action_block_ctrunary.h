@@ -13,7 +13,8 @@ class CleActionBlockCtrUnary : public CleActionBlock
 public:
   CleActionBlockCtrUnary(cl_action_t *action, QWidget* parent);
 
-  virtual void setType(int type) override;
+  virtual void populate(void) override;
+  virtual void setType(cl_action_id type) override;
 
   virtual cle_result_t toString(void) override;
 

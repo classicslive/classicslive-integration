@@ -40,6 +40,9 @@ bool cl_search_free(cl_search_t *search)
     {
       free(search->searchbanks[i].backup);
       free(search->searchbanks[i].valid);
+#if CL_EXTERNAL_MEMORY
+      free(search->searchbanks[i].region->base_host);
+#endif
     }
     free(search->searchbanks);
 
@@ -70,6 +73,9 @@ bool cl_search_init(cl_search_t *search)
 
       sbank->any_valid = true;
       sbank->region = &memory.regions[i];
+#if CL_EXTERNAL_MEMORY
+      sbank->region->base_host = malloc(memory.regions[i].size);
+#endif
       sbank->backup = (uint8_t*)malloc(memory.regions[i].size);
       sbank->valid = (uint8_t*)malloc(memory.regions[i].size);
     }
@@ -293,7 +299,6 @@ uint32_t cl_search_ascii(cl_search_t *search, const char *needle, uint8_t length
   {
     cl_searchbank_t *sbank;
     const char *haystack;
-    char *position;
     uint32_t matches = 0;
     uint8_t  i;
     uint32_t j;
@@ -319,7 +324,7 @@ uint32_t cl_search_ascii(cl_search_t *search, const char *needle, uint8_t length
         sbank->any_valid = false;
       else
         matches += matches_this_bank;
-      memcpy(sbank->backup,   sbank->region->base_host,   sbank->region->size);
+      memcpy(sbank->backup, sbank->region->base_host, sbank->region->size);
     }
     search->matches = matches;
 
@@ -335,8 +340,9 @@ uint32_t cl_search_step(cl_search_t *search, void *value)
   {
     cl_searchbank_t *sbank;
     bool compare_result;
-    uint32_t left, right;
-    uint32_t matches  = 0;
+    uint32_t left = 0;
+    uint32_t right = 0;
+    uint32_t matches = 0;
     uint8_t  cmp_type = search->params.compare_type;
     uint8_t  size    = search->params.size;
     uint8_t  val_type = search->params.value_type;
@@ -417,7 +423,7 @@ uint32_t cl_search_step(cl_search_t *search, void *value)
         sbank->any_valid = false;
       else
         matches += matches_this_bank;
-      memcpy(sbank->backup,   sbank->region->base_host,   sbank->region->size);
+      memcpy(sbank->backup, sbank->region->base_host, sbank->region->size);
       sbank->last_valid = last_valid;
     }
     search->matches = matches;
@@ -464,7 +470,7 @@ bool add_pass(cl_pointersearch_t* search, uint32_t range, uint32_t max_results)
 
       for (k = 0; k < region->size; k += region->pointer_length)
       {
-        cl_read_memory(&value, region, k, region->pointer_length);
+        cl_read_memory_internal(&value, region, k, region->pointer_length);
 
         if (value <= target && value >= target - range)
         {
@@ -507,9 +513,7 @@ bool cl_pointersearch_init(cl_pointersearch_t *search,
   {
     cl_memory_region_t *region;
     cl_pointerresult_t *result;
-    cl_addr_t target;
-    uint32_t current_match, matches, prev_value, value;
-    bool exact_only;
+    uint32_t matches, prev_value, value;
     uint32_t i, j;
 
     /* Is the address we're looking for valid? */
@@ -526,10 +530,6 @@ bool cl_pointersearch_init(cl_pointersearch_t *search,
     search->params.size      = cl_sizeof_memtype(val_type);
     search->params.value_type  = val_type;
 
-    /* Only one memory bank; all pointed addresses are probably relative */
-    if (memory.region_count == 1)
-      exact_only = false;
-
     /* We create a temporary array of max size and trim it down after */
     search->results = (cl_pointerresult_t*)calloc(
       max_results, sizeof(cl_pointerresult_t));
@@ -540,17 +540,19 @@ bool cl_pointersearch_init(cl_pointersearch_t *search,
     {
       region = &memory.regions[i];
 
-      /* This is where per-console hacks were being inserted */
-      target = exact_only ? region->base_guest + address : address;
-
       if (region->size < region->pointer_length)
         continue;
 
+#if CL_EXTERNAL_MEMORY
+      region->base_host = malloc(region->size);
+      cl_read_memory_external(region->base_host, NULL, region->base_guest, region->size);
+#endif
+
       for (j = 0; j < region->size; j += region->pointer_length)
       {
-        cl_read_memory(&value, region, j, region->pointer_length);
+        cl_read_memory_internal(&value, region, j, region->pointer_length);
 
-        if (value <= target && value >= target - range)
+        if (value <= address && value >= address - range)
         {
           result = &search->results[matches];
 
@@ -581,6 +583,10 @@ bool cl_pointersearch_init(cl_pointersearch_t *search,
     search->result_count = matches;
     search->results = (cl_pointerresult_t*)realloc(
       search->results, matches * sizeof(cl_pointerresult_t));
+#if CL_EXTERNAL_MEMORY
+    free(region->base_host);
+    region->base_host = NULL;
+#endif
 
     cl_log("Pointer search for %08X found %u results.\n", address, matches);
 

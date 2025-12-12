@@ -3,6 +3,7 @@
 
 #include "cle_action_block.h"
 
+#include <QComboBox>
 #include <QLabel>
 #include <QLineEdit>
 
@@ -15,24 +16,24 @@ public:
 
   virtual void populate(void) override;
 
-  virtual void setType(int type) override;
+  virtual void setType(cl_action_id type) override;
 
   virtual cle_result_t toString(void) override;
 
 private:
-  QLabel *m_Label;
+  QLabel *m_Label = nullptr;
 
-  QLabel *m_ImageLabel;
+  QLabel *m_ImageLabel = nullptr;
 
   QImage m_Image;
 
-  /**
-   * @todo replace with combobox of possible ach/ldb
-   */
-  QLineEdit *m_Index;
+  QComboBox *m_ComboBox = nullptr;
+
+  void setAchievementIconByIndex(unsigned index);
 
 private slots:
-  void onIndexEdited(const QString& text);
+  void onChanged(int index);
+  void onEdited(const QString& text);
 };
 
 #endif

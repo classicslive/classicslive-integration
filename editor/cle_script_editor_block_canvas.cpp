@@ -19,6 +19,65 @@ extern "C"
 CleScriptEditorBlockCanvas::CleScriptEditorBlockCanvas(QWidget *parent)
   : QWidget(parent)
 {
+  /* If the C integration has an active script, build from that */
+  if (buildFromScript() != CL_OK)
+    buildNew();
+
+  setMinimumSize(640, 480);
+  setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+  setAttribute(Qt::WA_OpaquePaintEvent);
+  setFocusPolicy(Qt::StrongFocus);
+  setAutoFillBackground(true);
+}
+
+void CleScriptEditorBlockCanvas::destroyBlocks(void)
+{
+  for (auto block : blocks)
+    delete block;
+  blocks.clear();
+}
+
+cl_error CleScriptEditorBlockCanvas::buildFromScript(void)
+{
+  if (!script.page_count ||
+      !script.pages ||
+      !script.pages[0].action_count ||
+      !script.pages[0].actions)
+    return CL_ERR_CLIENT_RUNTIME;
+
+  destroyBlocks();
+
+  auto start = new CleActionBlockBookend(false, this);
+  connect(start, SIGNAL(onDrag(CleActionBlock*)),
+          this, SLOT(checkSnaps(CleActionBlock*)));
+  blocks.push_back(start);
+  start->show();
+
+  auto end = new CleActionBlockBookend(true, this);
+  connect(end, SIGNAL(onDrag(CleActionBlock*)),
+          this, SLOT(checkSnaps(CleActionBlock*)));
+  blocks.push_back(end);
+  end->show();
+
+  auto prev = addBlock(&script.pages[0].actions[0]);
+  unsigned i;
+
+  prev->attachTo(start, 0);
+  for (i = 1; i < script.pages[0].action_count; i++)
+  {
+    auto next = addBlock(&script.pages[0].actions[i]);
+    next->attachTo(prev, script.pages[0].actions[i].indentation);
+    prev = next;
+  }
+  end->attachTo(prev, 0);
+
+  return CL_OK;
+}
+
+cl_error CleScriptEditorBlockCanvas::buildNew(void)
+{
+  destroyBlocks();
+
   auto start = new CleActionBlockBookend(false, this);
   connect(start, SIGNAL(onDrag(CleActionBlock*)),
           this, SLOT(checkSnaps(CleActionBlock*)));
@@ -29,38 +88,14 @@ CleScriptEditorBlockCanvas::CleScriptEditorBlockCanvas(QWidget *parent)
           this, SLOT(checkSnaps(CleActionBlock*)));
   blocks.push_back(end);
 
-  if (script.page_count &&
-      script.pages &&
-      script.pages[0].action_count &&
-      script.pages[0].actions)
-  {
-    auto prev = addBlock(&script.pages[0].actions[0]);
-    unsigned i;
+  cl_action_t *action = new cl_action_t;
+  action->type = CL_ACTTYPE_ADDITION;
+  auto middle = addBlock(action);
 
-    prev->attachTo(start, 0);
-    for (i = 1; i < script.pages[0].action_count; i++)
-    {
-      auto next = addBlock(&script.pages[0].actions[i]);
-      next->attachTo(prev, script.pages[0].actions[i].indentation);
-      prev = next;
-    }
-    end->attachTo(prev, 0);
-  }
-  else
-  {
-    cl_action_t *action = new cl_action_t;
-    action->type = CL_ACTTYPE_ADDITION;
-    auto middle = addBlock(action);
+  middle->attachTo(start, 0);
+  end->attachTo(middle, 0);
 
-    middle->attachTo(start, 0);
-    end->attachTo(middle, 0);
-  }
-
-  setMinimumSize(640, 480);
-  setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-  setAttribute(Qt::WA_OpaquePaintEvent);
-  setFocusPolicy(Qt::StrongFocus);
-  setAutoFillBackground(true);
+  return CL_OK;
 }
 
 CleActionBlock *CleScriptEditorBlockCanvas::addBlock(cl_action_t *action,
@@ -71,11 +106,15 @@ CleActionBlock *CleScriptEditorBlockCanvas::addBlock(cl_action_t *action,
   switch (action->type)
   {
   case CL_ACTTYPE_ADDITION:
-  case CL_ACTTYPE_SUBTRACTION:
-  case CL_ACTTYPE_MULTIPLICATION:
-  case CL_ACTTYPE_DIVISION:
   case CL_ACTTYPE_AND:
+  case CL_ACTTYPE_DIVISION:
+  case CL_ACTTYPE_MODULO:
+  case CL_ACTTYPE_MULTIPLICATION:
   case CL_ACTTYPE_OR:
+  case CL_ACTTYPE_SET:
+  case CL_ACTTYPE_SHIFT_LEFT:
+  case CL_ACTTYPE_SHIFT_RIGHT:
+  case CL_ACTTYPE_SUBTRACTION:
   case CL_ACTTYPE_XOR:
     block = new CleActionBlockCtrBinary(action, this);
     break;
@@ -91,11 +130,13 @@ CleActionBlock *CleScriptEditorBlockCanvas::addBlock(cl_action_t *action,
   case CL_ACTTYPE_COMPARE:
     block = new CleActionBlockComparison(action, this);
     break;
-  default:
+  case CL_ACTTYPE_NO_PROCESS:
     block = new CleActionBlockNop(action, this);
   }
   if (block)
   {
+    block->setType(action->type);
+    block->populate();
     block->move(pos);
     connect(block, SIGNAL(onDrag(CleActionBlock*)),
             this, SLOT(checkSnaps(CleActionBlock*)));
@@ -176,9 +217,10 @@ void CleScriptEditorBlockCanvas::mousePressEvent(QMouseEvent *event)
 
     if (selectedSubAction)
     {
+      cl_action_id type = static_cast<cl_action_id>(selectedSubAction->data().toInt());
       cl_action_t *action = new cl_action_t;
-      int type = selectedSubAction->data().toInt();
 
+      memset(action, 0, sizeof(cl_action_t));
       action->type = type;
       addBlock(action, event->pos());
     }
@@ -188,15 +230,15 @@ void CleScriptEditorBlockCanvas::mousePressEvent(QMouseEvent *event)
 void CleScriptEditorBlockCanvas::paintEvent(QPaintEvent *event)
 {
   QPainter painter(this);
-  painter.fillRect(event->rect(), parentWidget()->palette().color(QPalette::Background));
+  painter.fillRect(event->rect(), parentWidget()->palette().color(QPalette::Window));
 }
 
 cle_result_t CleScriptEditorBlockCanvas::toString(void)
 {
-  const QString error = "0";
   CleActionBlock *next = nullptr;
   CleActionBlock *start = nullptr;
-  QString string = QString::number(1, 16);
+  QString string;
+  unsigned actionCount = 0;
   unsigned i;
 
   /* Find our starting point */
@@ -212,29 +254,41 @@ cle_result_t CleScriptEditorBlockCanvas::toString(void)
     return { "Unable to find start point", false };
 
   /* Iterate through all blocks after the starting bookend */
-  i = 0;
   next = start->next();
   if (!next)
     return { "No actions follow the start point", false };
   else if (next->isEnd())
     return { "No actions enclosed in start and end points", false };
-  else do
-  {
-    auto next_string = next->toString();
 
-    if (next_string.success)
-      string += "\n" + next->toString().text;
-    else
+  i = 1;
+  do
+  {
+    /* Serialize this block */
+    auto next_string = next->toString();
+    if (!next_string.success)
+    {
+      next_string.text.prepend(QString("Error in action %1: ").arg(i));
       return next_string;
+    }
+
+    string += "\n" + next_string.text;
+    actionCount++;
+
     next = next->next();
     i++;
-    if (i > blocks.size())
+
+    /* Sanity check: prevent infinite loops */
+    if (actionCount > blocks.size())
       return { "Possible infinite recursion error", false };
   } while (next && !next->isEnd());
 
   /* Return final string only if the code block was closed with a bookend */
-  if (next->isEnd())
-    return { string, true };
-  else
+  if (!next || !next->isEnd())
     return { "Unable to find end point", false };
+
+  /* Prepend number of pages and number of actions on the page */
+  QString header = QString("%1\n%2").arg(1).arg(actionCount);  /** @todo Only 1 page for now */
+  string = header + string;
+
+  return { string, true };
 }

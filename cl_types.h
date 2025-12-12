@@ -1,14 +1,35 @@
 #ifndef CL_TYPES_H
 #define CL_TYPES_H
 
-#include <ctype.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 
 #define CL_SESSION_ID_LENGTH 32
+
+typedef enum
+{
+  CL_OK = 0,
+
+  CL_ERR_UNKNOWN,
+
+  CL_ERR_USER_CONFIG,
+  CL_ERR_CLIENT_RUNTIME,
+  CL_ERR_CLIENT_COMPILE,
+
+  CL_ERR_SERVER_NOT_FOUND,
+  CL_ERR_SERVER_UNAVAILABLE,
+  CL_ERR_SERVER_INTERNAL,
+  CL_ERR_SERVER_UNEXPECTED_RESPONSE,
+
+  CL_ERR_PARAMETER_INVALID,
+  CL_ERR_PARAMETER_NULL,
+
+  CL_ERR_SESSION_MISMATCH,
+
+  CL_ERR_SIZE
+} cl_error;
 
 typedef struct
 {
@@ -32,7 +53,15 @@ typedef struct
 typedef struct
 {
   char title[64];
+  unsigned value;
+} cl_memnote_ex_value_t;
+
+typedef struct
+{
+  char title[256];
   char description[2048];
+  cl_memnote_ex_value_t values[64];
+  unsigned value_count;
 } cl_memnote_ex_t;
 
 typedef union
@@ -42,6 +71,66 @@ typedef union
   uint64_t uintval;
 } cl_arg_t;
 
+typedef enum
+{
+  CL_GAMEIDENTIFIER_INVALID = 0,
+
+  CL_GAMEIDENTIFIER_FILE_HASH,
+  CL_GAMEIDENTIFIER_PRODUCT_CODE,
+
+  CL_GAMEIDENTIFIER_SIZE
+} cl_game_identifer_type;
+
+typedef struct
+{
+  /** The type of game identifier being used. */
+  cl_game_identifer_type type;
+
+  /**
+   * The name of the emulator library or game being launched.
+   * Required in all cases.
+   */
+  const char *library;
+
+  /**
+   * The filename of the game content.
+   * Required in all cases.
+   */
+  char filename[256];
+
+  /**
+   * A pointer to game data to be checksummed.
+   * Required when using CL_GAMEIDENTIFIER_FILE_HASH.
+   */
+  void *data;
+
+  /**
+   * The size, in bytes, of the game data to be checksummed.
+   * Required when using CL_GAMEIDENTIFIER_FILE_HASH.
+   */
+  unsigned size;
+
+  /**
+   * The MD5 checksum of the game data.
+   * Required when using CL_GAMEIDENTIFIER_FILE_HASH.
+   */
+  char checksum[64];
+
+  /**
+   * When using CL_GAMEIDENTIFIER_PRODUCT_CODE, the product code.
+   * Required when using CL_GAMEIDENTIFIER_PRODUCT_CODE.
+   * The exact format depends on the platform.
+   */
+  char product[32];
+
+  /**
+   * When using CL_GAMEIDENTIFIER_PRODUCT_CODE, the version string.
+   * Required when using CL_GAMEIDENTIFIER_PRODUCT_CODE, optional otherwise.
+   * The exact format depends on the platform.
+   */
+  char version[32];
+} cl_game_identifier_t;
+
 typedef struct
 {
   const char *data;
@@ -49,7 +138,9 @@ typedef struct
   const char *error_msg;
 } cl_network_response_t;
 
-typedef void (*cl_network_cb_t)(cl_network_response_t);
+typedef void (*cl_network_cb_t)(const cl_network_response_t, void*);
+#define CL_NETWORK_CB(name) \
+  void name(const cl_network_response_t response, void *userdata)
 
 typedef union cl_session_flags_t
 {
@@ -63,17 +154,50 @@ typedef union cl_session_flags_t
   } bits;
 } cl_session_flags_t;
 
+typedef enum
+{
+  CL_SESSION_NONE = 0,
+
+  /**
+   * The integration is currently posting to the 'login' endpoint.
+   * The user does not have a session ID yet.
+   */
+  CL_SESSION_LOGGING_IN,
+
+  /**
+   * The integration has successfully posted to the 'login' endpoint.
+   * The user is "online" and has a session ID but is not yet playing a game.
+   */
+  CL_SESSION_LOGGED_IN,
+
+  /**
+   * The integration is currently posting to the 'start' endpoint.
+   * The user is "online" and has a session ID but is not yet playing a game.
+   */
+  CL_SESSION_STARTING,
+
+  /**
+   * The integration has successfully posted to the 'start' endpoint.
+   * The user is "online," has a session ID, and is playing a game.
+   */
+  CL_SESSION_STARTED,
+
+  CL_SESSION_SIZE
+} cl_session_state;
+
 typedef struct cl_session_t
 {
   char checksum[64];
-  char content_name[256];
   unsigned game_id;
-  char game_name[256];
+  char game_title[256];
   char generic_post[2048];
   cl_session_flags_t flags;
   char id[CL_SESSION_ID_LENGTH];
   time_t last_status_update;
-  bool ready;
+
+  cl_session_state state;
+
+  cl_game_identifier_t identifier;
 
   cl_achievement_t *achievements;
   unsigned achievement_count;
@@ -85,6 +209,7 @@ typedef struct cl_session_t
 struct cl_task_t;
 
 typedef void (*CL_TASK_CB_T)(struct cl_task_t*);
+#define CL_TASK_CB(name) void name(struct cl_task_t *task)
 
 /**
  * A definition for a background task that the frontend will break off into a
@@ -118,5 +243,9 @@ typedef struct
 
 /** A virtual address for the emulated system. */
 typedef uintptr_t cl_addr_t;
+
+#define CL_KB(a) ((cl_addr_t)(a) << 10)
+#define CL_MB(a) ((cl_addr_t)(a) << 20)
+#define CL_GB(a) ((cl_addr_t)(a) << 30)
 
 #endif

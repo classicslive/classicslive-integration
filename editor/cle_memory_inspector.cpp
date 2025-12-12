@@ -1,7 +1,7 @@
 #include <QMessageBox>
 
 #include "cle_memory_inspector.h"
-#include "cle_common.h"
+#include "cle_pointer_search_dialog.h"
 #include "cle_result_table_normal.h"
 #include "cle_result_table_pointer.h"
 
@@ -130,9 +130,9 @@ uint8_t CleMemoryInspector::getCurrentCompareType(void)
    return m_CompareDropdown->itemData(m_CompareDropdown->currentIndex()).toUInt();
 }
 
-uint8_t CleMemoryInspector::getCurrentSizeType(void)
+cl_value_type CleMemoryInspector::getCurrentSizeType(void)
 {
-   return m_SizeDropdown->itemData(m_SizeDropdown->currentIndex()).toUInt();
+   return static_cast<cl_value_type>(m_SizeDropdown->itemData(m_SizeDropdown->currentIndex()).toUInt());
 }
 
 void CleMemoryInspector::onAddressChanged(cl_addr_t address)
@@ -152,7 +152,7 @@ void CleMemoryInspector::onAddressChanged(cl_addr_t address)
       m_HexWidget->setOffset(address);
 
       m_Slider->setMinimum(0);
-      m_Slider->setMaximum(m_CurrentMembank->size);
+      m_Slider->setMaximum(m_CurrentMembank->size - 256);
       m_Slider->setValue(address - m_CurrentMembank->base_guest);
    }
 }
@@ -309,40 +309,40 @@ void CleMemoryInspector::requestAddMemoryNote(cl_memnote_t note)
 
 void CleMemoryInspector::requestAddMemoryNote(cl_addr_t address)
 {
-   cl_memnote_t note;
+  cl_memnote_t note;
 
-   note.address         = address;
-   note.type            = getCurrentSizeType();
-   note.pointer_offsets = NULL;
-   note.pointer_passes  = 0;
+  note.address_initial = address;
+  note.type = getCurrentSizeType();
+  note.pointer_passes = 0;
 
-   requestAddMemoryNote(note);
+  requestAddMemoryNote(note);
 }
 
 void CleMemoryInspector::requestPointerSearch(cl_addr_t address)
 {
-   if (!address)
-      return;
-   else
-   {
-      m_Searches[m_TabCount] = new CleResultTablePointer
-      (
-         this,
-         address, 
-         getCurrentSizeType(),
-         3,
-         0x10000,
-         100000
-      );
+  if (!address)
+    return;
 
-      m_TabCount++;
-      m_TableStack->addWidget(m_Searches[m_TabCount-1]->getTable());
-      m_Tabs->setCurrentIndex(m_TabCount - 1);
-      m_Tabs->setTabText(m_Tabs->currentIndex(), tr("Pointers"));
-      m_Tabs->setTabTextColor(m_Tabs->currentIndex(), Qt::yellow);
-      m_Tabs->addTab("+");
-      m_CurrentSearch = m_Searches[m_TabCount-1];
-   }
+  ClePointerSearchDialog dlg(this);
+  if (dlg.exec() != QDialog::Accepted)
+    return; // user canceled
+
+  m_Searches[m_TabCount] = new CleResultTablePointer(
+    this,
+    address,
+    getCurrentSizeType(),
+    dlg.pointerFollows(),
+    dlg.offsetRange(),
+    dlg.maxMatches()
+  );
+
+  m_TabCount++;
+  m_TableStack->addWidget(m_Searches[m_TabCount-1]->getTable());
+  m_Tabs->setCurrentIndex(m_TabCount - 1);
+  m_Tabs->setTabText(m_Tabs->currentIndex(), tr("Pointers"));
+  m_Tabs->setTabTextColor(m_Tabs->currentIndex(), QColor(200, 180, 255));
+  m_Tabs->addTab("+");
+  m_CurrentSearch = m_Searches[m_TabCount - 1];
 }
 
 void CleMemoryInspector::run()

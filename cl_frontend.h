@@ -54,8 +54,8 @@ const char* cl_fe_library_name(void);
  * 
  * @warning For internal use. User code should call `cl_network_post` instead.
  */
-void cl_fe_network_post(const char *url, char *data,
-   void(*callback)(cl_network_response_t));
+void cl_fe_network_post(const char *url, char *data, cl_network_cb_t callback,
+                        void *userdata);
 
 /**
  * Signals to the frontend to stop processing new frames until unpaused.

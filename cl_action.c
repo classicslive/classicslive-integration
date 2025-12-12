@@ -1,11 +1,11 @@
-#include <math.h>
-#include <string.h>
-
 #include "cl_action.h"
 #include "cl_common.h"
 #include "cl_memory.h"
 #include "cl_network.h"
 #include "cl_script.h"
+
+#include <stdio.h>
+#include <string.h>
 
 static bool cl_act_no_process(cl_action_t *action)
 {
@@ -25,6 +25,42 @@ bool cl_free_action(cl_action_t *action)
   action->next_action = NULL;
 
   return false;
+}
+
+static cl_error cl_print_counter_values(char *buffer, unsigned len)
+{
+  const cl_counter_t *counter;
+  char counter_buffer[32];
+  unsigned current_len, append_len;
+  unsigned i;
+
+  if (!buffer || len == 0)
+    return CL_ERR_CLIENT_RUNTIME;
+
+  for (i = 0; i < CL_COUNTERS_SIZE; i++)
+  {
+    counter = &script.current_page->counters[i];
+
+    /* Get counter value to temporary buffer */
+    if (counter->type == CL_MEMTYPE_FLOAT ||
+        counter->type == CL_MEMTYPE_DOUBLE)
+      snprintf(counter_buffer, sizeof(counter_buffer), "&c%u=%f",
+               i, counter->floatval.fp);
+    else
+      snprintf(counter_buffer, sizeof(counter_buffer), "&c%u=%lu",
+               i, counter->intval.raw);
+
+    /* Check destination buffer can hold it */
+    current_len = strlen(buffer);
+    append_len = strlen(counter_buffer);
+    if (current_len + append_len + 1 >= len)
+      return CL_ERR_CLIENT_RUNTIME;
+
+    /* Append to destination buffer */
+    strncat(buffer, counter_buffer, len - current_len - 1);
+  }
+
+  return CL_OK;
 }
 
 /**
@@ -55,7 +91,9 @@ static cl_counter_t cl_get_compare_value(cl_src_t source, int64_t offset)
   {
     cl_memnote_t *memnote = cl_find_memnote((unsigned)offset);
 
-    if (source == CL_SRCTYPE_CURRENT_RAM)
+    if (!memnote)
+      counter.type = CL_MEMTYPE_NOT_SET;
+    else if (source == CL_SRCTYPE_CURRENT_RAM)
       counter = memnote->current;
     else if (source == CL_SRCTYPE_PREVIOUS_RAM)
       counter = memnote->previous;
@@ -111,24 +149,32 @@ static bool cl_act_post_achievement(cl_action_t *action)
 {
   cl_counter_t ach_id = cl_get_compare_value(action->arguments[0].uintval,
                                              action->arguments[1].uintval);
+#if !CL_HAVE_EDITOR
   char data[CL_POST_DATA_SIZE];
 
-  snprintf(data, CL_POST_DATA_SIZE, "ach_id=%llu", ach_id.intval.i64);
-  cl_network_post(CL_REQUEST_POST_ACHIEVEMENT, data, NULL);
+  snprintf(data, CL_POST_DATA_SIZE, "ach_id=%lu", ach_id.intval.raw);
+  cl_network_post_clint(CL_END_CLINT_ACHIEVEMENT, data, NULL, NULL);
 
   /* Clear this action so we don't re-submit the achievement */
   cl_free_action(action);
+#else
+  cl_message(CL_MSG_INFO, "Editor mode: Achievement %lu unlocked.",
+    ach_id.intval.raw);
+#endif
 
   return true;
 }
 
 static bool cl_act_post_progress(cl_action_t *action)
 {
-  unsigned key = action->arguments[0].uintval;
+  unsigned key = (unsigned)action->arguments[0].uintval;
   char data[CL_POST_DATA_SIZE];
 
   snprintf(data, CL_POST_DATA_SIZE, "ach_id=%u", key);
-  cl_network_post(CL_REQUEST_POST_PROGRESS, data, NULL);
+  if (cl_print_counter_values(data, sizeof(data)) != CL_OK)
+    cl_message(CL_MSG_ERROR, "Unable to allocate progress data.");
+  else
+    cl_message(CL_MSG_ERROR, "Unimplemented endpoint progress\n%s", data);
 
   return true;
 }
@@ -140,8 +186,11 @@ static bool cl_act_post_leaderboard(cl_action_t *action)
                                              action->arguments[1].uintval);
   char data[CL_POST_DATA_SIZE];
 
-  snprintf(data, CL_POST_DATA_SIZE, "ldb_id=%llu", ldb_id.intval.i64);
-  cl_network_post(CL_REQUEST_POST_LEADERBOARD, data, NULL);
+  snprintf(data, CL_POST_DATA_SIZE, "ldb_id=%lu", ldb_id.intval.raw);
+  if (cl_print_counter_values(data, sizeof(data)) != CL_OK)
+    cl_message(CL_MSG_ERROR, "Unable to allocate leaderboard data.");
+  else
+    cl_message(CL_MSG_ERROR, "Unimplemented endpoint leaderboard\n%s", data);
    
   return true;
 }
@@ -225,7 +274,7 @@ static bool cl_act_write(cl_action_t *action)
 /**
  * A template for command actions that only use one argument, for a counter
  * index that operates on itself.
- **/
+ */
 #define CL_TEMPLATE_CTR_UNARY \
   cl_counter_t *ctr = cl_get_mutable_value(CL_SRCTYPE_COUNTER, \
                                            action->arguments[0].uintval); \
@@ -237,7 +286,7 @@ static bool cl_act_write(cl_action_t *action)
 /**
  * A template for command actions that use one argument for a mutable counter
  * index and two for a compare value lookup.
- **/
+ */
 #define CL_TEMPLATE_CTR_BINARY \
   cl_counter_t *ctr = cl_get_mutable_value(CL_SRCTYPE_COUNTER, \
                                            action->arguments[0].uintval); \
@@ -278,6 +327,15 @@ static bool cl_act_bitwise_xor(cl_action_t *action)
   CL_TEMPLATE_CTR_BINARY
   {
     return cl_ctr_xor(ctr, &src);
+  }
+}
+
+static bool cl_act_set(cl_action_t *action)
+{
+  CL_TEMPLATE_CTR_BINARY
+  {
+    *ctr = src;
+    return true;
   }
 }
 
@@ -356,6 +414,7 @@ static const cl_acttype_t action_types[] =
   { CL_ACTTYPE_MULTIPLICATION, false, 3, 3, 0, cl_act_multiplication },
   { CL_ACTTYPE_DIVISION,       false, 3, 3, 0, cl_act_division },
   { CL_ACTTYPE_MODULO,         false, 3, 3, 0, cl_act_modulo },
+  { CL_ACTTYPE_SET,            false, 3, 3, 0, cl_act_set },
 
   /* Counter bitwise arithmetic */
   { CL_ACTTYPE_AND,         false, 3, 3, 0, cl_act_bitwise_and },

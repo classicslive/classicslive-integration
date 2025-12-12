@@ -1,7 +1,7 @@
 #ifndef CL_ACTION_H
 #define CL_ACTION_H
 
-#include "cl_common.h"
+#include "cl_types.h"
 
 typedef enum
 {
@@ -12,6 +12,7 @@ typedef enum
   CL_ACTTYPE_SUBTRACTION,
   CL_ACTTYPE_MULTIPLICATION,
   CL_ACTTYPE_DIVISION,
+  CL_ACTTYPE_SET,
   CL_ACTTYPE_MODULO,
 
   /* Counter bitwise arithmetic */
@@ -35,7 +36,29 @@ typedef enum
   CL_ACTTYPE_POST_PROGRESS,
   CL_ACTTYPE_POST_POLL,
   CL_ACTTYPE_POST_INFO,
+
+  CL_ACTTYPE_ELSE,
+
+  CL_ACTTYPE_SIZE
 } cl_action_id;
+
+struct cl_action_t;
+
+typedef struct cl_action_t
+{
+  cl_arg_t *arguments;
+  unsigned argument_count;
+  unsigned executions;
+  bool breakpoint;
+  bool (*function)(struct cl_action_t *action);
+  bool if_type;
+  unsigned indentation;
+  cl_action_id type;
+
+  /* TODO: Double-link actions together so the editor can easily insert new lines */ 
+  struct cl_action_t *prev_action;
+  struct cl_action_t *next_action;
+} cl_action_t;
 
 typedef struct
 {
@@ -54,10 +77,10 @@ typedef struct
   unsigned modulo_after_minimum;
 
   /* The function of the action */
-  bool (*function)();
+  bool (*function)(cl_action_t*);
 } cl_acttype_t;
 
-enum
+typedef enum
 {
   CL_CMPTYPE_INVALID = 0,
 
@@ -67,23 +90,7 @@ enum
   CL_CMPTYPE_IFNEQUAL,
   
   CL_CMPTYPE_SIZE
-};
-
-typedef struct cl_action_t
-{
-  cl_arg_t *arguments;
-  unsigned argument_count;
-  unsigned executions;
-  bool (*function)();
-  bool if_type;
-  int indentation;
-  int type;
-  bool breakpoint;
-
-  /* TODO: Double-link actions together so the editor can easily insert new lines */ 
-  struct cl_action_t *prev_action;
-  struct cl_action_t *next_action;
-} cl_action_t;
+} cl_compare_type;
 
 bool cl_free_action(cl_action_t *action);
 

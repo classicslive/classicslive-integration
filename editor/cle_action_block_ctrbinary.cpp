@@ -46,8 +46,6 @@ CleActionBlockCtrBinary::CleActionBlockCtrBinary(cl_action_t *action,
   m_ModifierStack->addWidget(m_ModifierValueComboBox);
   m_Layout->addWidget(m_ModifierStack);
 
-  setType(type());
-
   setLayout(m_Layout);
 }
 
@@ -65,6 +63,41 @@ int64_t CleActionBlockCtrBinary::modifierValue(void)
   }
 
   return 0;
+}
+
+void CleActionBlockCtrBinary::populate(void)
+{
+  uint mod_type, mod_value;
+  int idx;
+
+  if (!m_Action || m_Action->argument_count != 3 || !m_Action->arguments)
+    return;
+
+  /* Counter number */
+  m_CounterIndex->setText(QString::number(m_Action->arguments[0].uintval));
+
+  /* Modifier type */
+  m_ModifierType->setCurrentIndex(
+    m_ModifierType->findData(static_cast<uint>(m_Action->arguments[1].uintval)));
+  onChangeModifierType(0);
+
+  /* Modifier value */
+  mod_type = m_ModifierType->currentData().toUInt();
+  mod_value = static_cast<uint>(m_Action->arguments[2].uintval);
+  switch (mod_type)
+  {
+  case CL_SRCTYPE_IMMEDIATE_INT:
+  case CL_SRCTYPE_COUNTER:
+    m_ModifierValueLineEdit->setText(QString::number(mod_value));
+    break;
+  case CL_SRCTYPE_CURRENT_RAM:
+  case CL_SRCTYPE_PREVIOUS_RAM:
+  case CL_SRCTYPE_LAST_UNIQUE_RAM:
+    idx = m_ModifierValueComboBox->findData(mod_value);
+    if (idx >= 0)
+      m_ModifierValueComboBox->setCurrentIndex(idx);
+    break;
+  }
 }
 
 void CleActionBlockCtrBinary::onChangeModifierType(int index)
@@ -87,7 +120,7 @@ void CleActionBlockCtrBinary::onChangeModifierType(int index)
   }
 }
 
-void CleActionBlockCtrBinary::setType(int type)
+void CleActionBlockCtrBinary::setType(cl_action_id type)
 {
   switch (type)
   {
@@ -118,6 +151,10 @@ void CleActionBlockCtrBinary::setType(int type)
   case CL_ACTTYPE_SHIFT_RIGHT:
     m_LabelA->setText("Right shift counter");
     m_LabelB->setText("by");
+    break;
+  case CL_ACTTYPE_SET:
+    m_LabelA->setText("Set counter");
+    m_LabelB->setText("to");
     break;
   default:
     m_LabelA->setText("Invalid ctrbinary action " + QString::number(type));

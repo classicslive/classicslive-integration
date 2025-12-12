@@ -1,4 +1,5 @@
 #include <stdarg.h>
+#include <stdio.h>
 #include <string.h>
 
 #ifdef _MSC_VER
@@ -11,7 +12,7 @@
 #ifdef __GNUC__
 __attribute__((__format__ (__printf__, 2, 0)))
 #endif
-void cl_message(unsigned level, const char *format, ...)
+void cl_message(cl_log_level level, const char *format, ...)
 {
 #if CL_SHOW_ERRORS
   char msg[256];
@@ -39,8 +40,8 @@ void cl_log(const char *format, ...)
 #endif
 }
 
-bool cl_read(void *dest, const uint8_t *src, cl_addr_t offset, unsigned size, 
-   unsigned endianness)
+bool cl_read(void *dest, const uint8_t *src, cl_addr_t offset, unsigned size,
+  cl_endianness endianness)
 {
   if (src && size > 0)
   {
@@ -127,7 +128,7 @@ bool cl_strto(const char **pos, void *value, unsigned size, bool is_signed)
 }
 
 bool cl_write(uint8_t *dest, const void *src, cl_addr_t offset, unsigned size,
-  unsigned endianness)
+  cl_endianness endianness)
 {
   unsigned i;
 

@@ -85,10 +85,9 @@ void CleResultTableNormal::onClickResultAddMemoryNote()
 {
    cl_memnote_t note;
 
-   note.address         = getClickedResultAddress();
-   note.type            = m_Search.params.value_type;
-   note.pointer_offsets = NULL;
-   note.pointer_passes  = 0;
+   note.address_initial = getClickedResultAddress();
+   note.type = m_Search.params.value_type;
+   note.pointer_passes = 0;
 
    emit requestAddMemoryNote(note);
 }

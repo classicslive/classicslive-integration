@@ -10,31 +10,31 @@
 
 extern "C" 
 {
-   #include "../cl_main.h"
-   #include "../cl_memory.h"
-   #include "../cl_network.h"
+  #include "../cl_main.h"
+  #include "../cl_memory.h"
+  #include "../cl_network.h"
 }
 
 class CleMemoryNoteSubmit : public QWidget
 {
-   Q_OBJECT
+  Q_OBJECT
 
 public:
-   CleMemoryNoteSubmit(cl_memnote_t note);
-   ~CleMemoryNoteSubmit(void);
+  CleMemoryNoteSubmit(cl_memnote_t note);
+  ~CleMemoryNoteSubmit(void);
 
 private:
-   cl_memnote_t m_MemoryNote;
-   
-   QLabel      *m_Footer;
-   QLineEdit   *m_Title;
-   QTextEdit   *m_Description;
-   QPushButton *m_SubmitButton;
-   QPushButton *m_CancelButton;
+  cl_memnote_t m_MemoryNote;
+ 
+  QLabel      *m_Footer;
+  QLineEdit   *m_Title;
+  QTextEdit   *m_Description;
+  QPushButton *m_SubmitButton;
+  QPushButton *m_CancelButton;
 
 private slots:
-   void onClickCancel(void);
-   void onClickSubmit(void);
+  void onClickCancel(void);
+  void onClickSubmit(void);
 };
 
 #endif

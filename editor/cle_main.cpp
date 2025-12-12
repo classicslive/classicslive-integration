@@ -4,7 +4,7 @@
 
 /* these must last for the lifetime of the QApplication */
 static int app_argc = 1;
-static char app_name[] = "retroarch";
+static char app_name[] = "Live Editor";
 static char *app_argv[] = { app_name, nullptr };
 
 extern "C"
@@ -36,12 +36,15 @@ void cle_init()
   m_MemoryInspector = new CleMemoryInspector();
   m_MemoryInspector->show();
 
+  m_MemoryNotes = new CleMemoryNotes(nullptr);
+  m_MemoryNotes->show();
+
   m_ScriptEditor = new CleScriptEditorBlock();
   m_ScriptEditor->show();
 }
 
 void cle_run()
 {
-   /* TODO */
+  m_MemoryNotes->update();
 }
 }
