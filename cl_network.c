@@ -13,6 +13,7 @@ static char *cl_build_generic_post_data(void)
   unsigned bufsize = 256;
   char *buf = malloc(bufsize);
   char temp[128];
+  unsigned i;
 
   if (!buf)
     return NULL;
@@ -24,7 +25,7 @@ static char *cl_build_generic_post_data(void)
 
   if (session.state == CL_SESSION_STARTED)
   {
-    for (unsigned i = 0; i < memory.note_count; i++)
+    for (i = 0; i < memory.note_count; i++)
     {
       cl_memnote_t *note = &memory.notes[i];
 
