@@ -42,7 +42,23 @@ typedef enum
   CL_ACTTYPE_SIZE
 } cl_action_id;
 
-typedef struct cl_action_t cl_action_t;
+struct cl_action_t;
+
+typedef struct cl_action_t
+{
+  cl_arg_t *arguments;
+  unsigned argument_count;
+  unsigned executions;
+  bool breakpoint;
+  bool (*function)(struct cl_action_t *action);
+  bool if_type;
+  unsigned indentation;
+  cl_action_id type;
+
+  /* TODO: Double-link actions together so the editor can easily insert new lines */ 
+  struct cl_action_t *prev_action;
+  struct cl_action_t *next_action;
+} cl_action_t;
 
 typedef struct
 {
@@ -75,22 +91,6 @@ typedef enum
   
   CL_CMPTYPE_SIZE
 } cl_compare_type;
-
-typedef struct cl_action_t
-{
-  cl_arg_t *arguments;
-  unsigned argument_count;
-  unsigned executions;
-  bool breakpoint;
-  bool (*function)(struct cl_action_t *action);
-  bool if_type;
-  unsigned indentation;
-  cl_action_id type;
-
-  /* TODO: Double-link actions together so the editor can easily insert new lines */ 
-  struct cl_action_t *prev_action;
-  struct cl_action_t *next_action;
-} cl_action_t;
 
 bool cl_free_action(cl_action_t *action);
 

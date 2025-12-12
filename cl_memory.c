@@ -407,7 +407,7 @@ unsigned cl_sizeof_memtype(const cl_value_type type)
     return 8;
   default:
     /* Should not be reached */
-    cl_message(CL_MSG_ERROR, "%s bad value %u", __FUNCTION__, type);
+    cl_message(CL_MSG_ERROR, "cl_sizeof_memtype bad value %u", type);
     return 0;
   }
 }
