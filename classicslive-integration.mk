@@ -22,16 +22,20 @@ CLASSICS_LIVE_SOURCES := \
     $(CLASSICS_LIVE_LIBRETRO_DIR)/file/file_path.c \
     $(CLASSICS_LIVE_LIBRETRO_DIR)/formats/json/jsonsax.c \
     $(CLASSICS_LIVE_LIBRETRO_DIR)/formats/json/jsonsax_full.c \
-    $(CLASSICS_LIVE_LIBRETRO_DIR)/formats/libchdr/libchdr_bitstream.c \
-    $(CLASSICS_LIVE_LIBRETRO_DIR)/formats/libchdr/libchdr_cdrom.c \
-    $(CLASSICS_LIVE_LIBRETRO_DIR)/formats/libchdr/libchdr_chd.c \
-    $(CLASSICS_LIVE_LIBRETRO_DIR)/formats/libchdr/libchdr_huffman.c \
     $(CLASSICS_LIVE_LIBRETRO_DIR)/hash/lrc_hash.c \
-    $(CLASSICS_LIVE_LIBRETRO_DIR)/streams/chd_stream.c \
     $(CLASSICS_LIVE_LIBRETRO_DIR)/streams/file_stream.c \
-    $(CLASSICS_LIVE_LIBRETRO_DIR)/streams/interface_stream.c \
     $(CLASSICS_LIVE_LIBRETRO_DIR)/streams/memory_stream.c \
     $(CLASSICS_LIVE_LIBRETRO_DIR)/string/stdstring.c \
     $(CLASSICS_LIVE_LIBRETRO_DIR)/time/rtime.c \
     $(CLASSICS_LIVE_LIBRETRO_DIR)/utils/md5.c \
     $(CLASSICS_LIVE_LIBRETRO_DIR)/vfs/vfs_implementation.c
+
+ifeq ($(CL_HAVE_FILESYSTEM),1)
+CLASSICS_LIVE_SOURCES += \
+    $(CLASSICS_LIVE_LIBRETRO_DIR)/streams/chd_stream.c \
+    $(CLASSICS_LIVE_LIBRETRO_DIR)/formats/libchdr/libchdr_bitstream.c \
+    $(CLASSICS_LIVE_LIBRETRO_DIR)/formats/libchdr/libchdr_cdrom.c \
+    $(CLASSICS_LIVE_LIBRETRO_DIR)/formats/libchdr/libchdr_chd.c \
+    $(CLASSICS_LIVE_LIBRETRO_DIR)/formats/libchdr/libchdr_huffman.c \
+    $(CLASSICS_LIVE_LIBRETRO_DIR)/streams/interface_stream.c
+endif
