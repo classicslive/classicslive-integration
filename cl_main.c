@@ -225,7 +225,7 @@ login_error:
 static CL_NETWORK_CB(cl_login_and_start_cb_2)
 {
   if (response.error_code)
-    return;
+    session.state = CL_SESSION_NONE;
   else
   {
     cl_login_cb(response, userdata);
@@ -237,6 +237,8 @@ static CL_TASK_CB(cl_login_and_start_cb_1)
 {
   if (!task->error)
     cl_login_internal(cl_login_and_start_cb_2);
+  else
+    session.state = CL_SESSION_NONE;
 }
 
 cl_error cl_login(void)
