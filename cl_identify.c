@@ -76,6 +76,7 @@ static void cl_push_md5_task(void *data, unsigned size, char *checksum,
   cl_fe_thread(task);
 }
 
+#if CL_HAVE_FILESYSTEM
 /*
    Hash info loaded into the beginning of GC/Wii memory. (0x00 - 0x2B)
    This includes game ID, region, revision, and some console info.
@@ -90,7 +91,7 @@ static void cl_task_gcwii(cl_task_t *task)
     retro_sleep(5);
 
     cl_fe_install_membanks();
-      
+
     /* When memory has been initialized, 0x20 in memory is 0D15EA5E. */
     if (memory.regions[0].base_host &&
         ((uint8_t*)(memory.regions[0].base_host))[0x20] == 0x0D &&
@@ -130,7 +131,6 @@ static void cl_push_gcwii_task(char *checksum, CL_TASK_CB_T callback)
   cl_fe_thread(task);
 }
 
-#if CL_HAVE_FILESYSTEM
 bool cl_read_from_file(const char *path, uint8_t **data, uint32_t *size)
 {
   uint8_t *buffer;
@@ -358,7 +358,8 @@ bool cl_identify_m3u(char *path, char *extension)
 
 #if CL_HAVE_FILESYSTEM
 bool cl_identify(const void *info_data, const unsigned info_size,
-  const char *info_path, const char *library, char *checksum, CL_TASK_CB_T callback)
+                 const char *info_path, const char *library, char *checksum,
+                 CL_TASK_CB_T callback)
 {
   uint8_t  *data = NULL;
   char      extension[16];
@@ -449,16 +450,24 @@ bool cl_identify(const void *info_data, const unsigned info_size,
 }
 #else
 bool cl_identify(const void *info_data, const unsigned info_size,
-  const char *info_path, const char *library, char *checksum, CL_TASK_CB_T callback)
+                 const char *info_path, const char *library, char *checksum,
+                 CL_TASK_CB_T callback)
 {
   CL_UNUSED(info_path);
   CL_UNUSED(library);
   if (info_data && info_size > 0)
   {
-    cl_push_md5_task(info_data, info_size, checksum, false, callback);
-    return true;
+    void *data = (uint8_t*)malloc(info_size);
+
+    if (data)
+    {
+      memcpy(data, info_data, info_size);
+      cl_push_md5_task(data, info_size, checksum, false, callback);
+
+      return true;
+    }
   }
-  else
-    return false;
+
+  return false;
 }
 #endif

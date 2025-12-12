@@ -7,7 +7,8 @@
  * A -1 value to represent invalid addresses in memory regions, as 0 for NULL
  * may be a valid address on some emulated systems.
  */
-#define CL_ADDRESS_INVALID (void*)0xFFFFFFFFFFFFFFFF
+#define CL_ADDRESS_INVALID_INT 0xFFFFFFFFFFFFFFFF
+#define CL_ADDRESS_INVALID ((void*)CL_ADDRESS_INVALID_INT)
 
 /**
  * Maximum size, in bytes, to use when generating an MD5 hash of raw content

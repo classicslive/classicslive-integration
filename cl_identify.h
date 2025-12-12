@@ -1,7 +1,7 @@
 #ifndef CL_IDENTIFY_H
 #define CL_IDENTIFY_H
 
-#include "cl_common.h"
+#include "cl_types.h"
 
 /**
  * Identifies the loaded content and prints a checksum into a provided buffer.

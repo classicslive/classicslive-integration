@@ -104,8 +104,11 @@ cl_error cl_start(cl_game_identifier_t identifier)
   {
     char post_data[CL_POST_DATA_SIZE];
 
+#if CL_HAVE_FILESYSTEM
     /* Trim path from filename */
-    strncpy(identifier.filename, path_basename(identifier.filename), sizeof(identifier.filename));
+    strncpy(identifier.filename, path_basename(identifier.filename),
+            sizeof(identifier.filename) - 1);
+#endif
 
     post_data[0] = '\0';
     snprintf(post_data, sizeof(post_data),
@@ -264,7 +267,7 @@ cl_error cl_login_and_start(cl_game_identifier_t identifier)
     else if (identifier.type == CL_GAMEIDENTIFIER_PRODUCT_CODE)
       cl_login_internal(cl_login_and_start_cb_2);
     else
-      return CL_ERR_CLIENT_RUNTIME;
+      return CL_ERR_PARAMETER_INVALID;
 
     return CL_OK;
   }
@@ -273,7 +276,7 @@ cl_error cl_login_and_start(cl_game_identifier_t identifier)
   else
   {
     cl_message(CL_MSG_ERROR, "cl_login_and_start state mismatch");
-    return CL_ERR_CLIENT_RUNTIME;
+    return CL_ERR_SESSION_MISMATCH;
   }
 }
 
@@ -290,7 +293,6 @@ cl_error cl_run(void)
       session.last_status_update = time(0);
       cl_network_post_clint(CL_END_CLINT_PING, NULL, NULL, NULL);
     }
-
 #if CL_HAVE_EDITOR
     cle_run();
 #endif
@@ -298,7 +300,7 @@ cl_error cl_run(void)
     return CL_OK;
   }
 
-  return CL_ERR_CLIENT_RUNTIME;
+  return CL_ERR_SESSION_MISMATCH;
 }
 
 cl_error cl_free(void)
