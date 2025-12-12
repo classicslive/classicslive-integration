@@ -5,43 +5,58 @@
 #include "cl_network.h"
 
 #include <stdio.h>
+#include <string.h>
 
-static char generic_post_data[CL_POST_DATA_SIZE];
-
-static cl_error cl_update_generic_post_data(void)
+static char *cl_build_generic_post_data(void)
 {
   cl_counter_t value;
-  unsigned i;
+  unsigned bufsize = 256;
+  char *buf = malloc(bufsize);
+  char temp[128];
 
+  if (!buf)
+    return NULL;
+  buf[0] = '\0';
+
+  /* If logged in, add the session */
   if (session.state >= CL_SESSION_LOGGED_IN)
-    snprintf(generic_post_data, sizeof(generic_post_data), "session_id=%s",
-             session.id);
+    snprintf(buf, bufsize, "session_id=%s", session.id);
 
   if (session.state == CL_SESSION_STARTED)
   {
-    /* Track the values of notes that have the "rich" flag set. */
-    for (i = 0; i < memory.note_count; i++)
+    for (unsigned i = 0; i < memory.note_count; i++)
     {
       cl_memnote_t *note = &memory.notes[i];
 
-      if (cl_get_memnote_flag(note, CL_MEMFLAG_RICH))
+      if (!cl_get_memnote_flag(note, CL_MEMFLAG_RICH))
+        continue;
+      if (cl_get_memnote_value(&value, note, CL_SRCTYPE_CURRENT_RAM))
       {
-        if (cl_get_memnote_value(&value, note, CL_SRCTYPE_CURRENT_RAM))
-        {
-          if (cl_ctr_is_float(&note->current))
-            snprintf(generic_post_data, sizeof(generic_post_data), "%s&m%u=%f",
-              generic_post_data, note->key, value.floatval.fp);
-          else
-            snprintf(generic_post_data, sizeof(generic_post_data), "%s&m%u=%li",
-              generic_post_data, note->key, value.intval.i64);
-        }
+        unsigned written, need;
+
+        if (cl_ctr_is_float(&note->current))
+          written = snprintf(temp, sizeof(temp), "&m%u=%f",
+                             note->key, value.floatval.fp);
         else
-          return CL_ERR_CLIENT_RUNTIME;
+          written = snprintf(temp, sizeof(temp), "&m%u=%li",
+                             note->key, value.intval.i64);
+
+        /* Grow buffer if needed */
+        need = strlen(buf) + written + 1;
+        if (need > bufsize)
+        {
+          bufsize *= 2;
+          buf = realloc(buf, bufsize);
+          if (!buf)
+            return NULL;
+        }
+
+        strcat(buf, temp);
       }
     }
   }
 
-  return CL_OK;
+  return buf;
 }
 
 static CL_NETWORK_CB(cl_default_network_cb)
@@ -50,53 +65,52 @@ static CL_NETWORK_CB(cl_default_network_cb)
   cl_log(response.data);
 }
 
-static void cl_network_post_internal(const char *url, const char *endpoint,
+static cl_error cl_network_post_internal(const char *url, const char *endpoint,
   const char *post_data, cl_network_cb_t callback, void *userdata, bool force)
 {
+  char endpoint_url[256];
+  char final_data[1024];
+  char *generic;
+
   if (session.state < CL_SESSION_LOGGED_IN && !force)
   {
     cl_message(CL_MSG_ERROR, "Tried to access CLint endpoint before login.");
-    return;
+    return CL_ERR_SESSION_MISMATCH;
   }
   else if (!url || !endpoint)
   {
     cl_message(CL_MSG_ERROR, "Unable to create request URL.");
-    return;
+    return CL_ERR_PARAMETER_NULL;
   }
-  else
+
+  /* Create a general request */
+  generic = cl_build_generic_post_data();
+  if (!generic)
   {
-    char final_data[1024];
-    char endpoint_url[256];
-
-    if (cl_update_generic_post_data() != CL_OK)
-    {
-      cl_log("Error in cl_update_generic_post_data");
-      return;
-    }
-
-    /* Add additional POST data if given */
-    if (post_data)
-      snprintf(final_data, sizeof(final_data), "%s%s%s",
-               post_data,
-               generic_post_data[0] == '\0' ? "" : "&",
-               generic_post_data);
-    else
-      snprintf(final_data, sizeof(final_data), "%s",
-               generic_post_data);
-    cl_log("cl_network_post:\nPOST: %s\n", final_data);
-
-    /* Apply default callback if none is specified */
-    if (!callback)
-      callback = cl_default_network_cb;
-
-    /* Create the full endpoint URL */
-    snprintf(endpoint_url, sizeof(endpoint_url), "%s%s", url, endpoint);
-
-    cl_fe_network_post(endpoint_url,
-                       final_data,
-                       callback ? callback : cl_default_network_cb,
-                       userdata);
+    cl_log("Error building POST data");
+    return CL_ERR_PARAMETER_NULL;
   }
+
+  /* Add the request data, if given */
+  if (post_data)
+    snprintf(final_data, sizeof(final_data), "%s%s%s",
+             post_data,
+             generic[0] == '\0' ? "" : "&",
+             generic);
+  else
+    snprintf(final_data, sizeof(final_data), "%s", generic);
+  free(generic);
+
+  /* Setup URL */
+  snprintf(endpoint_url, sizeof(endpoint_url), "%s%s", url, endpoint);
+
+  /* Give a default callback if none specified */
+  if (!callback)
+    callback = cl_default_network_cb;
+
+  cl_fe_network_post(endpoint_url, final_data, callback, userdata);
+
+  return CL_OK;
 }
 
 #if CL_HAVE_EDITOR
