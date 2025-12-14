@@ -3,6 +3,7 @@ CLASSICS_LIVE_DIR ?= $(PWD)
 CLASSICS_LIVE_LIBRETRO_DIR ?= $(PWD)/../libretro-common
 
 CLASSICS_LIVE_SOURCES_CLASSICSLIVE = \
+    $(CLASSICS_LIVE_DIR)/cl_abi.c \
     $(CLASSICS_LIVE_DIR)/cl_action.c \
     $(CLASSICS_LIVE_DIR)/cl_common.c \
     $(CLASSICS_LIVE_DIR)/cl_config.c \
