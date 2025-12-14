@@ -1,8 +1,8 @@
 include classicslive-integration.mk
 
 CC := gcc
-CFLAGS_COMMON := -I$(CLASSICS_LIVE_DIR) -I$(CLASSICS_LIVE_LIBRETRO_DIR)/include -Wall -O2 -DCL_TESTS=1
-CFLAGS_C89 := $(CFLAGS_COMMON) -std=c89 -pedantic -Wno-implicit-function-declaration
+CFLAGS_COMMON := -I$(CLASSICS_LIVE_DIR) -I$(CLASSICS_LIVE_LIBRETRO_DIR)/include -Wall -O2 -DCL_TESTS=1 -DCL_URL_HOSTNAME=\"fake-website\"
+CFLAGS_C89 := $(CFLAGS_COMMON) -std=c89 -Wall -Wextra -Wpedantic -Wno-implicit-function-declaration
 LDFLAGS := -lm
 
 TARGET := cl_test
