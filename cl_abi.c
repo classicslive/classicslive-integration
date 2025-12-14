@@ -37,10 +37,11 @@ cl_error cl_abi_display_message(unsigned level, const char *msg)
     return CL_ERR_PARAMETER_NULL;
 }
 
-cl_error cl_abi_install_membanks(void)
+cl_error cl_abi_install_membanks(cl_memory_region_t **regions,
+                                 unsigned *region_count)
 {
   if (cl_g_abi && cl_g_abi->functions.core.install_membanks)
-    return cl_g_abi->functions.core.install_membanks();
+    return cl_g_abi->functions.core.install_membanks(regions, region_count);
   else
     return CL_ERR_PARAMETER_NULL;
 }

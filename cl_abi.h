@@ -37,12 +37,18 @@ typedef struct
 
 #define CL_ABI_COMMENT_INSTALL_MEMBANKS \
       /** \
-       * Signals to the frontend to write memory bank data into the global \
-       * "memory" struct. \
+       * Signals to the frontend to write memory region data into the given \
+       * memory region struct. \
        * Cannot be stubbed. \
+       * @param regions A pointer to an array of memory regions to be filled in. \
+       *   The implementor is responsible for allocating this memory, and it \
+       *   will be freed by the caller. \
+       * @param region_count A pointer to an unsigned integer that will be \
+       *   set to the number of memory regions written. \
        */
       CL_ABI_COMMENT_INSTALL_MEMBANKS
-      cl_error (*install_membanks)(void);
+      cl_error (*install_membanks)(cl_memory_region_t **regions,
+                                   unsigned *region_count);
 
 #define CL_ABI_COMMENT_LIBRARY_NAME \
       /** \
@@ -142,7 +148,8 @@ CL_ABI_COMMENT_DISPLAY_MESSAGE
 cl_error cl_abi_display_message(unsigned level, const char *msg);
 
 CL_ABI_COMMENT_INSTALL_MEMBANKS
-cl_error cl_abi_install_membanks(void);
+cl_error cl_abi_install_membanks(cl_memory_region_t **regions,
+                                 unsigned *region_count);
 
 CL_ABI_COMMENT_LIBRARY_NAME
 cl_error cl_abi_library_name(const char **name);
