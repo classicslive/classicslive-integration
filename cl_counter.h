@@ -3,21 +3,6 @@
 
 #include "cl_common.h"
 
-typedef struct cl_counter_t
-{
-  union
-  {
-    int64_t i64;
-    uint64_t raw;
-  } intval;
-  union
-  {
-    double fp;
-    uint64_t raw;
-  } floatval;
-  cl_value_type type;
-} cl_counter_t;
-
 bool cl_ctr_store(cl_counter_t *counter, const void *src, cl_value_type type);
 bool cl_ctr_store_int(cl_counter_t *counter, int64_t value);
 bool cl_ctr_store_float(cl_counter_t *counter, double value);
