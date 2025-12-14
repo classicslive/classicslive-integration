@@ -46,7 +46,7 @@ static cl_error cl_init_session(const char* json)
     for (i = 0; i < memory.region_count; i++)
       memory.regions[i].pointer_length = misc;
 
-  error = cl_abi_install_membanks();
+  error = cl_abi_install_membanks(&memory.regions, &memory.region_count);
   if (error)
     return error;
 
