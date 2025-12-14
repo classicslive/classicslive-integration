@@ -2,4 +2,5 @@
 .vscode/
 *.d
 *.o
+*.exe
 cl_test
