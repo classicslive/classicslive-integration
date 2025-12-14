@@ -1,3 +1,7 @@
+#include "cl_common.h"
+
+#include "cl_abi.h"
+
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
@@ -5,9 +9,6 @@
 #ifdef _MSC_VER
 #include <intrin.h>
 #endif
-
-#include "cl_common.h"
-#include "cl_frontend.h"
 
 #ifdef __GNUC__
 __attribute__((__format__ (__printf__, 2, 0)))
@@ -21,7 +22,7 @@ void cl_message(cl_log_level level, const char *format, ...)
   va_start(argv, format);
   vsprintf(msg, format, argv);
   msg[sizeof(msg) - 1] = '\0';
-  cl_fe_display_message(level, msg);
+  cl_abi_display_message(level, msg);
   va_end(argv);
 #endif
 }

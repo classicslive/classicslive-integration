@@ -1,10 +1,11 @@
+#include "cl_search.h"
+
+#include "cl_abi.h"
+#include "cl_common.h"
+#include "cl_memory.h"
+
 #include <math.h>
 #include <string.h>
-
-#include "cl_common.h"
-#include "cl_frontend.h"
-#include "cl_memory.h"
-#include "cl_search.h"
 
 cl_searchbank_t* cl_searchbank_from_address(cl_search_t *search, 
   cl_addr_t address)
@@ -27,6 +28,31 @@ cl_searchbank_t* cl_searchbank_from_address(cl_search_t *search,
     return NULL;
   }
 }
+
+#if CL_EXTERNAL_MEMORY
+cl_error cl_search_deep_copy(cl_search_t *search)
+{
+  unsigned i;
+
+  if (!search)
+    return CL_ERR_PARAMETER_NULL;
+  else for (i = 0; i < search->searchbank_count; i++)
+  {
+    cl_searchbank_t *sbank = &search->searchbanks[i];
+
+    if (!sbank->region->base_host)
+      continue;
+    else
+      cl_abi_external_read(sbank->region->base_host + sbank->first_valid,
+        sbank->region->base_guest + sbank->first_valid,
+        sbank->last_valid - sbank->first_valid + search->params.size,
+        NULL
+      );
+  }
+
+  return CL_OK;
+}
+#endif
 
 bool cl_search_free(cl_search_t *search)
 {
@@ -141,8 +167,8 @@ bool cl_search_reset(cl_search_t *search)
     cl_searchbank_t *sbank;
     uint8_t i;
 
-#if CL_EXTERNAL_MEMORY == true
-    cl_fe_search_deep_copy(search);
+#if CL_EXTERNAL_MEMORY
+    cl_search_deep_copy(search);
 #endif
     for (i = 0; i < search->searchbank_count; i++)
     {
@@ -357,7 +383,7 @@ uint32_t cl_search_step(cl_search_t *search, void *value)
       cl_log("Comparing to %u...", *((uint32_t*)value));
 
 #if CL_EXTERNAL_MEMORY
-    cl_fe_search_deep_copy(search);
+    cl_search_deep_copy(search);
 #endif
 
     for (i = 0; i < search->searchbank_count; i++)

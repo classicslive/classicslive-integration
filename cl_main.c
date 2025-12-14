@@ -1,11 +1,9 @@
-#include <file/file_path.h>
-#include <string/stdstring.h>
+#include "cl_main.h"
 
 #include "cl_common.h"
-#include "cl_frontend.h"
+#include "cl_abi.h"
 #include "cl_identify.h"
 #include "cl_json.h"
-#include "cl_main.h"
 #include "cl_memory.h"
 #include "cl_network.h"
 #include "cl_script.h"
@@ -16,6 +14,9 @@ void cle_init(void);
 void cle_run(void);
 #endif
 
+#include <file/file_path.h>
+#include <string/stdstring.h>
+
 cl_session_t session;
 
 static cl_error cl_init_session(const char* json)
@@ -23,6 +24,7 @@ static cl_error cl_init_session(const char* json)
   const char *iterator;
   char script_str[2048];
   unsigned misc, i;
+  cl_error error;
 
   /* Get game info */
   if (cl_json_get(&session.game_title, json, CL_JSON_KEY_TITLE,
@@ -44,8 +46,9 @@ static cl_error cl_init_session(const char* json)
     for (i = 0; i < memory.region_count; i++)
       memory.regions[i].pointer_length = misc;
 
-  if (!cl_fe_install_membanks())
-    return CL_ERR_CLIENT_RUNTIME;
+  error = cl_abi_install_membanks();
+  if (error)
+    return error;
 
   /* Get memory notes */
   cl_json_get_array((void**)&memory.notes, &memory.note_count,
@@ -103,6 +106,12 @@ cl_error cl_start(cl_game_identifier_t identifier)
   else
   {
     char post_data[CL_POST_DATA_SIZE];
+    const char *library_name;
+    cl_error error;
+
+    error = cl_abi_library_name(&library_name);
+    if (error)
+      return error;
 
 #if CL_HAVE_FILESYSTEM
     /* Trim path from filename */
@@ -113,7 +122,7 @@ cl_error cl_start(cl_game_identifier_t identifier)
     post_data[0] = '\0';
     snprintf(post_data, sizeof(post_data),
              "library=%s&filename=%s",
-             cl_fe_library_name(), identifier.filename);
+             library_name, identifier.filename);
 
     if (identifier.type == CL_GAMEIDENTIFIER_FILE_HASH)
     {
@@ -188,7 +197,7 @@ static cl_error cl_login_internal(cl_network_cb_t callback)
   char post_data[256];
 
   /* Retrieve user login info */
-  if (!cl_fe_user_data(&user, 0))
+  if (cl_abi_user_data(&user, 0) != CL_OK)
   {
     cl_message(CL_MSG_ERROR, "Unable to retreive CL login data.");
     return CL_ERR_USER_CONFIG;
@@ -259,10 +268,16 @@ cl_error cl_login_and_start(cl_game_identifier_t identifier)
 {
   if (session.state == CL_SESSION_NONE)
   {
+    const char *library_name;
+    cl_error error;
+
+    error = cl_abi_library_name(&library_name);
+    if (error)
+      return error;
     session.identifier = identifier;
     if (identifier.type == CL_GAMEIDENTIFIER_FILE_HASH)
       cl_identify(identifier.data, identifier.size, identifier.filename,
-                  cl_fe_library_name(), session.identifier.checksum,
+                  library_name, session.identifier.checksum,
                   cl_login_and_start_cb_1);
     else if (identifier.type == CL_GAMEIDENTIFIER_PRODUCT_CODE)
       cl_login_internal(cl_login_and_start_cb_2);

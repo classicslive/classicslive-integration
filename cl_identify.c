@@ -1,5 +1,5 @@
+#include "cl_abi.h"
 #include "cl_config.h"
-#include "cl_frontend.h"
 #include "cl_identify.h"
 #include "cl_memory.h"
 
@@ -73,7 +73,7 @@ static void cl_push_md5_task(void *data, unsigned size, char *checksum,
   task->state    = context;
   task->callback = callback;
 
-  cl_fe_thread(task);
+  cl_abi_thread(task);
 }
 
 #if CL_HAVE_FILESYSTEM
@@ -90,7 +90,8 @@ static void cl_task_gcwii(cl_task_t *task)
     /* Give it an arbitrary amount of time to init fully */
     retro_sleep(5);
 
-    cl_fe_install_membanks();
+    if (cl_abi_install_membanks() != CL_OK)
+      return;
 
     /* When memory has been initialized, 0x20 in memory is 0D15EA5E. */
     if (memory.regions[0].base_host &&
@@ -128,7 +129,7 @@ static void cl_push_gcwii_task(char *checksum, CL_TASK_CB_T callback)
   task->state    = context;
   task->callback = callback;
 
-  cl_fe_thread(task);
+  cl_abi_thread(task);
 }
 
 bool cl_read_from_file(const char *path, uint8_t **data, uint32_t *size)

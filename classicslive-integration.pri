@@ -11,6 +11,7 @@ INCLUDEPATH += \
 
 # Classics Live Sources
 SOURCES += \
+    $$CL_DIR/cl_abi.c \
     $$CL_DIR/cl_action.c \
     $$CL_DIR/cl_common.c \
     $$CL_DIR/cl_config.c \
@@ -24,11 +25,11 @@ SOURCES += \
     $$CL_DIR/cl_search.c
 
 HEADERS += \
+    $$CL_DIR/cl_abi.h \
     $$CL_DIR/cl_action.h \
     $$CL_DIR/cl_common.h \
     $$CL_DIR/cl_config.h \
     $$CL_DIR/cl_counter.h \
-    $$CL_DIR/cl_frontend.h \
     $$CL_DIR/cl_identify.h \
     $$CL_DIR/cl_json.h \
     $$CL_DIR/cl_main.h \

@@ -1,8 +1,9 @@
+#include "cl_network.h"
+
 #include "cl_common.h"
-#include "cl_frontend.h"
+#include "cl_abi.h"
 #include "cl_main.h"
 #include "cl_memory.h"
-#include "cl_network.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -109,7 +110,7 @@ static cl_error cl_network_post_internal(const char *url, const char *endpoint,
   if (!callback)
     callback = cl_default_network_cb;
 
-  cl_fe_network_post(endpoint_url, final_data, callback, userdata);
+  cl_abi_network_post(endpoint_url, final_data, callback, userdata);
 
   return CL_OK;
 }

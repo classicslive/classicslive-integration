@@ -9,7 +9,7 @@
 #include <stdio.h>
 
 #if CL_HAVE_EDITOR
-#include "cl_frontend.h"
+#include "cl_abi.h"
 #include <string.h>
 #include <ctype.h>
 #include <stdlib.h>
@@ -382,9 +382,13 @@ unsigned cl_read_memory_internal(void *value, const cl_memory_region_t *bank,
 unsigned cl_read_memory_external(void *value, const cl_memory_region_t *bank,
   cl_addr_t address, unsigned size)
 {
+  unsigned written = 0;
+
   if (bank)
     address += bank->base_guest;
-  return cl_fe_memory_read(&memory, value, address, size);
+  cl_abi_external_read(value, address, size, &written);
+
+  return written;
 }
 #endif
 
@@ -482,8 +486,12 @@ unsigned cl_write_memory(cl_memory_region_t *bank, cl_addr_t address,
                          unsigned size, const void *value)
 {
 #if CL_EXTERNAL_MEMORY
+  unsigned written = 0;
   CL_UNUSED(bank);
-  return cl_fe_memory_write(&memory, value, address, size);
+
+  cl_abi_external_write(value, address, size, &written);
+
+  return written;
 #else
   if (!size || !value)
     return false;

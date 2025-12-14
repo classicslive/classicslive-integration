@@ -1,6 +1,6 @@
-#include "cl_frontend.h"
-#include "cl_memory.h"
 #include "cl_script.h"
+
+#include "cl_abi.h"
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -197,7 +197,7 @@ void cl_script_break(bool fatal, const char *format, ...)
   if (fatal)
   {
 #if CL_HAVE_EDITOR
-    cl_fe_pause();
+    cl_abi_set_pause(1);
 #endif
     cl_message(CL_MSG_ERROR, script.error_msg);
   }
