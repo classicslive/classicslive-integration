@@ -131,17 +131,50 @@ bool cl_strto(const char **pos, void *value, unsigned size, bool is_signed)
 bool cl_write(uint8_t *dest, const void *src, cl_addr_t offset, unsigned size,
   cl_endianness endianness)
 {
-  unsigned i;
-
-  if (dest && src)
+  if (dest && src && size > 0)
   {
+    memcpy(&dest[offset], src, size);
+
+    /* Byte swap if necessary */
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
     if (endianness == CL_ENDIAN_LITTLE)
-      memcpy(&dest[offset], src, size);
-    else if (endianness == CL_ENDIAN_BIG)
-      for (i = 0; i < size; i++)
-        dest[offset + i] = ((const uint8_t*)src)[size - i - 1];
-    else
-      return false;
+#else
+    if (endianness == CL_ENDIAN_BIG)
+#endif
+    {
+      switch (size)
+      {
+      case 2:
+#ifdef _MSC_VER
+        *((uint16_t*)&dest[offset]) =
+          _byteswap_ushort(*((uint16_t*)&dest[offset]));
+#else
+        *((uint16_t*)&dest[offset]) =
+          __builtin_bswap16(*((uint16_t*)&dest[offset]));
+#endif
+        break;
+      case 4:
+#ifdef _MSC_VER
+        *((uint32_t*)&dest[offset]) =
+          _byteswap_ulong(*((uint32_t*)&dest[offset]));
+#else
+        *((uint32_t*)&dest[offset]) =
+          __builtin_bswap32(*((uint32_t*)&dest[offset]));
+#endif
+        break;
+      case 8:
+#ifdef _MSC_VER
+        *((uint64_t*)&dest[offset]) =
+          _byteswap_uint64(*((uint64_t*)&dest[offset]));
+#else
+        *((uint64_t*)&dest[offset]) =
+          __builtin_bswap64(*((uint64_t*)&dest[offset]));
+#endif
+        break;
+      }
+    }
+
+    return true;
   }
 
   return false;
