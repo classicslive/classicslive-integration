@@ -57,3 +57,9 @@ DEFINES += \
 ```qmake
 include(classicslive-integration/classicslive-integration.pri)
 ```
+
+## License
+
+**classicslive-integration** is provided under the MIT license. See `LICENSE` for more information.
+
+**JSONSAX** by *John-Anthony Owens* with modifications by *The RetroArch Team* and the author is used under the MIT license. See `3rdparty/jsonsax/LICENSE` for more information.
