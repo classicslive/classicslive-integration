@@ -29,7 +29,7 @@ static cl_error cl_init_session(const char* json)
   /* Get game info */
   if (cl_json_get(&session.game_title, json, CL_JSON_KEY_TITLE,
                   CL_JSON_TYPE_STRING, sizeof(session.game_title)))
-    cl_message(CL_MSG_INFO, "Game title: %s\n", session.game_title);
+    cl_message(CL_MSG_INFO, "Game title: %s", session.game_title);
   if (cl_json_get(&misc, json, CL_JSON_KEY_GAME_ID,
                   CL_JSON_TYPE_NUMBER, sizeof(misc)))
     session.game_id = misc;
