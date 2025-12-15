@@ -18,10 +18,42 @@ classicslive-integration is a C library created for interfacing with the Classic
 - Add [libretro-common](https://github.com/libretro/libretro-common) to your project.
 - Set any configuration variables (see [cl_config.h](https://github.com/classicslive/classicslive-integration/blob/master/cl_config.h) for a list of configuration variables and their default values).
 - Provide implementations for the classicslive-integration ABI prototyped in [cl_abi.h](https://github.com/classicslive/classicslive-integration/blob/master/cl_abi.h) (instructions coming soon, see [cl_test.c](https://github.com/classicslive/classicslive-integration/blob/master/cl_test.c) in the meantime for an example).
-### C Makefile:
 
-`include classicslive-integration/classicslive-integration.mk` in your Makefile, then add the exported `CLASSICS_LIVE_SOURCES` to your own.
+### Project integration
 
-### Qt project:
+#### For C / Makefile projects
 
-`include(classicslive-integration/classicslive-integration.pri)`
+**1)** Add any compile-time configurations to your Makefile:
+
+```make
+CFLAGS += -DCL_HAVE_FILESYSTEM=1
+```
+
+**2)** Include the classicslive-integration Makefile:
+
+```make
+include classicslive-integration/classicslive-integration.mk
+```
+
+**3)** Add the exported `CLASSICS_LIVE_SOURCES` to your own, for example:
+
+```make
+SOURCES += $(CLASSICS_LIVE_SOURCES)
+```
+
+#### For Qt (qmake) projects
+
+**1)** Add any compile-time configurations to the defines in your qmake project (.pro):
+
+```qmake
+DEFINES += \
+  CL_EXTERNAL_MEMORY=1 \
+  CL_HAVE_EDITOR=1 \
+  CL_HAVE_FILESYSTEM=1
+```
+
+**2)** Add the classicslive-integration project include file (.pri) to your qmake project (.pro):
+
+```qmake
+include(classicslive-integration/classicslive-integration.pri)
+```
