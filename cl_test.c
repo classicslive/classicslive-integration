@@ -169,6 +169,10 @@ static cl_error cl_test_thread(cl_task_t *task)
   printf(" - Task callback completed.\n");
   cl_test_thread_depth--;
 
+  if (task->state)
+    free(task->state);
+  free(task);
+
   return CL_OK;
 }
 

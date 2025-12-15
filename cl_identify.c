@@ -56,7 +56,6 @@ static void cl_task_md5(struct cl_task_t *task)
     cl_log("Content MD5: %.32s\n", state->md5_final);
     if (state->free_on_finish)
       free(state->data);
-    free(state);
   }
 }
 
@@ -66,13 +65,13 @@ static void cl_push_md5_task(void *data, unsigned size, char *checksum,
   cl_task_t *task = (cl_task_t*)calloc(1, sizeof(cl_task_t));
   cl_md5_ctx_t *context = (cl_md5_ctx_t*)calloc(1, sizeof(cl_md5_ctx_t));
 
-  context->data           = data;
-  context->size           = size;
-  context->md5_final      = checksum;
+  context->data = data;
+  context->size = size;
+  context->md5_final = checksum;
   context->free_on_finish = free_on_finish;
 
-  task->handler  = cl_task_md5;
-  task->state    = context;
+  task->handler = cl_task_md5;
+  task->state = context;
   task->callback = callback;
 
   cl_abi_thread(task);
@@ -465,7 +464,7 @@ bool cl_identify(const void *info_data, const unsigned info_size,
     if (data)
     {
       memcpy(data, info_data, info_size);
-      cl_push_md5_task(data, info_size, checksum, false, callback);
+      cl_push_md5_task(data, info_size, checksum, true, callback);
 
       return true;
     }

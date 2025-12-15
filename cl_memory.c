@@ -67,9 +67,12 @@ void cl_memory_free(void)
 
   for (i = 0; i < memory.note_count; i++)
     cl_free_memnote(&memory.notes[i]);
+  free(memory.notes);
+  memory.note_count = 0;
   memory.notes = NULL;
 
   free(memory.regions);
+  memory.region_count = 0;
   memory.regions = NULL;
 }
 

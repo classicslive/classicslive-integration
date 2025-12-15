@@ -11,8 +11,14 @@ void cl_page_free(cl_page_t *page)
 {
   unsigned i;
 
+  if (!page)
+    return;
   for (i = 0; i < page->action_count; i++)
     cl_free_action(&page->actions[i]);
+  free(page->actions);
+  page->actions = NULL;
+  page->action_count = 0;
+  free(page);
 }
 
 void cl_script_free(void)
@@ -21,6 +27,8 @@ void cl_script_free(void)
 
   for (i = 0; i < script.page_count; i++)
     cl_page_free(&script.pages[i]);
+  script.pages = NULL;
+  script.page_count = 0;
 }
 
 bool cl_init_page(const char **pos, cl_page_t *page)
@@ -99,33 +107,34 @@ bool cl_script_init(const char **pos)
 static unsigned cl_process_if_statements(cl_page_t *page, unsigned pos)
 {
   unsigned current_indent = page->actions[pos].indentation;
-  bool     evaluation     = true;
-  unsigned i;
+  bool evaluation = true;
+  unsigned i = pos;
 
-  for (i = pos; i < page->action_count; i++)
+  if (!page || !page->actions ||
+      page->action_count == 0 || pos >= page->action_count)
+    return page->action_count;
+  current_indent = page->actions[pos].indentation;
+  while (i < page->action_count)
   {
-    /* Make sure all if statements on the current indentation level are true */
-    if (page->actions[i].if_type &&
-        page->actions[i].indentation == current_indent)
+    cl_action_t *action = &page->actions[i];
+
+    if (action->if_type && action->indentation == current_indent)
     {
       if (evaluation)
-        evaluation = cl_process_action(&page->actions[i]);
-      else
-        continue;
+        evaluation = cl_process_action(action);
+      i++;
     }
-    else if (current_indent < page->actions[i].indentation)
+    else if (action->indentation > current_indent)
     {
-      /* Indentation went one level deeper, should we follow it? */
       if (evaluation)
         return i;
       else
       {
-        /* These conditions evaluated false, so skip all of their children */
         do
         {
           i++;
-        } while (page->actions[i].indentation > current_indent &&
-                 i < page->action_count);
+        } while (i < page->action_count &&
+                 page->actions[i].indentation > current_indent);
         return i;
       }
     }
@@ -133,15 +142,17 @@ static unsigned cl_process_if_statements(cl_page_t *page, unsigned pos)
       return i;
   }
 
-  return page->action_count - 1;
+  return i;
 }
 
 bool cl_process_actions(cl_page_t *page)
 {
-  bool     success = true;
-  unsigned i       = 0;
+  bool success = true;
+  unsigned i = 0;
 
-  while (i < page->action_count)
+  if (!page || !page->actions || page->action_count == 0)
+    return false;
+  else while (i < page->action_count)
   {
     script.current_action = &page->actions[i];
 
