@@ -3,11 +3,13 @@
 #include "cl_identify.h"
 #include "cl_memory.h"
 
+#include <stdio.h>
+
+#include <bits/types/struct_timespec.h>
+
 #include <lrc_hash.h>
 #include <retro_timers.h>
 #include <string/stdstring.h>
-
-#include <stdio.h>
 
 #if CL_HAVE_FILESYSTEM
 #include <streams/file_stream.h>
@@ -90,7 +92,7 @@ static void cl_task_gcwii(cl_task_t *task)
     /* Give it an arbitrary amount of time to init fully */
     retro_sleep(5);
 
-    if (cl_abi_install_membanks() != CL_OK)
+    if (cl_abi_install_memory_regions(&memory.regions, &memory.region_count) != CL_OK)
       return;
 
     /* When memory has been initialized, 0x20 in memory is 0D15EA5E. */

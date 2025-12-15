@@ -22,7 +22,9 @@ SOURCES += \
     $$CL_DIR/cl_memory.c \
     $$CL_DIR/cl_network.c \
     $$CL_DIR/cl_script.c \
-    $$CL_DIR/cl_search.c
+    $$CL_DIR/cl_search.c \
+    $$CL_DIR/3rdparty/jsonsax/jsonsax.c \
+    $$CL_DIR/3rdparty/jsonsax/jsonsax_full.c
 
 HEADERS += \
     $$CL_DIR/cl_abi.h \
@@ -37,7 +39,9 @@ HEADERS += \
     $$CL_DIR/cl_network.h \
     $$CL_DIR/cl_script.h \
     $$CL_DIR/cl_search.h \
-    $$CL_DIR/cl_types.h
+    $$CL_DIR/cl_types.h \
+    $$CL_DIR/3rdparty/jsonsax/jsonsax.h \
+    $$CL_DIR/3rdparty/jsonsax/jsonsax_full.h
 
 # Live Editor sources
 contains(DEFINES, CL_HAVE_EDITOR=1) {
@@ -92,18 +96,26 @@ SOURCES += \
     $$CL_LIBRETRO_DIR/encodings/encoding_crc32.c \
     $$CL_LIBRETRO_DIR/encodings/encoding_utf.c \
     $$CL_LIBRETRO_DIR/file/file_path.c \
-    $$CL_LIBRETRO_DIR/formats/json/jsonsax.c \
-    $$CL_LIBRETRO_DIR/formats/json/jsonsax_full.c \
+    $$CL_LIBRETRO_DIR/file/file_path_io.c \
     $$CL_LIBRETRO_DIR/formats/libchdr/libchdr_bitstream.c \
     $$CL_LIBRETRO_DIR/formats/libchdr/libchdr_cdrom.c \
     $$CL_LIBRETRO_DIR/formats/libchdr/libchdr_chd.c \
     $$CL_LIBRETRO_DIR/formats/libchdr/libchdr_huffman.c \
+    $$CL_LIBRETRO_DIR/formats/libchdr/libchdr_zlib.c \
     $$CL_LIBRETRO_DIR/hash/lrc_hash.c \
     $$CL_LIBRETRO_DIR/streams/chd_stream.c \
     $$CL_LIBRETRO_DIR/streams/file_stream.c \
     $$CL_LIBRETRO_DIR/streams/interface_stream.c \
     $$CL_LIBRETRO_DIR/streams/memory_stream.c \
+    $$CL_LIBRETRO_DIR/streams/rzip_stream.c \
+    $$CL_LIBRETRO_DIR/streams/trans_stream.c \
+    $$CL_LIBRETRO_DIR/streams/trans_stream_pipe.c \
+    $$CL_LIBRETRO_DIR/streams/trans_stream_zlib.c \
     $$CL_LIBRETRO_DIR/string/stdstring.c \
     $$CL_LIBRETRO_DIR/time/rtime.c \
     $$CL_LIBRETRO_DIR/utils/md5.c \
     $$CL_LIBRETRO_DIR/vfs/vfs_implementation.c
+
+DEFINES += HAVE_ZLIB=1
+
+LIBS += -lz
