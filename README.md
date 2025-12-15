@@ -75,7 +75,7 @@ static cl_error cl_custom_display_message(unsigned level, const char *msg)
 }
 
 /* Make an implementation of the second ABI function... */
-static cl_error cl_custom_install_membanks(cl_memory_region_t **regions,
+static cl_error cl_custom_install_memory_regions(cl_memory_region_t **regions,
   unsigned *region_count)
 {
   *region_count = 1;
@@ -100,7 +100,7 @@ static const cl_abi_t cl_test_abi =
   {
     {
       cl_custom_display_message,
-      cl_custom_install_membanks,
+      cl_custom_install_memory_regions,
       /* ...the rest of the functions... */
     },
     { NULL, NULL }
