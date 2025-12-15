@@ -324,6 +324,8 @@ cl_error cl_free(void)
     cl_network_post_clint(CL_END_CLINT_CLOSE, NULL, NULL, NULL);
   cl_memory_free();
   cl_script_free();
+  free(session.achievements);
+  free(session.leaderboards);
   memset(&session, 0, sizeof(session));
 
   return CL_OK;
