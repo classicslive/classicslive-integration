@@ -114,9 +114,24 @@ static cl_error cl_test_network_post(const char *url, char *data,
   {
     response.data =
       "{"
-      "\"success\":true,"
-      "\"game_id\":1,"
-      "\"game_title\":\"Test Game\""
+        "\"success\":true,"
+        "\"game_id\":1,"
+        "\"title\":\"Test Game\","
+        "\"memory_notes\":"
+        "["
+          "{\"id\":1,\"type\":8,\"offsets\":\"1 4\",\"address\":4096}"
+        "],"
+        "\"achievements\":"
+        "["
+          "{\"achievement_id\":1,\"name\":\"High Five\",\"description\":\""
+            "Increment a value to equal 5.\"}"
+        "],"
+        "\"leaderboards\":"
+        "["
+          "{\"leaderboard_id\":1,\"name\":\"High Scores\",\"description\":\""
+            "Top scores for the game.\"}"
+        "],"
+        "\"script\":\"1 2 0 15 5 1 1 0 5 1 1 18 2 0 1\""
       "}";
   }
   else
@@ -298,6 +313,7 @@ cl_error cl_test_console_init(void)
   cl_test_system.regions[0].size = 0x1000;
   cl_test_system.regions[0].base_host = malloc(0x1000);
   cl_test_system.regions[0].endianness = CL_ENDIAN_NATIVE;
+  cl_test_system.regions[0].pointer_length = 4;
   snprintf(cl_test_system.regions[0].title,
            sizeof(cl_test_system.regions[0].title),
            "Test Region 0");
@@ -306,6 +322,7 @@ cl_error cl_test_console_init(void)
   cl_test_system.regions[1].size = 0x1000;
   cl_test_system.regions[1].base_host = malloc(0x1000);
   cl_test_system.regions[1].endianness = CL_ENDIAN_NATIVE;
+  cl_test_system.regions[1].pointer_length = 4;
   snprintf(cl_test_system.regions[1].title,
            sizeof(cl_test_system.regions[1].title),
            "Test Region 1");
@@ -314,6 +331,7 @@ cl_error cl_test_console_init(void)
   cl_test_system.regions[2].size = 0x1000;
   cl_test_system.regions[2].base_host = malloc(0x1000);
   cl_test_system.regions[2].endianness = CL_ENDIAN_LITTLE;
+  cl_test_system.regions[2].pointer_length = 4;
   snprintf(cl_test_system.regions[2].title,
            sizeof(cl_test_system.regions[2].title),
            "Test Region 2");
@@ -322,6 +340,7 @@ cl_error cl_test_console_init(void)
   cl_test_system.regions[3].size = 0x1000;
   cl_test_system.regions[3].base_host = malloc(0x1000);
   cl_test_system.regions[3].endianness = CL_ENDIAN_BIG;
+  cl_test_system.regions[3].pointer_length = 4;
   snprintf(cl_test_system.regions[3].title,
            sizeof(cl_test_system.regions[3].title),
            "Test Region 3");
@@ -417,12 +436,14 @@ static cl_error cl_test(void)
 
   /* Run a few frames */
   printf("Running simulated frames...\n");
+  word = 0x2000;
+  cl_write_memory(NULL, 0x1000, sizeof(word), &word);
   for (i = 0; i < 10; i++)
   {
-    cl_write_memory(NULL, 0x1000, sizeof(i), &i);
+    cl_write_memory(NULL, 0x2004, sizeof(i), &i);
     cl_run();
-    cl_read_memory(&i, NULL, 0x1000, sizeof(i));
-    printf(" - Frame %u completed, memory at 0x1000 = 0x%08x\n", i, i);
+    cl_read_memory(&i, NULL, 0x2004, sizeof(i));
+    printf(" - Frame %u completed, memory at 0x2004 = 0x%08x\n", i, i);
   }
 
   /* Close and free */
