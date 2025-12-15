@@ -15,7 +15,13 @@ classicslive-integration is a C library created for interfacing with the Classic
 
 ## Building
 
-- Add [libretro-common](https://github.com/libretro/libretro-common) and [jsonsax](https://github.com/johnanthonyowens/jsonsax) to your project.
+- Add [libretro-common](https://github.com/libretro/libretro-common) to your project.
 - Set any configuration variables (see [cl_config.h](https://github.com/classicslive/classicslive-integration/blob/master/cl_config.h) for a list of configuration variables and their default values).
-- Provide implementations for the functions prototyped in [cl_frontend.h](https://github.com/classicslive/classicslive-integration/blob/master/cl_frontend.h).
-- Add the C files in this library to your makefile.
+- Provide implementations for the classicslive-integration ABI prototyped in [cl_abi.h](https://github.com/classicslive/classicslive-integration/blob/master/cl_abi.h) (instructions coming soon, see [cl_test.c](https://github.com/classicslive/classicslive-integration/blob/master/cl_test.c) in the meantime for an example).
+### C Makefile:
+
+`include classicslive-integration/classicslive-integration.mk` in your Makefile, then add the exported `CLASSICS_LIVE_SOURCES` to your own.
+
+### Qt project:
+
+`include(classicslive-integration/classicslive-integration.pri)`
