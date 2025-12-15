@@ -11,7 +11,7 @@ cl_error cl_abi_register(const cl_abi_t *abi)
     if (abi->version < CL_ABI_VERSION)
       return CL_ERR_PARAMETER_INVALID;
     else if (/* !abi->functions.core.display_message || */
-        !abi->functions.core.install_membanks ||
+        !abi->functions.core.install_memory_regions ||
         !abi->functions.core.library_name ||
         !abi->functions.core.network_post ||
         /* !abi->functions.core.set_pause || */
@@ -31,24 +31,26 @@ cl_error cl_abi_register(const cl_abi_t *abi)
 
 cl_error cl_abi_display_message(unsigned level, const char *msg)
 {
-  if (cl_g_abi && cl_g_abi->functions.core.display_message)
+  if (cl_g_abi && cl_g_abi->functions.core.display_message && msg)
     return cl_g_abi->functions.core.display_message(level, msg);
   else
     return CL_ERR_PARAMETER_NULL;
 }
 
-cl_error cl_abi_install_membanks(cl_memory_region_t **regions,
-                                 unsigned *region_count)
+cl_error cl_abi_install_memory_regions(cl_memory_region_t **regions,
+                                       unsigned *region_count)
 {
-  if (cl_g_abi && cl_g_abi->functions.core.install_membanks)
-    return cl_g_abi->functions.core.install_membanks(regions, region_count);
+  if (cl_g_abi &&
+      cl_g_abi->functions.core.install_memory_regions &&
+      regions && region_count)
+    return cl_g_abi->functions.core.install_memory_regions(regions, region_count);
   else
     return CL_ERR_PARAMETER_NULL;
 }
 
 cl_error cl_abi_library_name(const char **name)
 {
-  if (cl_g_abi && cl_g_abi->functions.core.library_name)
+  if (cl_g_abi && cl_g_abi->functions.core.library_name && name)
     return cl_g_abi->functions.core.library_name(name);
   else
     return CL_ERR_PARAMETER_NULL;
@@ -57,7 +59,7 @@ cl_error cl_abi_library_name(const char **name)
 cl_error cl_abi_network_post(const char *url, char *data,
                              cl_network_cb_t callback, void *userdata)
 {
-  if (cl_g_abi && cl_g_abi->functions.core.network_post)
+  if (cl_g_abi && cl_g_abi->functions.core.network_post && url && data)
     return cl_g_abi->functions.core.network_post(url, data, callback, userdata);
   else
     return CL_ERR_PARAMETER_NULL;
@@ -73,7 +75,7 @@ cl_error cl_abi_set_pause(unsigned mode)
 
 cl_error cl_abi_thread(cl_task_t *task)
 {
-  if (cl_g_abi && cl_g_abi->functions.core.thread)
+  if (cl_g_abi && cl_g_abi->functions.core.thread && task)
     return cl_g_abi->functions.core.thread(task);
   else
     return CL_ERR_PARAMETER_NULL;
@@ -81,17 +83,18 @@ cl_error cl_abi_thread(cl_task_t *task)
 
 cl_error cl_abi_user_data(cl_user_t *user, unsigned index)
 {
-  if (cl_g_abi && cl_g_abi->functions.core.user_data)
+  if (cl_g_abi && cl_g_abi->functions.core.user_data && user)
     return cl_g_abi->functions.core.user_data(user, index);
   else
     return CL_ERR_PARAMETER_NULL;
 }
 
 #if CL_EXTERNAL_MEMORY
+
 cl_error cl_abi_external_read(void *dest, cl_addr_t address,
                               unsigned size, unsigned *read)
 {
-  if (cl_g_abi && cl_g_abi->functions.external.read)
+  if (cl_g_abi && cl_g_abi->functions.external.read && dest)
     return cl_g_abi->functions.external.read(dest, address, size, read);
   else
     return CL_ERR_PARAMETER_NULL;
@@ -100,9 +103,10 @@ cl_error cl_abi_external_read(void *dest, cl_addr_t address,
 cl_error cl_abi_external_write(const void *src, cl_addr_t address,
                                unsigned size, unsigned *written)
 {
-  if (cl_g_abi && cl_g_abi->functions.external.write)
+  if (cl_g_abi && cl_g_abi->functions.external.write && src)
     return cl_g_abi->functions.external.write(src, address, size, written);
   else
     return CL_ERR_PARAMETER_NULL;
 }
+
 #endif
