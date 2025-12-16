@@ -3,6 +3,7 @@
 #include "cl_main.h"
 #include "cl_memory.h"
 #include "cl_network.h"
+#include "cl_search.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -46,11 +47,11 @@ static cl_error cl_test_display_message(unsigned level, const char *msg)
   return CL_OK;
 }
 
-static cl_error cl_test_install_membanks(cl_memory_region_t **regions,
+static cl_error cl_test_install_memory_regions(cl_memory_region_t **regions,
   unsigned *region_count)
 {
   snprintf(cl_test_msg, sizeof(cl_test_msg),
-    "cl_abi_install_membanks - regions:%p region_count:%p",
+    "cl_abi_install_memory_regions - regions:%p region_count:%p",
     (void*)regions, (void*)region_count);
   cl_test_display_message(CL_MSG_DEBUG, cl_test_msg);
 
@@ -119,7 +120,7 @@ static cl_error cl_test_network_post(const char *url, char *data,
         "\"title\":\"Test Game\","
         "\"memory_notes\":"
         "["
-          "{\"id\":1,\"type\":8,\"offsets\":\"1 4\",\"address\":4096}"
+          "{\"id\":1,\"type\":8,\"offsets\":\"1 4\",\"address\":268435456}"
         "],"
         "\"achievements\":"
         "["
@@ -294,7 +295,7 @@ static const cl_abi_t cl_test_abi =
   {
     {
       cl_test_display_message,
-      cl_test_install_membanks,
+      cl_test_install_memory_regions,
       cl_test_library_name,
       cl_test_network_post,
       cl_test_set_pause,
@@ -310,44 +311,45 @@ static const cl_abi_t cl_test_abi =
 
 cl_error cl_test_console_init(void)
 {
+  static const unsigned region_size = CL_MB(16);
   unsigned i, j;
 
   /* Setup fake memory regions */
-  cl_test_system.regions[0].base_guest = 0x1000;
-  cl_test_system.regions[0].size = 0x1000;
-  cl_test_system.regions[0].base_host = malloc(0x1000);
+  cl_test_system.regions[0].base_guest = 0x10000000;
+  cl_test_system.regions[0].size = region_size;
+  cl_test_system.regions[0].base_host = malloc(region_size);
   cl_test_system.regions[0].endianness = CL_ENDIAN_NATIVE;
   cl_test_system.regions[0].pointer_length = 4;
   snprintf(cl_test_system.regions[0].title,
            sizeof(cl_test_system.regions[0].title),
            "Test Region 0");
 
-  cl_test_system.regions[1].base_guest = 0x2000;
-  cl_test_system.regions[1].size = 0x1000;
-  cl_test_system.regions[1].base_host = malloc(0x1000);
+  cl_test_system.regions[1].base_guest = 0x20000000;
+  cl_test_system.regions[1].size = region_size;
+  cl_test_system.regions[1].base_host = malloc(region_size);
   cl_test_system.regions[1].endianness = CL_ENDIAN_NATIVE;
   cl_test_system.regions[1].pointer_length = 4;
   snprintf(cl_test_system.regions[1].title,
            sizeof(cl_test_system.regions[1].title),
            "Test Region 1");
 
-  cl_test_system.regions[2].base_guest = 0x3000;
-  cl_test_system.regions[2].size = 0x1000;
-  cl_test_system.regions[2].base_host = malloc(0x1000);
+  cl_test_system.regions[2].base_guest = 0x30000000;
+  cl_test_system.regions[2].size = region_size;
+  cl_test_system.regions[2].base_host = malloc(region_size);
   cl_test_system.regions[2].endianness = CL_ENDIAN_LITTLE;
   cl_test_system.regions[2].pointer_length = 4;
   snprintf(cl_test_system.regions[2].title,
            sizeof(cl_test_system.regions[2].title),
-           "Test Region 2");
+           "Test Region 2 (little-endian)");
 
-  cl_test_system.regions[3].base_guest = 0x4000;
-  cl_test_system.regions[3].size = 0x1000;
-  cl_test_system.regions[3].base_host = malloc(0x1000);
+  cl_test_system.regions[3].base_guest = 0x40000000;
+  cl_test_system.regions[3].size = region_size;
+  cl_test_system.regions[3].base_host = malloc(region_size);
   cl_test_system.regions[3].endianness = CL_ENDIAN_BIG;
   cl_test_system.regions[3].pointer_length = 4;
   snprintf(cl_test_system.regions[3].title,
            sizeof(cl_test_system.regions[3].title),
-           "Test Region 3");
+           "Test Region 3 (big-endian)");
 
   /* Fill with nonsense */
   for (i = 0; i < CL_TEST_REGION_COUNT; i++)
@@ -382,6 +384,7 @@ cl_error cl_test_console_free(void)
 
 static cl_error cl_test(void)
 {
+  cl_search_t search;
   int error;
   unsigned int word;
   unsigned char byte;
@@ -418,8 +421,8 @@ static cl_error cl_test(void)
   /* Perform some virtual memory tests */
   printf("Performing virtual memory tests...\n");
   word = 0xDEADBEEF;
-  cl_write_memory(NULL, 0x3000, sizeof(word), &word);
-  cl_read_memory(&byte, NULL, 0x3000, 1);
+  cl_write_memory(NULL, 0x30000000, sizeof(word), &word);
+  cl_read_memory(&byte, NULL, 0x30000000, 1);
   if (byte != 0xEF)
   {
     printf("Little-endian virtual memory read/write test failed (got 0x%02x)!\n", byte);
@@ -428,8 +431,8 @@ static cl_error cl_test(void)
   else
     printf("Little-endian virtual memory read/write test passed (got 0x%02x)!\n", byte);
 
-  cl_write_memory(NULL, 0x4000, sizeof(word), &word);
-  cl_read_memory(&byte, NULL, 0x4000, 1);
+  cl_write_memory(NULL, 0x40000000, sizeof(word), &word);
+  cl_read_memory(&byte, NULL, 0x40000000, 1);
   if (byte != 0xDE)
   {
     printf("Big-endian virtual memory read/write test failed (got 0x%02x)!\n", byte);
@@ -438,16 +441,41 @@ static cl_error cl_test(void)
   else
     printf("Big-endian virtual memory read/write test passed (got 0x%02x)!\n", byte);
 
+  /* Initialize a search */
+  printf("Initializing memory search...\n");
+  memset(&search, 0, sizeof(search));
+  search.params.value_type = CL_MEMTYPE_UINT32;
+  search.params.size = 4;
+  search.params.compare_type = CLE_CMPTYPE_EQUAL;
+  word = 0;
+  cl_search_init(&search);
+  cl_search_step(&search, &word);
+  word = 1;
+  cl_write_memory(NULL, 0x20000000, sizeof(word), &word);
+  cl_search_step(&search, &word);
+  word = 2;
+  cl_write_memory(NULL, 0x20000000, sizeof(word), &word);
+  cl_search_step(&search, &word);
+  printf("Memory search found %lu matches.\n", search.matches);
+  if (search.matches != 1)
+  {
+    printf("Memory search test failed!\n");
+    return CL_ERR_CLIENT_RUNTIME;
+  }
+  else
+    printf("Memory search test passed!\n");
+  cl_search_free(&search);
+
   /* Run a few frames */
   printf("Running simulated frames...\n");
-  word = 0x2000;
-  cl_write_memory(NULL, 0x1000, sizeof(word), &word);
+  word = 0x20000000;
+  cl_write_memory(NULL, 0x10000000, sizeof(word), &word);
   for (i = 0; i < 10; i++)
   {
-    cl_write_memory(NULL, 0x2004, sizeof(i), &i);
+    cl_write_memory(NULL, 0x20000004, sizeof(i), &i);
     cl_run();
-    cl_read_memory(&i, NULL, 0x2004, sizeof(i));
-    printf(" - Frame %u completed, memory at 0x2004 = 0x%08x\n", i, i);
+    cl_read_memory(&i, NULL, 0x20000004, sizeof(i));
+    printf(" - Frame %u completed, memory at 0x20000004 = 0x%08x\n", i, i);
   }
 
   /* Close and free */
