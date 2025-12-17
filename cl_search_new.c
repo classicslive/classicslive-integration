@@ -67,8 +67,6 @@ static void cl_munmap(void *p, size_t size)
 #endif
 }
 
-/** @todo is it faster to split comparison and match totaling into two or not? */
-
 #define CL_PASTE2(a, b) a##b
 #define CL_PASTE3(a, b, c) a##b##c
 
@@ -283,23 +281,25 @@ static cl_search_compare_func_t cl_search_comparison_function(cl_search_paramete
 /**
  * Runs a comparison function on the values in a search page.
  * @param page
- * @todo the function should be found in search_step
  */
-static cl_error cl_search_step_page(cl_search_page_t *page, const cl_search_parameters_t params,
+static cl_error cl_search_step_page(cl_search_page_t *page,
+  const cl_search_parameters_t params, cl_search_compare_func_t function,
   const void *prev_buffer)
 {
-  cl_search_compare_func_t comparison_function = cl_search_comparison_function(params);
   const void *end = (((unsigned char*)page->chunk) + page->size);
 
-  if (!comparison_function)
+  if (!function)
     return CL_ERR_PARAMETER_INVALID;
-  page->matches = comparison_function(page->chunk, end,
-    page->validity,
+  page->matches = function(page->chunk, end, page->validity,
     params.compare_to_previous ? prev_buffer : &params.target);
 
   return CL_OK;
 }
 
+/**
+ * Steps through the linked list to count up the total memory usage of a
+ * search, storing the result in `search->memory_usage` as bytes.
+ */
 static cl_error cl_search_profile_memory(cl_search_t *search)
 {
   cl_addr_t usage = 0;
@@ -410,8 +410,7 @@ cl_error cl_search_free(cl_search_t *search)
 
   if (!search)
     return CL_ERR_PARAMETER_NULL;
-
-  for (i = 0; i < search->page_region_count; i++)
+  else for (i = 0; i < search->page_region_count; i++)
   {
     cl_search_page_region_t *page_region = &search->page_regions[i];
     cl_search_page_t *page = page_region->first_page;
@@ -424,7 +423,6 @@ cl_error cl_search_free(cl_search_t *search)
       page = next_page;
     }
   }
-
   free(search->page_regions);
   memset(search, 0, sizeof(cl_search_t));
 
@@ -465,9 +463,12 @@ cl_error cl_search_init(cl_search_t *search)
  */
 static cl_error cl_search_step_first(cl_search_t *search)
 {
+  cl_search_compare_func_t function = cl_search_comparison_function(search->params);
   unsigned i;
 
-  for (i = 0; i < search->page_region_count; i++)
+  if (!function)
+    return CL_ERR_PARAMETER_INVALID;
+  else for (i = 0; i < search->page_region_count; i++)
   {
     cl_search_page_region_t *page_region = &search->page_regions[i];
     cl_search_page_t *page = NULL;
@@ -496,7 +497,7 @@ static cl_error cl_search_step_first(cl_search_t *search)
       memset(page->validity, 1, size / search->params.value_size);
       
       /* Do the search here */
-      cl_search_step_page(page, search->params, NULL);
+      cl_search_step_page(page, search->params, function, NULL);
       if (page->matches == 0)
       {
         /* This page had no matches, so we will reuse it for the next one */
@@ -548,8 +549,13 @@ cl_error cl_search_step(cl_search_t *search)
     cl_addr_t bucket_offset = 0;
     cl_addr_t bucket_processed = 0;
 #endif
+    cl_search_compare_func_t function;
     cl_addr_t total_matches = 0;
     unsigned i;
+
+    function = cl_search_comparison_function(search->params);
+    if (!function)
+      return CL_ERR_PARAMETER_INVALID;
 
 #if CL_EXTERNAL_MEMORY
     bucket = cl_mmap(CL_SEARCH_BUCKET_SIZE);
@@ -575,9 +581,15 @@ cl_error cl_search_step(cl_search_t *search)
       {
         cl_error error;
         
+#if CL_EXTERNAL_MEMORY
+        memcpy(page->chunk,
+          (unsigned char*)bucket + bucket_processed,
+          page->size);
+#else
         cl_read_memory(page->chunk, page->region,
           page->start - page->region->base_guest, page->size);
-        error = cl_search_step_page(page, search->params, NULL);
+#endif
+        error = cl_search_step_page(page, search->params, function, NULL);
 
         if (error != CL_OK)
           return error;

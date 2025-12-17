@@ -26,10 +26,11 @@ struct cl_search_page_t
   cl_addr_t end;
 
   /**
-   * The size, in bytes, of the memory chunks. Should typically be
+   * The size, in bytes, of the data in the memory chunk. Should typically be
    * `CL_SEARCH_CHUNK_SIZE` except if the target region has memory smaller
    * than that or if it's the last chunk in a region that can't be divided
    * equally.
+   * The chunk size should be `size + size / search->params.value_size`.
    */
   cl_addr_t size;
 
