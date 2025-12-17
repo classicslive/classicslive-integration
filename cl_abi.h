@@ -71,6 +71,10 @@ cl_error cl_abi_set_pause(unsigned mode);
 
 /**
  * Instructs the frontend to spin a function into a seperate thread.
+ * The implementor is responsible for freeing the task and its state
+ *   pointer after the task (and its callback, if applicable) has completed.
+ * The caller is responsible for only using the "state" pointer with allocated
+ *   memory, not stack memory or statics.
  * Cannot be stubbed.
  * @param task The task to be run in a new thread.
  */
