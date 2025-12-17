@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #define CL_TEST_DATA_SIZE 128
 #define CL_TEST_REGION_COUNT 4
@@ -354,7 +355,7 @@ cl_error cl_test_console_init(void)
   /* Fill with nonsense */
   for (i = 0; i < CL_TEST_REGION_COUNT; i++)
     for (j = 0; j < cl_test_system.regions[i].size; j++)
-      ((unsigned char*)cl_test_system.regions[i].base_host)[j] = (j & 0xFF);
+      ((unsigned char*)cl_test_system.regions[i].base_host)[j] = (j % 4);
 
   /* Setup fake game to be identified */
   cl_test_system.identifier.type = CL_GAMEIDENTIFIER_FILE_HASH;
@@ -385,6 +386,8 @@ cl_error cl_test_console_free(void)
 static cl_error cl_test(void)
 {
   cl_search_t search;
+  clock_t start, end;
+  double cpu_time_used;
   int error;
   unsigned int word;
   unsigned char byte;
@@ -447,27 +450,54 @@ static cl_error cl_test(void)
   printf("change cmp...");
   cl_search_change_compare_type(&search, CL_COMPARE_EQUAL);
   printf("change val...");
-  cl_search_change_value_type(&search, CL_MEMTYPE_UINT32);
-  printf("set target...");
-  word = 0;
-  cl_search_change_target(&search, &word);
+  cl_search_change_value_type(&search, CL_MEMTYPE_UINT8);
   printf("done.\n");
-  printf("Compare to 0...\n");
-  cl_search_step(&search);
-
-  word = 1;
-  cl_search_change_target(&search, &word);
-  printf("Compare to 1...\n");
-  cl_write_memory(NULL, 0x20000000, sizeof(word), &word);
-  cl_search_step(&search);
   
-  word = 2;
-  cl_search_change_target(&search, &word);
-  printf("Compare to 2...\n");
-  cl_write_memory(NULL, 0x20000000, sizeof(word), &word);
+  printf("Compare to 0...");
+  byte = 0;
+  memset(cl_test_system.regions[1].base_host, byte, 16);
+  cl_search_change_target(&search, &byte);
+  start = clock();
   cl_search_step(&search);
+  end = clock();
+  cpu_time_used = ((double)(end - start)) / CLOCKS_PER_SEC;
+  printf("%lu matches found. %u pages. %lu memory usage. Time: %.6f s\n",
+    search.total_matches, search.total_page_count, search.memory_usage, cpu_time_used);
 
-  printf("Memory search found %lu matches.\n", search.total_matches);
+  printf("Compare to 1...");
+  byte = 1;
+  memset(cl_test_system.regions[1].base_host, byte, cl_test_system.regions[1].size);
+  memset(cl_test_system.regions[2].base_host, byte, cl_test_system.regions[2].size);
+  cl_search_change_target(&search, &byte);
+  start = clock();
+  cl_search_step(&search);
+  end = clock();
+  cpu_time_used = ((double)(end - start)) / CLOCKS_PER_SEC;
+  printf("%lu matches found. %u pages. %lu memory usage. Time: %.6f s\n",
+    search.total_matches, search.total_page_count, search.memory_usage, cpu_time_used);
+  
+  printf("Compare to 2...");
+  byte = 2;
+  memset(cl_test_system.regions[1].base_host, byte, 1);
+  cl_search_change_target(&search, &byte);
+  start = clock();
+  cl_search_step(&search);
+  end = clock();
+  cpu_time_used = ((double)(end - start)) / CLOCKS_PER_SEC;
+  printf("%lu matches found. %u pages. %lu memory usage. Time: %.6f s\n",
+    search.total_matches, search.total_page_count, search.memory_usage, cpu_time_used);
+
+  printf("Compare to 3...");
+  byte = 3;
+  memset(cl_test_system.regions[1].base_host, byte, 16);
+  cl_search_change_target(&search, &byte);
+  start = clock();
+  cl_search_step(&search);
+  end = clock();
+  cpu_time_used = ((double)(end - start)) / CLOCKS_PER_SEC;
+  printf("%lu matches found. %u pages. %lu memory usage. Time: %.6f s\n",
+    search.total_matches, search.total_page_count, search.memory_usage, cpu_time_used);
+
   if (search.total_matches != 1)
   {
     printf("Memory search test failed!\n");
@@ -475,6 +505,8 @@ static cl_error cl_test(void)
   }
   else
     printf("Memory search test passed!\n");
+
+  printf("Freeing search...\n");
   cl_search_free(&search);
 
   /* Run a few frames */

@@ -86,9 +86,12 @@ static unsigned CL_PASTE3(cl_search_cmp_imm_, b, _##d)( \
   const a right = ((cl_search_target_t*)target)->b; \
   while (chunk_data_cast < chunk_data_end_cast) \
   { \
-    match = *chunk_data_cast c right; \
-    *chunk_validity = match; \
-    matches += match; \
+    if (*chunk_validity) \
+    { \
+      match = *chunk_data_cast c right; \
+      *chunk_validity = match; \
+      matches += match; \
+    } \
     chunk_data_cast++; \
     chunk_validity++; \
   } \
@@ -307,13 +310,12 @@ static cl_error cl_search_profile_memory(cl_search_t *search)
 
   for (i = 0; i < search->page_region_count; i++)
   {
-    cl_search_page_t *page = search->page_regions->first_page;
+    cl_search_page_t *page = search->page_regions[i].first_page;
 
     while (page)
     {
       /* Count the chunks */
-      usage += page->size;
-      usage += page->size / search->params.value_size;
+      usage += page->size * 2;
       usage += sizeof(cl_search_page_t);
       page = page->next;
     }
@@ -486,18 +488,20 @@ static cl_error cl_search_step_first(cl_search_t *search)
       {
         page = (cl_search_page_t*)calloc(1, sizeof(cl_search_page_t));
         page->chunk = cl_mmap(size * 2);
-        page->validity = (void*)((unsigned char*)page->chunk + size);
+        page->validity = (void*)((unsigned char*)page->chunk + CL_SEARCH_CHUNK_SIZE);
       }
+
+      page->region = page_region->region;
+      page->start = page_region->region->base_guest + processed;
+      page->size = size;
+      cl_read_memory(page->chunk, page->region, page->start - page->region->base_guest, size);
+      memset(page->validity, 1, size / search->params.value_size);
       
       /* Do the search here */
       cl_search_step_page(page, search->params, NULL);
       if (page->matches == 0)
       {
         /* This page had no matches, so we will reuse it for the next one */
-        page->region = page_region->region;
-        page->start = page_region->region->base_guest + processed;
-        page->size = size;
-        memset(page->validity, 1, size / search->params.value_size);
       }
       else
       {
@@ -507,10 +511,15 @@ static cl_error cl_search_step_first(cl_search_t *search)
         else
           /* This is another page in this page region's linked list */
           prev_page->next = page;
+        prev_page = page;
 
         /* Count up the matches */
         page_region->matches += page->matches;
         search->total_matches += page->matches;
+
+        /* Count up the pages */
+        page_region->page_count++;
+        search->total_page_count++;
 
         /* The next page will be allocated */
         page = NULL;
@@ -520,7 +529,7 @@ static cl_error cl_search_step_first(cl_search_t *search)
     }
   
     /* If the final page had no matches, delete it */
-    if (page->matches == 0)
+    if (page && page->matches == 0)
       cl_search_free_page(page);
   }
   search->steps = 1;
@@ -549,7 +558,11 @@ cl_error cl_search_step(cl_search_t *search)
 
       while (page)
       {
-        cl_error error = cl_search_step_page(page, search->params, NULL);
+        cl_error error;
+        
+        cl_read_memory(page->chunk, page->region,
+          page->start - page->region->base_guest, page->size);
+        error = cl_search_step_page(page, search->params, NULL);
 
         if (error != CL_OK)
           return error;
@@ -563,16 +576,25 @@ cl_error cl_search_step(cl_search_t *search)
 
           next_page = page->next;
           cl_search_free_page(page);
+          page_region->page_count--;
+          search->total_page_count--;
           page = next_page;
         }
         else
         {
           /* Keep this page in the linked list */
+          if (!prev_page)
+            page_region->first_page = page;
           prev_page = page;
-          page = page->next;
           page_region_matches += page->matches;
+          page = page->next;
         }
       }
+      if (prev_page)
+        prev_page->next = NULL;
+      else
+        page_region->first_page = NULL;
+      page_region->matches = page_region_matches;
       total_matches += page_region_matches;
     }
     search->total_matches = total_matches;
