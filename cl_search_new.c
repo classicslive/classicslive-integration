@@ -312,7 +312,7 @@ static cl_error cl_search_profile_memory(cl_search_t *search)
     while (page)
     {
       /* Count the chunks */
-      usage += page->size * 2;
+      usage += page->size + page->size / search->params.value_size;
       usage += sizeof(cl_search_page_t);
       page = page->next;
     }
@@ -390,11 +390,12 @@ cl_error cl_search_change_target(cl_search_t *search, const void *value)
   return CL_OK;
 }
 
-static cl_error cl_search_free_page(cl_search_page_t *page)
+static cl_error cl_search_free_page(const cl_search_t *search,
+  cl_search_page_t *page)
 {
   if (page)
   {
-    cl_munmap(page->chunk, page->size * 2);
+    cl_munmap(page->chunk, page->size + page->size / search->params.value_size);
     free(page);
 
     return CL_OK;
@@ -419,7 +420,7 @@ cl_error cl_search_free(cl_search_t *search)
     while (page)
     {
       next_page = page->next;
-      cl_search_free_page(page);
+      cl_search_free_page(search, page);
       page = next_page;
     }
   }
@@ -484,7 +485,7 @@ static cl_error cl_search_step_first(cl_search_t *search)
       if (!page)
       {
         page = (cl_search_page_t*)calloc(1, sizeof(cl_search_page_t));
-        page->chunk = cl_mmap(size * 2);
+        page->chunk = cl_mmap(size + size / search->params.value_size);
         page->validity = (void*)((unsigned char*)page->chunk + CL_SEARCH_CHUNK_SIZE);
       }
 
@@ -527,7 +528,7 @@ static cl_error cl_search_step_first(cl_search_t *search)
   
     /* If the final page had no matches, delete it */
     if (page && page->matches == 0)
-      cl_search_free_page(page);
+      cl_search_free_page(search, page);
   }
   search->steps = 1;
 
@@ -572,7 +573,7 @@ cl_error cl_search_step(cl_search_t *search)
             page_region->first_page = page->next;
 
           next_page = page->next;
-          cl_search_free_page(page);
+          cl_search_free_page(search, page);
           page_region->page_count--;
           search->total_page_count--;
           page = next_page;

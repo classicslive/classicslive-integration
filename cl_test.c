@@ -355,7 +355,7 @@ static cl_error cl_test_console_init(void)
   /* Fill with nonsense */
   for (i = 0; i < CL_TEST_REGION_COUNT; i++)
     for (j = 0; j < cl_test_system.regions[i].size; j++)
-      ((unsigned char*)cl_test_system.regions[i].base_host)[j] = (j % 4);
+      ((unsigned char*)cl_test_system.regions[i].base_host)[j] = ((j & 0x0C) >> 2);
 
   /* Setup fake game to be identified */
   cl_test_system.identifier.type = CL_GAMEIDENTIFIER_FILE_HASH;
@@ -450,13 +450,13 @@ static cl_error cl_test(void)
   printf("change cmp...");
   cl_search_change_compare_type(&search, CL_COMPARE_EQUAL);
   printf("change val...");
-  cl_search_change_value_type(&search, CL_MEMTYPE_UINT8);
+  cl_search_change_value_type(&search, CL_MEMTYPE_UINT32);
   printf("done.\n");
   
   printf("Compare to 0...");
-  byte = 0;
-  memset(cl_test_system.regions[1].base_host, byte, 16);
-  cl_search_change_target(&search, &byte);
+  word = 0;
+  memset(cl_test_system.regions[1].base_host, word, 16);
+  cl_search_change_target(&search, &word);
   start = clock();
   cl_search_step(&search);
   end = clock();
@@ -465,10 +465,12 @@ static cl_error cl_test(void)
     search.total_matches, search.total_page_count, search.memory_usage, cpu_time_used);
 
   printf("Compare to 1...");
-  byte = 1;
-  memset(cl_test_system.regions[1].base_host, byte, cl_test_system.regions[1].size);
-  memset(cl_test_system.regions[2].base_host, byte, cl_test_system.regions[2].size);
-  cl_search_change_target(&search, &byte);
+  word = 1;
+  for (i = 0; i < cl_test_system.regions[1].size; i += 4)
+    ((unsigned*)cl_test_system.regions[1].base_host)[i / 4] = word;
+  for (i = 0; i < cl_test_system.regions[2].size; i += 4)
+    ((unsigned*)cl_test_system.regions[2].base_host)[i / 4] = word;
+  cl_search_change_target(&search, &word);
   start = clock();
   cl_search_step(&search);
   end = clock();
@@ -477,9 +479,9 @@ static cl_error cl_test(void)
     search.total_matches, search.total_page_count, search.memory_usage, cpu_time_used);
   
   printf("Compare to 2...");
-  byte = 2;
-  memset(cl_test_system.regions[1].base_host, byte, 1);
-  cl_search_change_target(&search, &byte);
+  word = 2;
+  ((unsigned*)cl_test_system.regions[1].base_host)[0] = word;
+  cl_search_change_target(&search, &word);
   start = clock();
   cl_search_step(&search);
   end = clock();
@@ -488,9 +490,10 @@ static cl_error cl_test(void)
     search.total_matches, search.total_page_count, search.memory_usage, cpu_time_used);
 
   printf("Compare to 3...");
-  byte = 3;
-  memset(cl_test_system.regions[1].base_host, byte, 16);
-  cl_search_change_target(&search, &byte);
+  word = 3;
+  for (i = 0; i < 16; i += 4)
+    ((unsigned*)cl_test_system.regions[1].base_host)[i / 4] = word;
+  cl_search_change_target(&search, &word);
   start = clock();
   cl_search_step(&search);
   end = clock();
