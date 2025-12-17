@@ -51,19 +51,19 @@ static void *cl_mmap(size_t size)
 
 /**
  * Free a chunk of page-aligned memory.
- * @param memory The pointer to free
+ * @param p The pointer to free
  * @param size The number of bytes to deallocate
  */
-static void cl_munmap(void *memory, size_t size)
+static void cl_munmap(void *p, size_t size)
 {
 #if CL_HOST_PLATFORM == CL_PLATFORM_LINUX
-  munmap(memory, size);
+  munmap(p, size);
 #elif CL_HOST_PLATFORM == CL_PLATFORM_WINDOWS
   CL_UNUSED(size);
-  VirtualFree(memory, 0, MEM_RELEASE);
+  VirtualFree(p, 0, MEM_RELEASE);
 #else
   CL_UNUSED(size);
-  free(memory);
+  free(p);
 #endif
 }
 
@@ -109,7 +109,7 @@ static unsigned CL_PASTE3(cl_search_cmp_prv_, b, _##d)( \
   const a *chunk_data_prev_cast = (const a*)chunk_data_prev; \
   while (chunk_data_cast < chunk_data_end_cast) \
   { \
-    match = *chunk_data_cast c *chunk_data_prev_cast; \
+    match = (*chunk_data_cast c *chunk_data_prev_cast) & *chunk_validity; \
     *chunk_validity = match; \
     matches += match; \
     chunk_data_cast++; \

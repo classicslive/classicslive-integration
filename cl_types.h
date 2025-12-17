@@ -1,6 +1,8 @@
 #ifndef CL_TYPES_H
 #define CL_TYPES_H
 
+#include "cl_config.h"
+
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>

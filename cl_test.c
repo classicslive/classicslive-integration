@@ -248,7 +248,7 @@ static cl_error cl_test_external_read(void *dest, cl_addr_t address,
 #endif
 }
 
-cl_error cl_test_external_write(const void *src, cl_addr_t address,
+static cl_error cl_test_external_write(const void *src, cl_addr_t address,
   unsigned size, unsigned *written)
 {
   snprintf(cl_test_msg, sizeof(cl_test_msg),
@@ -310,7 +310,7 @@ static const cl_abi_t cl_test_abi =
   }
 };
 
-cl_error cl_test_console_init(void)
+static cl_error cl_test_console_init(void)
 {
   static const unsigned region_size = CL_MB(16);
   unsigned i, j;
@@ -370,7 +370,7 @@ cl_error cl_test_console_init(void)
   return CL_OK;
 }
 
-cl_error cl_test_console_free(void)
+static cl_error cl_test_console_free(void)
 {
   unsigned i;
 
