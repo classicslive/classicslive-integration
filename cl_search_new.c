@@ -543,8 +543,19 @@ cl_error cl_search_step(cl_search_t *search)
     return cl_search_step_first(search);
   else
   {
+#if CL_EXTERNAL_MEMORY
+    void *bucket = NULL;
+    cl_addr_t bucket_offset = 0;
+    cl_addr_t bucket_processed = 0;
+#endif
     cl_addr_t total_matches = 0;
     unsigned i;
+
+#if CL_EXTERNAL_MEMORY
+    bucket = cl_mmap(CL_SEARCH_BUCKET_SIZE);
+    if (!bucket)
+      return CL_ERR_CLIENT_RUNTIME;
+#endif
 
     for (i = 0; i < search->page_region_count; i++)
     {
@@ -553,6 +564,12 @@ cl_error cl_search_step(cl_search_t *search)
       cl_search_page_t *prev_page = NULL;
       cl_search_page_t *next_page = NULL;
       cl_addr_t page_region_matches = 0;
+
+#if CL_EXTERNAL_MEMORY
+      cl_read_memory(bucket, page_region->region, bucket_offset,
+        page_region->region->size < CL_SEARCH_BUCKET_SIZE ?
+        page_region->region->size : CL_SEARCH_BUCKET_SIZE);
+#endif
 
       while (page)
       {
@@ -587,6 +604,19 @@ cl_error cl_search_step(cl_search_t *search)
           page_region_matches += page->matches;
           page = page->next;
         }
+
+#if CL_EXTERNAL_MEMORY
+        /* Move the bucket forward */
+        bucket_processed += page->size;
+        if (bucket_processed >= CL_SEARCH_BUCKET_SIZE)
+        {
+          bucket_offset += CL_SEARCH_BUCKET_SIZE;
+          bucket_processed = 0;
+          cl_read_memory(bucket, page_region->region, bucket_offset,
+            page_region->region->size - bucket_processed < CL_SEARCH_BUCKET_SIZE ?
+            page_region->region->size - bucket_offset : CL_SEARCH_BUCKET_SIZE);
+        }
+#endif
       }
       if (prev_page)
         prev_page->next = NULL;
@@ -597,6 +627,9 @@ cl_error cl_search_step(cl_search_t *search)
     }
     search->total_matches = total_matches;
     search->steps++;
+#if CL_EXTERNAL_MEMORY
+    cl_munmap(bucket, CL_SEARCH_BUCKET_SIZE);
+#endif
 
     return cl_search_profile_memory(search);
   }
