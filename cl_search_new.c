@@ -86,12 +86,9 @@ static unsigned CL_PASTE3(cl_search_cmp_imm_, b, _##d)( \
   const a right = ((cl_search_target_t*)target)->b; \
   while (chunk_data_cast < chunk_data_end_cast) \
   { \
-    if (*chunk_validity) \
-    { \
-      match = *chunk_data_cast c right; \
-      *chunk_validity = match; \
-      matches += match; \
-    } \
+    match = (*chunk_data_cast c right) & *chunk_validity; \
+    *chunk_validity = match; \
+    matches += match; \
     chunk_data_cast++; \
     chunk_validity++; \
   } \
