@@ -23,10 +23,10 @@
  * The granularity of data to keep in memory as search results.
  * The total allocation per chunk is twice this size, as the validity bitmap
  * is stored alongside the data itself.
- * 128KB was decided upon as 256KB is a common L2 cache size.
+ * This value was decided on by guessing to see which was most performant. :B
  * @todo Make configurable?
  */
-#define CL_SEARCH_CHUNK_SIZE CL_KB(128)
+#define CL_SEARCH_CHUNK_SIZE CL_MB(4)
 
 /**
  * Allocate a chunk of page-aligned memory.
@@ -602,4 +602,43 @@ cl_error cl_search_step(cl_search_t *search)
 
     return cl_search_profile_memory(search);
   }
+}
+
+cl_error cl_search_backup_value(void *dst, const cl_search_t *search,
+  cl_addr_t address)
+{
+  cl_search_page_region_t *page_region;
+  cl_search_page_t *page;
+  unsigned i;
+
+#if 0 /* this is already too slow */
+  if (!search || !dst)
+    return CL_ERR_PARAMETER_NULL;
+#endif
+
+  for (i = 0; i < search->page_region_count; i++)
+  {
+    page_region = &search->page_regions[i];
+
+    /* Is it in this region? */
+    if (address < page_region->region->base_guest ||
+        address >= page_region->region->base_guest + page_region->region->size)
+      continue;
+
+    page = page_region->first_page;
+
+    while (page)
+    {
+      /* Is it in this page? */
+      if (address >= page->start && address < page->start + page->size)
+      {
+        cl_addr_t offset = address - page->start;
+        memcpy(dst, (unsigned char*)page->chunk + offset, search->params.value_size);
+        return CL_OK;
+      }
+      page = page->next;
+    }
+  }
+
+  return CL_ERR_PARAMETER_INVALID;
 }

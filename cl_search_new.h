@@ -150,6 +150,10 @@ cl_error cl_search_change_value_type(cl_search_t *search, cl_value_type type);
  */
 cl_error cl_search_change_target(cl_search_t *search, const void *value);
 
+/**
+ * Initializes a memory search structure.
+ * @param search A pointer to the search to initialize
+ */
 cl_error cl_search_init(cl_search_t *search);
 
 /**
