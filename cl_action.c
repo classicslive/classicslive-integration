@@ -205,13 +205,13 @@ static bool cl_act_compare(cl_action_t *action)
 
   switch (action->arguments[4].intval)
   {
-  case CL_CMPTYPE_IFEQUAL:
+  case CL_COMPARE_EQUAL:
     return cl_ctr_equal(&left, &right);
-  case CL_CMPTYPE_IFGREATER:
+  case CL_COMPARE_GREATER:
     return cl_ctr_greater(&left, &right);
-  case CL_CMPTYPE_IFLESS:
+  case CL_COMPARE_LESS:
     return cl_ctr_lesser(&left, &right);
-  case CL_CMPTYPE_IFNEQUAL:
+  case CL_COMPARE_NOT_EQUAL:
     return cl_ctr_not_equal(&left, &right);
   default:
     return cl_free_action(action);

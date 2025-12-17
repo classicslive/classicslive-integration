@@ -14,7 +14,7 @@ CLASSICS_LIVE_SOURCES_CLASSICSLIVE = \
     $(CLASSICS_LIVE_DIR)/cl_memory.c \
     $(CLASSICS_LIVE_DIR)/cl_network.c \
     $(CLASSICS_LIVE_DIR)/cl_script.c \
-    $(CLASSICS_LIVE_DIR)/cl_search.c \
+    $(CLASSICS_LIVE_DIR)/cl_search_new.c \
     $(CLASSICS_LIVE_DIR)/3rdparty/jsonsax/jsonsax.c \
     $(CLASSICS_LIVE_DIR)/3rdparty/jsonsax/jsonsax_full.c \
 

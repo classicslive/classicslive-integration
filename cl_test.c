@@ -3,7 +3,7 @@
 #include "cl_main.h"
 #include "cl_memory.h"
 #include "cl_network.h"
-#include "cl_search.h"
+#include "cl_search_new.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -442,22 +442,33 @@ static cl_error cl_test(void)
     printf("Big-endian virtual memory read/write test passed (got 0x%02x)!\n", byte);
 
   /* Initialize a search */
-  printf("Initializing memory search...\n");
-  memset(&search, 0, sizeof(search));
-  search.params.value_type = CL_MEMTYPE_UINT32;
-  search.params.size = 4;
-  search.params.compare_type = CLE_CMPTYPE_EQUAL;
-  word = 0;
+  printf("Initializing memory search...");
   cl_search_init(&search);
-  cl_search_step(&search, &word);
+  printf("change cmp...");
+  cl_search_change_compare_type(&search, CL_COMPARE_EQUAL);
+  printf("change val...");
+  cl_search_change_value_type(&search, CL_MEMTYPE_UINT32);
+  printf("set target...");
+  word = 0;
+  cl_search_change_target(&search, &word);
+  printf("done.\n");
+  printf("Compare to 0...\n");
+  cl_search_step(&search);
+
   word = 1;
+  cl_search_change_target(&search, &word);
+  printf("Compare to 1...\n");
   cl_write_memory(NULL, 0x20000000, sizeof(word), &word);
-  cl_search_step(&search, &word);
+  cl_search_step(&search);
+  
   word = 2;
+  cl_search_change_target(&search, &word);
+  printf("Compare to 2...\n");
   cl_write_memory(NULL, 0x20000000, sizeof(word), &word);
-  cl_search_step(&search, &word);
-  printf("Memory search found %lu matches.\n", search.matches);
-  if (search.matches != 1)
+  cl_search_step(&search);
+
+  printf("Memory search found %lu matches.\n", search.total_matches);
+  if (search.total_matches != 1)
   {
     printf("Memory search test failed!\n");
     return CL_ERR_CLIENT_RUNTIME;

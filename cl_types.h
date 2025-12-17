@@ -31,6 +31,22 @@ typedef enum
   CL_ERR_SIZE
 } cl_error;
 
+typedef enum
+{
+  CL_COMPARE_INVALID = 0,
+
+  CL_COMPARE_EQUAL,
+  CL_COMPARE_GREATER,
+  CL_COMPARE_LESS,
+  CL_COMPARE_NOT_EQUAL,
+  CL_COMPARE_INCREASED,
+  CL_COMPARE_DECREASED,
+  CL_COMPARE_ABOVE,
+  CL_COMPARE_BELOW,
+
+  CL_COMPARE_SIZE
+} cl_compare_type;
+
 /**
  * A -1 value to represent invalid addresses in memory regions, as 0 for NULL
  * may be a valid address on some emulated systems.

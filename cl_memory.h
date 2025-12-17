@@ -20,15 +20,6 @@ typedef enum
   CL_SRCTYPE_SIZE
 } cl_src_t;
 
-#define CLE_CMPTYPE_EQUAL     1
-#define CLE_CMPTYPE_GREATER   2
-#define CLE_CMPTYPE_LESS      3
-#define CLE_CMPTYPE_NOT_EQUAL 4
-#define CLE_CMPTYPE_INCREASED 5
-#define CLE_CMPTYPE_DECREASED 6
-#define CLE_CMPTYPE_ABOVE     7
-#define CLE_CMPTYPE_BELOW     8
-
 #include "cl_config.h"
 #include "cl_counter.h"
 #include "cl_types.h"
