@@ -486,7 +486,7 @@ static cl_error cl_search_step_first(cl_search_t *search)
       {
         page = (cl_search_page_t*)calloc(1, sizeof(cl_search_page_t));
         page->chunk = cl_mmap(size + size / search->params.value_size);
-        page->validity = (void*)((unsigned char*)page->chunk + CL_SEARCH_CHUNK_SIZE);
+        page->validity = (void*)((unsigned char*)page->chunk + size);
       }
 
       page->region = page_region->region;
