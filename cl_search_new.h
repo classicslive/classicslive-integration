@@ -52,7 +52,8 @@ typedef struct
   /* The number of pages in this page region */
   unsigned page_count;
 
-  unsigned matches;
+  /* The total number of matches in this page region */
+  cl_addr_t matches;
 } cl_search_page_region_t;
 
 typedef union
@@ -119,7 +120,7 @@ typedef struct
   unsigned total_page_count;
 
   /* The total number of matches found in the search */
-  unsigned total_matches;
+  cl_addr_t total_matches;
 
   /* The total memory usage of the search, in bytes */
   cl_addr_t memory_usage;
