@@ -208,6 +208,8 @@ static cl_error cl_test_user_data(cl_user_t *user, unsigned index)
 static cl_error cl_test_external_read(void *dest, cl_addr_t address,
   unsigned size, unsigned *read)
 {
+  unsigned i;
+
   snprintf(cl_test_msg, sizeof(cl_test_msg),
     "cl_abi_external_read - dest:%p address:0x%08x size:%u read:%p",
     dest, (unsigned)address, size, (void*)read);
@@ -218,7 +220,7 @@ static cl_error cl_test_external_read(void *dest, cl_addr_t address,
     return CL_ERR_PARAMETER_NULL;
 
   /* Find the region that contains this address */
-  for (unsigned i = 0; i < CL_TEST_REGION_COUNT; i++)
+  for (i = 0; i < CL_TEST_REGION_COUNT; i++)
   {
     cl_memory_region_t *region = &cl_test_system.regions[i];
 
@@ -244,6 +246,8 @@ static cl_error cl_test_external_read(void *dest, cl_addr_t address,
   CL_UNUSED(address);
   CL_UNUSED(size);
   CL_UNUSED(read);
+  CL_UNUSED(i);
+  
   return CL_ERR_CLIENT_RUNTIME;
 #endif
 }
@@ -251,6 +255,8 @@ static cl_error cl_test_external_read(void *dest, cl_addr_t address,
 static cl_error cl_test_external_write(const void *src, cl_addr_t address,
   unsigned size, unsigned *written)
 {
+  unsigned i;
+
   snprintf(cl_test_msg, sizeof(cl_test_msg),
     "cl_abi_external_write - src:%p address:0x%08x size:%u written:%p",
     src, (unsigned)address, size, (void*)written);
@@ -260,7 +266,7 @@ static cl_error cl_test_external_write(const void *src, cl_addr_t address,
   if (!src || !written)
     return CL_ERR_PARAMETER_NULL;
   /* Find the region that contains this address */
-  for (unsigned i = 0; i < CL_TEST_REGION_COUNT; i++)
+  for (i = 0; i < CL_TEST_REGION_COUNT; i++)
   {
     cl_memory_region_t *region = &cl_test_system.regions[i];
 
@@ -286,6 +292,8 @@ static cl_error cl_test_external_write(const void *src, cl_addr_t address,
   CL_UNUSED(address);
   CL_UNUSED(size);
   CL_UNUSED(written);
+  CL_UNUSED(i);
+
   return CL_ERR_CLIENT_RUNTIME;
 #endif
 }
