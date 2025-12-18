@@ -26,10 +26,10 @@ CleActionBlockComparison::CleActionBlockComparison(cl_action_t *action,
 
   /* Comparison selector */
   m_ComparisonType = new QComboBox(this);
-  m_ComparisonType->addItem("＝ is equal to", CL_CMPTYPE_IFEQUAL);
-  m_ComparisonType->addItem("!= is not equal to", CL_CMPTYPE_IFNEQUAL);
-  m_ComparisonType->addItem("＜ is less than", CL_CMPTYPE_IFLESS);
-  m_ComparisonType->addItem("＞ is greater than", CL_CMPTYPE_IFGREATER);
+  m_ComparisonType->addItem("＝ is equal to", CL_COMPARE_EQUAL);
+  m_ComparisonType->addItem("!= is not equal to", CL_COMPARE_NOT_EQUAL);
+  m_ComparisonType->addItem("＜ is less than", CL_COMPARE_LESS);
+  m_ComparisonType->addItem("＞ is greater than", CL_COMPARE_GREATER);
   m_Layout->addWidget(m_ComparisonType);
 
   /* Right operand type */

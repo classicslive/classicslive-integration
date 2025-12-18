@@ -7,7 +7,7 @@
 
 extern "C" 
 {
-   #include "../cl_common.h"
+  #include "../cl_common.h"
 }
 
 #define COL_ADDRESS        0
@@ -16,30 +16,30 @@ extern "C"
 
 CleResultTableNormal::CleResultTableNormal(QWidget *parent)
 {
-   CleResultTable::init();
+  CleResultTable::init();
 
-   /* Normal-specific table styling */
-   m_Table->setColumnCount(3);
+  /* Normal-specific table styling */
+  m_Table->setColumnCount(3);
 
-   /* Initialize result table column headers */
-   QStringList TableHeader;
-   TableHeader << tr("Address") << tr("Previous") << tr("Current");
-   m_Table->setHorizontalHeaderLabels(TableHeader);
+  /* Initialize result table column headers */
+  QStringList TableHeader;
+  TableHeader << tr("Address") << tr("Previous") << tr("Current");
+  m_Table->setHorizontalHeaderLabels(TableHeader);
 
-   /* Qt connections to parent */
-   connect(this, SIGNAL(addressChanged(cl_addr_t)),
-      parent, SLOT(onAddressChanged(cl_addr_t)));
-   connect(this, SIGNAL(requestAddMemoryNote(cl_memnote_t)),
-      parent, SLOT(requestAddMemoryNote(cl_memnote_t)));
-   connect(this, SIGNAL(requestPointerSearch(cl_addr_t)),
-      parent, SLOT(requestPointerSearch(cl_addr_t)));
+  /* Qt connections to parent */
+  connect(this, SIGNAL(addressChanged(cl_addr_t)),
+    parent, SLOT(onAddressChanged(cl_addr_t)));
+  connect(this, SIGNAL(requestAddMemoryNote(cl_memnote_t)),
+    parent, SLOT(requestAddMemoryNote(cl_memnote_t)));
+  connect(this, SIGNAL(requestPointerSearch(cl_addr_t)),
+    parent, SLOT(requestPointerSearch(cl_addr_t)));
 
-   cl_search_init(&m_Search);
+  cl_search_init(&m_Search);
 }
 
 CleResultTableNormal::~CleResultTableNormal()
 {
-   cl_search_free(&m_Search);
+  cl_search_free(&m_Search);
 }
 
 cl_addr_t CleResultTableNormal::getClickedResultAddress()
@@ -47,9 +47,9 @@ cl_addr_t CleResultTableNormal::getClickedResultAddress()
    return m_Table->item(m_Table->currentRow(), COL_ADDRESS)->text().split(" ")[0].toULong(NULL, 16);
 }
 
-void *CleResultTableNormal::getSearchData()
+void *CleResultTableNormal::searchData(void)
 {
-   return (void*)(&m_Search);
+  return &m_Search;
 }
 
 void CleResultTableNormal::onResultClick(QTableWidgetItem *item) //todo

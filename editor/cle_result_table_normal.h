@@ -5,8 +5,8 @@
 
 extern "C"
 {
-   #include "../cl_memory.h"
-   #include "../cl_search.h"
+  #include "../cl_memory.h"
+  #include "../cl_search_new.h"
 }
 
 #include "cle_result_table.h"
@@ -16,44 +16,57 @@ extern "C"
 
 class CleResultTableNormal : public CleResultTable
 {
-   Q_OBJECT
+  Q_OBJECT
 
 public:
-   CleResultTableNormal(QWidget* parent);
-   ~CleResultTableNormal() override;
+  CleResultTableNormal(QWidget* parent);
+  ~CleResultTableNormal() override;
 
-   cl_addr_t getClickedResultAddress() override;
-   void* getSearchData() override;
-   bool isInitted() override { return true; }
-   void rebuild() override;
-   void reset(uint8_t value_type) override;
-   void run() override;
-   bool step(const QString& text) override;
+  cl_addr_t getClickedResultAddress() override;
+  void *searchData(void) override;
+  int isInitted(void) override { return true; }
+  cl_error rebuild(void) override;
+  cl_error reset(uint8_t value_type) override;
+  cl_error run(void) override;
+  cl_error step(void) override;
 
-   uint8_t getCompareType() override { return m_Search.params.compare_type; }
-   uint8_t getValueType() override { return m_Search.params.value_type; }
+  cl_compare_type compareType(void) override
+  {
+    return m_Search.params.compare_type;
+  }
 
-   void setCompareType(const uint8_t new_type) override { m_Search.params.compare_type = new_type; }
-   void setValueType(const cl_value_type new_type) override { m_Search.params.value_type = new_type; m_Search.params.size = cl_sizeof_memtype(new_type); }
+  cl_value_type valueType(void) override
+  {
+    return m_Search.params.value_type;
+  }
+
+  cl_error setCompareType(const cl_compare_type type) override
+  {
+    return cl_search_change_compare_type(&m_Search, type);
+  }
+
+  cl_error setValueType(const cl_value_type tyoe) override
+  {
+    return cl_search_change_value_type(&m_Search, type);
+  }
 
 public slots:
-   void onClickResultAddMemoryNote();
-   void onClickResultPointerSearch();
-   void onClickResultRemove();
-   void onResultClick(QTableWidgetItem *item) override;
-   void onResultDoubleClick(void) override;
-   void onResultEdited(QTableWidgetItem *item) override;
-   void onResultRightClick(const QPoint&) override;
-   void onResultSelectionChanged(void) override;
+  void onClickResultAddMemoryNote(void);
+  void onClickResultPointerSearch(void);
+  void onClickResultRemove(void);
+  void onResultClick(QTableWidgetItem *item) override;
+  void onResultDoubleClick(void) override;
+  void onResultEdited(QTableWidgetItem *item) override;
+  void onResultRightClick(const QPoint&) override;
+  void onResultSelectionChanged(void) override;
 
 signals:
-   void addressChanged(cl_addr_t address);
-   void requestAddMemoryNote(cl_memnote_t note);
-   void requestPointerSearch(cl_addr_t address);
-   //void requestRemove(uint32_t index) override;
+  void addressChanged(cl_addr_t address);
+  void requestAddMemoryNote(cl_memnote_t note);
+  void requestPointerSearch(cl_addr_t address);
 
 private:
-   cl_search_t m_Search;
+  cl_search_t m_Search;
 };
 
 #endif
