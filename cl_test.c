@@ -12,6 +12,11 @@
 
 #define CL_TEST_DATA_SIZE 128
 #define CL_TEST_REGION_COUNT 4
+
+#ifndef CL_TEST_REGION_SIZE
+#define CL_TEST_REGION_SIZE CL_MB(16)
+#endif
+
 typedef struct
 {
   cl_memory_region_t regions[CL_TEST_REGION_COUNT];
@@ -205,97 +210,48 @@ static cl_error cl_test_user_data(cl_user_t *user, unsigned index)
   return CL_OK;
 }
 
-static cl_error cl_test_external_read(void *dest, cl_addr_t address,
+static cl_error cl_test_external_read_buffer(void *dest, cl_addr_t address,
   unsigned size, unsigned *read)
 {
-  unsigned i;
-
   snprintf(cl_test_msg, sizeof(cl_test_msg),
     "cl_abi_external_read - dest:%p address:0x%08x size:%u read:%p",
     dest, (unsigned)address, size, (void*)read);
   cl_test_display_message(CL_MSG_DEBUG, cl_test_msg);
 
-#if CL_EXTERNAL_MEMORY
-  if (!dest || !read)
-    return CL_ERR_PARAMETER_NULL;
-
-  /* Find the region that contains this address */
-  for (i = 0; i < CL_TEST_REGION_COUNT; i++)
-  {
-    cl_memory_region_t *region = &cl_test_system.regions[i];
-
-    if (address >= region->base_guest &&
-        address + size <= region->base_guest + region->size)
-    {
-      /* Found the region, perform the read */
-      cl_addr_t offset = address - region->base_guest;
-
-      memcpy(dest,
-             (unsigned char*)region->base_host + offset,
-             size);
-      *read = size;
-      return CL_OK;
-    }
-  }
-
-  /* Address not found */
-  *read = 0;
-  return CL_ERR_PARAMETER_INVALID;
-#else
-  CL_UNUSED(dest);
-  CL_UNUSED(address);
-  CL_UNUSED(size);
-  CL_UNUSED(read);
-  CL_UNUSED(i);
-  
-  return CL_ERR_CLIENT_RUNTIME;
-#endif
+  return cl_read_memory_buffer_internal(dest, NULL, address, size);
 }
 
-static cl_error cl_test_external_write(const void *src, cl_addr_t address,
+static cl_error cl_test_external_read_value(void *dest, cl_addr_t address,
+  cl_value_type type)
+{
+  snprintf(cl_test_msg, sizeof(cl_test_msg),
+    "cl_abi_external_read_value - dest:%p address:0x%08x type:%u",
+    dest, (unsigned)address, type);
+  cl_test_display_message(CL_MSG_DEBUG, cl_test_msg);
+
+  return cl_read_memory_value_internal(dest, NULL, address, type);
+}
+
+static cl_error cl_test_external_write_buffer(const void *src, cl_addr_t address,
   unsigned size, unsigned *written)
 {
-  unsigned i;
-
   snprintf(cl_test_msg, sizeof(cl_test_msg),
     "cl_abi_external_write - src:%p address:0x%08x size:%u written:%p",
     src, (unsigned)address, size, (void*)written);
   cl_test_display_message(CL_MSG_DEBUG, cl_test_msg);
 
-#if CL_EXTERNAL_MEMORY
-  if (!src || !written)
-    return CL_ERR_PARAMETER_NULL;
-  /* Find the region that contains this address */
-  for (i = 0; i < CL_TEST_REGION_COUNT; i++)
-  {
-    cl_memory_region_t *region = &cl_test_system.regions[i];
+  return cl_write_memory_buffer_internal(src, NULL, address, size);
+}
 
-    if (address >= region->base_guest &&
-        address + size <= region->base_guest + region->size)
-    {
-      /* Found the region, perform the write */
-      cl_addr_t offset = address - region->base_guest;
+static cl_error cl_test_external_write_value(const void *src, cl_addr_t address,
+  cl_value_type type)
+{
+  snprintf(cl_test_msg, sizeof(cl_test_msg),
+    "cl_abi_external_write_value - src:%p address:0x%08x type:%u",
+    src, (unsigned)address, type);
+  cl_test_display_message(CL_MSG_DEBUG, cl_test_msg);
 
-      memcpy((unsigned char*)region->base_host + offset,
-             src,
-             size);
-      *written = size;
-      return CL_OK;
-    }
-  }
-
-  /* Address not found */
-  *written = 0;
-  return CL_ERR_PARAMETER_INVALID;
-#else
-  CL_UNUSED(src);
-  CL_UNUSED(address);
-  CL_UNUSED(size);
-  CL_UNUSED(written);
-  CL_UNUSED(i);
-
-  return CL_ERR_CLIENT_RUNTIME;
-#endif
+  return cl_write_memory_value_internal(src, NULL, address, type);
 }
 
 static const cl_abi_t cl_test_abi =
@@ -312,21 +268,22 @@ static const cl_abi_t cl_test_abi =
       cl_test_user_data
     },
     {
-      cl_test_external_read,
-      cl_test_external_write
+      cl_test_external_read_buffer,
+      cl_test_external_read_value,
+      cl_test_external_write_buffer,
+      cl_test_external_write_value
     }
   }
 };
 
 static cl_error cl_test_console_init(void)
 {
-  static const unsigned region_size = CL_MB(16);
   unsigned i, j;
 
   /* Setup fake memory regions */
   cl_test_system.regions[0].base_guest = 0x10000000;
-  cl_test_system.regions[0].size = region_size;
-  cl_test_system.regions[0].base_host = malloc(region_size);
+  cl_test_system.regions[0].size = CL_TEST_REGION_SIZE;
+  cl_test_system.regions[0].base_host = malloc(CL_TEST_REGION_SIZE);
   cl_test_system.regions[0].endianness = CL_ENDIAN_NATIVE;
   cl_test_system.regions[0].pointer_length = 4;
   snprintf(cl_test_system.regions[0].title,
@@ -334,8 +291,8 @@ static cl_error cl_test_console_init(void)
            "Test Region 0");
 
   cl_test_system.regions[1].base_guest = 0x20000000;
-  cl_test_system.regions[1].size = region_size;
-  cl_test_system.regions[1].base_host = malloc(region_size);
+  cl_test_system.regions[1].size = CL_TEST_REGION_SIZE;
+  cl_test_system.regions[1].base_host = malloc(CL_TEST_REGION_SIZE);
   cl_test_system.regions[1].endianness = CL_ENDIAN_NATIVE;
   cl_test_system.regions[1].pointer_length = 4;
   snprintf(cl_test_system.regions[1].title,
@@ -343,8 +300,8 @@ static cl_error cl_test_console_init(void)
            "Test Region 1");
 
   cl_test_system.regions[2].base_guest = 0x30000000;
-  cl_test_system.regions[2].size = region_size;
-  cl_test_system.regions[2].base_host = malloc(region_size);
+  cl_test_system.regions[2].size = CL_TEST_REGION_SIZE;
+  cl_test_system.regions[2].base_host = malloc(CL_TEST_REGION_SIZE);
   cl_test_system.regions[2].endianness = CL_ENDIAN_LITTLE;
   cl_test_system.regions[2].pointer_length = 4;
   snprintf(cl_test_system.regions[2].title,
@@ -352,8 +309,8 @@ static cl_error cl_test_console_init(void)
            "Test Region 2 (little-endian)");
 
   cl_test_system.regions[3].base_guest = 0x40000000;
-  cl_test_system.regions[3].size = region_size;
-  cl_test_system.regions[3].base_host = malloc(region_size);
+  cl_test_system.regions[3].size = CL_TEST_REGION_SIZE;
+  cl_test_system.regions[3].base_host = malloc(CL_TEST_REGION_SIZE);
   cl_test_system.regions[3].endianness = CL_ENDIAN_BIG;
   cl_test_system.regions[3].pointer_length = 4;
   snprintf(cl_test_system.regions[3].title,
@@ -400,6 +357,12 @@ static cl_error cl_test(void)
   unsigned int word;
   unsigned char byte;
   unsigned i;
+
+  printf("Starting classicslive-integration tests for target:\n"
+    "Platform: %s\nBitness: %s\nEndianness: %s\n\n",
+    cl_string_platform(CL_HOST_PLATFORM),
+    cl_string_bitness(CL_HOST_BITNESS),
+    cl_string_endianness(CL_HOST_ENDIANNESS));
   
   /* Perform basic counter function tests */
   error = cl_ctr_tests();
@@ -432,8 +395,8 @@ static cl_error cl_test(void)
   /* Perform some virtual memory tests */
   printf("Performing virtual memory tests...\n");
   word = 0xDEADBEEF;
-  cl_write_memory(NULL, 0x30000000, sizeof(word), &word);
-  cl_read_memory(&byte, NULL, 0x30000000, 1);
+  cl_write_memory_value(&word, NULL, 0x30000000, CL_MEMTYPE_UINT32);
+  cl_read_memory_value(&byte, NULL, 0x30000000, CL_MEMTYPE_UINT8);
   if (byte != 0xEF)
   {
     printf("Little-endian virtual memory read/write test failed (got 0x%02x)!\n", byte);
@@ -442,8 +405,8 @@ static cl_error cl_test(void)
   else
     printf("Little-endian virtual memory read/write test passed (got 0x%02x)!\n", byte);
 
-  cl_write_memory(NULL, 0x40000000, sizeof(word), &word);
-  cl_read_memory(&byte, NULL, 0x40000000, 1);
+  cl_write_memory_value(&word, NULL, 0x40000000, CL_MEMTYPE_UINT32);
+  cl_read_memory_value(&byte, NULL, 0x40000000, CL_MEMTYPE_UINT8);
   if (byte != 0xDE)
   {
     printf("Big-endian virtual memory read/write test failed (got 0x%02x)!\n", byte);
@@ -523,13 +486,13 @@ static cl_error cl_test(void)
   /* Run a few frames */
   printf("Running simulated frames...\n");
   word = 0x20000000;
-  cl_write_memory(NULL, 0x10000000, sizeof(word), &word);
+  cl_write_memory_value(&word, NULL, 0x10000000, CL_MEMTYPE_UINT32);
   for (i = 0; i < 10; i++)
   {
-    cl_write_memory(NULL, 0x20000004, sizeof(i), &i);
+    cl_write_memory_value(&i, NULL, 0x20000004, CL_MEMTYPE_UINT32);
     cl_run();
-    cl_read_memory(&i, NULL, 0x20000004, sizeof(i));
-    printf(" - Frame %u completed, memory at 0x20000004 = 0x%08x\n", i, i);
+    cl_read_memory_value(&word, NULL, 0x20000004, CL_MEMTYPE_UINT32);
+    printf(" - Frame %u completed, memory at 0x20000004 = 0x%08x\n", i, word);
   }
 
   /* Close and free */

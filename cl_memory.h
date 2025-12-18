@@ -77,22 +77,8 @@ bool cl_get_memnote_value_from_key(cl_counter_t *value, unsigned key, unsigned t
 /* Populate a memory holder with values returned by the web API */
 bool cl_init_memory(const char **pos);
 
-/** 
- * Reads a value at a virtual memory address into a buffer by using the memory
- *   bank data pointer.
- * In most cases, the cl_read_memory macro should be used instead.
- * @param value The buffer to be read into.
- * @param bank A pointer to a specific memory bank, or NULL to have it be 
- * looked up automatically.
- * @param address The virtual memory address to read from.
- * @param size The number of bytes to read.
- **/
-unsigned cl_read_memory_internal(void *value, const cl_memory_region_t *bank,
-  cl_addr_t address, unsigned size);
-
-#if CL_EXTERNAL_MEMORY
-/** 
- * Reads a value at a virtual memory address into a buffer by reading external
+/**
+ * Reads a value at a virtual memory address into a buffer by reading internal
  *   process memory.
  * In most cases, the cl_read_memory macro should be used instead.
  * @param value The buffer to be read into.
@@ -100,41 +86,57 @@ unsigned cl_read_memory_internal(void *value, const cl_memory_region_t *bank,
  * looked up automatically.
  * @param address The virtual memory address to read from.
  * @param size The number of bytes to read.
- **/
-unsigned cl_read_memory_external(void *value, const cl_memory_region_t *bank,
-  cl_addr_t address, unsigned size);
+ */
+cl_error cl_read_memory_buffer_internal(void *buffer,
+  const cl_memory_region_t *bank, cl_addr_t address, cl_addr_t size);
+
+/**
+ * Reads a value at a virtual memory address into a buffer by reading internal
+ *   process memory.
+ * In most cases, the cl_read_memory macro should be used instead.
+ * @param value The buffer to be read into.
+ * @param bank A pointer to a specific memory bank, or NULL to have it be 
+ * looked up automatically.
+ * @param address The virtual memory address to read from.
+ * @param type The type of value to read.
+ */
+cl_error cl_read_memory_value_internal(void *buffer,
+  const cl_memory_region_t *bank, cl_addr_t address, cl_value_type type);
+
+cl_error cl_write_memory_buffer_internal(const void *buffer,
+  const cl_memory_region_t *bank, cl_addr_t address, cl_addr_t size);
+
+cl_error cl_write_memory_value_internal(const void *buffer,
+  const cl_memory_region_t *bank, cl_addr_t address, cl_value_type type);
+
+#if CL_EXTERNAL_MEMORY
+cl_error cl_read_memory_buffer_external(void *buffer,
+  const cl_memory_region_t *bank, cl_addr_t address, cl_addr_t size);
+cl_error cl_read_memory_value_external(void *buffer,
+  const cl_memory_region_t *bank, cl_addr_t address, cl_value_type type);
+cl_error cl_write_memory_buffer_external(const void *buffer,
+  const cl_memory_region_t *bank, cl_addr_t address, cl_addr_t size);
+cl_error cl_write_memory_value_external(const void *buffer,
+  const cl_memory_region_t *bank, cl_addr_t address, cl_value_type type);
 #endif
 
 #if CL_EXTERNAL_MEMORY
-#define cl_read_memory cl_read_memory_external
+#define cl_read_memory_buffer cl_read_memory_buffer_external
+#define cl_read_memory_value cl_read_memory_value_external
+#define cl_write_memory_buffer cl_write_memory_buffer_external
+#define cl_write_memory_value cl_write_memory_value_external
 #else
-#define cl_read_memory cl_read_memory_internal
+#define cl_read_memory_buffer cl_read_memory_buffer_internal
+#define cl_read_memory_value cl_read_memory_value_internal
+#define cl_write_memory_buffer cl_write_memory_buffer_internal
+#define cl_write_memory_value cl_write_memory_value_internal
 #endif
-
-/**
- * Returns the size (in bytes) of a given memory type ID.
- * @param type A type of memory value. For example, CL_MEMTYPE_8BIT.
- * @return The number of bytes the memory type takes up, or 0 if invalid.
- **/
-unsigned cl_sizeof_memtype(const cl_value_type type);
 
 /**
  * Steps through all memory notes and updates their values. Should be called 
  * once per frame.
  **/
 void cl_update_memory(void);
-
-/**
- * Writes the given data to a location in emulated virtual memory.
- * @param bank A pointer to a specific memory bank, or NULL to have it be 
- * looked up automatically.
- * @param address The virtual address to write to.
- * @param size The number of bytes to write.
- * @param value A pointer to the source data.
- * @return Number of bytes written.
- **/
-unsigned cl_write_memory(cl_memory_region_t *bank, cl_addr_t address,
-                         unsigned size, const void *value);
 
 /**
  * Writes the value referenced by a memory note with a given value.

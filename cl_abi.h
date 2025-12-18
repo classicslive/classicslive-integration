@@ -95,8 +95,11 @@ cl_error cl_abi_user_data(cl_user_t *user, unsigned index);
  * @param size The number of bytes to copy.
  * @param read The number of bytes successfully read.
  */
-cl_error cl_abi_external_read(void *dest, cl_addr_t address,
-                              unsigned size, unsigned *read);
+cl_error cl_abi_external_read_buffer(void *dest, cl_addr_t address,
+  unsigned size, unsigned *read);
+
+cl_error cl_abi_external_read_value(void *dest, cl_addr_t address,
+  cl_value_type type);
 
  /**
   * Instructs the frontend to copy data to external memory.
@@ -106,8 +109,11 @@ cl_error cl_abi_external_read(void *dest, cl_addr_t address,
   * @param size The number of bytes to copy.
   * @param written The number of bytes successfully written.
   */
-cl_error cl_abi_external_write(const void *src, cl_addr_t address,
-                               unsigned size, unsigned *written);
+cl_error cl_abi_external_write_buffer(const void *src, cl_addr_t address,
+  unsigned size, unsigned *written);
+
+cl_error cl_abi_external_write_value(const void *src, cl_addr_t address,
+  cl_value_type type);
 
 #endif
 
@@ -145,13 +151,21 @@ typedef struct
 
     struct external
     {
-      /** @see cl_abi_external_read */
-      cl_error (*read)(void *dest, cl_addr_t address, unsigned size,
-                       unsigned *read);
+      /** @see cl_abi_external_read_buffer */
+      cl_error (*read_buffer)(void *dest, cl_addr_t address, unsigned size,
+                              unsigned *read);
 
-      /** @see cl_abi_external_write */
-      cl_error (*write)(const void *src, cl_addr_t address, unsigned size,
-                        unsigned *written);
+      /** @see cl_abi_external_read_value */
+      cl_error (*read_value)(void *dest, cl_addr_t address,
+                             cl_value_type type);
+
+      /** @see cl_abi_external_write_buffer */
+      cl_error (*write_buffer)(const void *src, cl_addr_t address,
+                               unsigned size, unsigned *written);
+
+      /** @see cl_abi_external_write_value */
+      cl_error (*write_value)(const void *src, cl_addr_t address,
+                              cl_value_type type);
     } external;
   } functions;
 } cl_abi_t;

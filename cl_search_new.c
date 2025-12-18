@@ -12,13 +12,16 @@
 #include <string.h>
 
 #if CL_EXTERNAL_MEMORY
+#ifndef CL_SEARCH_BUCKET_SIZE
 /**
  * The amount of data to retrieve from the external process at a time when
  * processing a search.
  */
 #define CL_SEARCH_BUCKET_SIZE CL_MB(128)
 #endif
+#endif
 
+#ifndef CL_SEARCH_CHUNK_SIZE
 /**
  * The granularity of data to keep in memory as search results.
  * The total allocation per chunk is twice this size, as the validity bitmap
@@ -27,6 +30,7 @@
  * @todo Make configurable?
  */
 #define CL_SEARCH_CHUNK_SIZE CL_MB(4)
+#endif
 
 /**
  * Allocate a chunk of page-aligned memory.
@@ -463,25 +467,45 @@ cl_error cl_search_init(cl_search_t *search)
  */
 static cl_error cl_search_step_first(cl_search_t *search)
 {
+#if CL_EXTERNAL_MEMORY
+  void *bucket = NULL;
+  cl_addr_t bucket_offset = 0;
+  cl_addr_t bucket_processed = 0;
+  cl_addr_t bucket_size = 0;
+#endif
   cl_search_compare_func_t function = cl_search_comparison_function(search->params);
   unsigned i;
 
   if (!function)
     return CL_ERR_PARAMETER_INVALID;
-  else for (i = 0; i < search->page_region_count; i++)
+
+#if CL_EXTERNAL_MEMORY
+  bucket = cl_mmap(CL_SEARCH_BUCKET_SIZE);
+  if (!bucket)
+    return CL_ERR_CLIENT_RUNTIME;
+#endif
+
+  for (i = 0; i < search->page_region_count; i++)
   {
     cl_search_page_region_t *page_region = &search->page_regions[i];
     cl_search_page_t *page = NULL;
     cl_search_page_t *prev_page = NULL;
     cl_addr_t processed = 0;
 
+#if CL_EXTERNAL_MEMORY
+    bucket_offset = 0;
+    bucket_processed = 0;
+    bucket_size = page_region->region->size < CL_SEARCH_BUCKET_SIZE ?
+                  page_region->region->size : CL_SEARCH_BUCKET_SIZE;
+    cl_read_memory_buffer(bucket, page_region->region, bucket_offset, bucket_size);
+#endif
+
     while (processed < page_region->region->size)
     {
       unsigned size = CL_SEARCH_CHUNK_SIZE;
 
-      /* Allocate small single or final chunk when it can't divide evenly */
       if (processed + CL_SEARCH_CHUNK_SIZE > page_region->region->size)
-        size -= CL_SEARCH_CHUNK_SIZE - processed;
+        size = (unsigned)(page_region->region->size - processed);
 
       if (!page)
       {
@@ -493,45 +517,67 @@ static cl_error cl_search_step_first(cl_search_t *search)
       page->region = page_region->region;
       page->start = page_region->region->base_guest + processed;
       page->size = size;
-      cl_read_memory(page->chunk, page->region, page->start - page->region->base_guest, size);
+
+#if CL_EXTERNAL_MEMORY
+      memcpy(page->chunk, (unsigned char*)bucket + bucket_processed, page->size);
+#else
+      cl_read_memory_buffer(page->chunk, page->region,
+        page->start - page->region->base_guest, size);
+#endif
+
       memset(page->validity, 1, size / search->params.value_size);
-      
-      /* Do the search here */
+
       cl_search_step_page(page, search->params, function, NULL);
+
       if (page->matches == 0)
       {
-        /* This page had no matches, so we will reuse it for the next one */
+        /* reuse this page for next chunk */
       }
       else
       {
         if (!prev_page)
-          /* This is the first page in this page region */
           page_region->first_page = page;
         else
-          /* This is another page in this page region's linked list */
           prev_page->next = page;
-        prev_page = page;
 
-        /* Count up the matches */
+        prev_page = page;
         page_region->matches += page->matches;
         search->total_matches += page->matches;
-
-        /* Count up the pages */
         page_region->page_count++;
         search->total_page_count++;
 
-        /* The next page will be allocated */
         page = NULL;
       }
 
       processed += size;
+
+#if CL_EXTERNAL_MEMORY
+      bucket_processed += size;
+      if (bucket_processed >= bucket_size)
+      {
+        bucket_offset += bucket_size;
+        if (bucket_offset < page_region->region->size)
+        {
+          bucket_size = page_region->region->size - bucket_offset;
+          if (bucket_size > CL_SEARCH_BUCKET_SIZE)
+            bucket_size = CL_SEARCH_BUCKET_SIZE;
+
+          cl_read_memory_buffer(bucket, page_region->region, bucket_offset, bucket_size);
+        }
+        bucket_processed = 0;
+      }
+#endif
     }
-  
-    /* If the final page had no matches, delete it */
+
     if (page && page->matches == 0)
       cl_search_free_page(search, page);
   }
+
   search->steps = 1;
+
+#if CL_EXTERNAL_MEMORY
+  cl_munmap(bucket, CL_SEARCH_BUCKET_SIZE);
+#endif
 
   return cl_search_profile_memory(search);
 }
@@ -544,11 +590,6 @@ cl_error cl_search_step(cl_search_t *search)
     return cl_search_step_first(search);
   else
   {
-#if CL_EXTERNAL_MEMORY
-    void *bucket = NULL;
-    cl_addr_t bucket_offset = 0;
-    cl_addr_t bucket_processed = 0;
-#endif
     cl_search_compare_func_t function;
     cl_addr_t total_matches = 0;
     unsigned i;
@@ -556,12 +597,6 @@ cl_error cl_search_step(cl_search_t *search)
     function = cl_search_comparison_function(search->params);
     if (!function)
       return CL_ERR_PARAMETER_INVALID;
-
-#if CL_EXTERNAL_MEMORY
-    bucket = cl_mmap(CL_SEARCH_BUCKET_SIZE);
-    if (!bucket)
-      return CL_ERR_CLIENT_RUNTIME;
-#endif
 
     for (i = 0; i < search->page_region_count; i++)
     {
@@ -571,24 +606,12 @@ cl_error cl_search_step(cl_search_t *search)
       cl_search_page_t *next_page = NULL;
       cl_addr_t page_region_matches = 0;
 
-#if CL_EXTERNAL_MEMORY
-      cl_read_memory(bucket, page_region->region, bucket_offset,
-        page_region->region->size < CL_SEARCH_BUCKET_SIZE ?
-        page_region->region->size : CL_SEARCH_BUCKET_SIZE);
-#endif
-
       while (page)
       {
         cl_error error;
         
-#if CL_EXTERNAL_MEMORY
-        memcpy(page->chunk,
-          (unsigned char*)bucket + bucket_processed,
-          page->size);
-#else
-        cl_read_memory(page->chunk, page->region,
+        cl_read_memory_buffer(page->chunk, page->region,
           page->start - page->region->base_guest, page->size);
-#endif
         error = cl_search_step_page(page, search->params, function, NULL);
 
         if (error != CL_OK)
@@ -616,19 +639,6 @@ cl_error cl_search_step(cl_search_t *search)
           page_region_matches += page->matches;
           page = page->next;
         }
-
-#if CL_EXTERNAL_MEMORY
-        /* Move the bucket forward */
-        bucket_processed += page->size;
-        if (bucket_processed >= CL_SEARCH_BUCKET_SIZE)
-        {
-          bucket_offset += CL_SEARCH_BUCKET_SIZE;
-          bucket_processed = 0;
-          cl_read_memory(bucket, page_region->region, bucket_offset,
-            page_region->region->size - bucket_processed < CL_SEARCH_BUCKET_SIZE ?
-            page_region->region->size - bucket_offset : CL_SEARCH_BUCKET_SIZE);
-        }
-#endif
       }
       if (prev_page)
         prev_page->next = NULL;
@@ -639,9 +649,6 @@ cl_error cl_search_step(cl_search_t *search)
     }
     search->total_matches = total_matches;
     search->steps++;
-#if CL_EXTERNAL_MEMORY
-    cl_munmap(bucket, CL_SEARCH_BUCKET_SIZE);
-#endif
 
     return cl_search_profile_memory(search);
   }

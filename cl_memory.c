@@ -6,8 +6,6 @@
 #include <libretro.h>
 #endif
 
-#include <stdio.h>
-
 #if CL_HAVE_EDITOR
 #include "cl_abi.h"
 #include <string.h>
@@ -364,60 +362,111 @@ cl_error cl_memory_add_note(const cl_memnote_t *note)
   return CL_OK;
 }
 
-unsigned cl_read_memory_internal(void *value, const cl_memory_region_t *bank,
-  cl_addr_t address, unsigned size)
+cl_error cl_read_memory_buffer_internal(void *buffer,
+  const cl_memory_region_t *bank, cl_addr_t address, cl_addr_t size)
 {
   if (!bank)
   {
     bank = cl_find_memory_region(address);
     if (!bank)
-      return 0;
+      return CL_ERR_PARAMETER_INVALID;
     else
       address -= bank->base_guest;
   }
   if (bank->base_host && address < bank->size)
-    return cl_read(value, bank->base_host, address, size, bank->endianness);
+    return cl_read_buffer(buffer, bank->base_host, address, size);
 
-  return 0;
+  return CL_ERR_PARAMETER_INVALID;
+}
+
+cl_error cl_read_memory_value_internal(void *buffer,
+  const cl_memory_region_t *bank, cl_addr_t address, cl_value_type type)
+{
+  if (!bank)
+  {
+    bank = cl_find_memory_region(address);
+    if (!bank)
+      return CL_ERR_PARAMETER_INVALID;
+    else
+      address -= bank->base_guest;
+  }
+  if (bank->base_host && address < bank->size)
+    return cl_read_value(buffer, bank->base_host, address, type,
+      bank->endianness);
+
+  return CL_ERR_PARAMETER_INVALID;
+}
+
+cl_error cl_write_memory_buffer_internal(const void *value,
+  const cl_memory_region_t *bank, cl_addr_t address, cl_addr_t size)
+{
+  if (!bank)
+  {
+    bank = cl_find_memory_region(address);
+    if (!bank)
+      return CL_ERR_PARAMETER_INVALID;
+    else
+      address -= bank->base_guest;
+  }
+  if (bank->base_host)
+    return cl_write_buffer(value, bank->base_host, address, size);
+
+  return CL_ERR_PARAMETER_INVALID;
+}
+
+cl_error cl_write_memory_value_internal(const void *value,
+  const cl_memory_region_t *bank, cl_addr_t address, cl_value_type type)
+{
+  if (!bank)
+  {
+    bank = cl_find_memory_region(address);
+    if (!bank)
+      return CL_ERR_PARAMETER_INVALID;
+    else
+      address -= bank->base_guest;
+  }
+  if (bank->base_host)
+    return cl_write_value(value, bank->base_host, address, type,
+      bank->endianness);
+
+  return CL_ERR_PARAMETER_INVALID;
 }
 
 #if CL_EXTERNAL_MEMORY
-unsigned cl_read_memory_external(void *value, const cl_memory_region_t *bank,
-  cl_addr_t address, unsigned size)
-{
-  unsigned written = 0;
 
+cl_error cl_read_memory_buffer_external(void *value,
+  const cl_memory_region_t *bank, cl_addr_t address, cl_addr_t size)
+{
   if (bank)
     address += bank->base_guest;
-  cl_abi_external_read(value, address, size, &written);
-
-  return written;
+  return cl_abi_external_read_buffer(value, address, size, NULL);
 }
-#endif
 
-unsigned cl_sizeof_memtype(const cl_value_type type)
+cl_error cl_read_memory_value_external(void *value,
+  const cl_memory_region_t *bank, cl_addr_t address, cl_value_type type)
 {
-  switch (type)
-  {
-  case CL_MEMTYPE_INT8:
-  case CL_MEMTYPE_UINT8:
-    return 1;
-  case CL_MEMTYPE_INT16:
-  case CL_MEMTYPE_UINT16:
-    return 2;
-  case CL_MEMTYPE_INT32:
-  case CL_MEMTYPE_UINT32:
-  case CL_MEMTYPE_FLOAT:
-    return 4;
-  case CL_MEMTYPE_INT64:
-  case CL_MEMTYPE_DOUBLE:
-    return 8;
-  default:
-    /* Should not be reached */
-    cl_message(CL_MSG_ERROR, "cl_sizeof_memtype bad value %u", type);
-    return 0;
-  }
+  if (bank)
+    address += bank->base_guest;
+  return cl_abi_external_read_value(value, address, type);
 }
+
+cl_error cl_write_memory_buffer_external(const void *value,
+  const cl_memory_region_t *bank, cl_addr_t address, cl_addr_t size)
+{
+  if (bank)
+    address += bank->base_guest;
+  return cl_abi_external_write_buffer(value, address, size, NULL);
+}
+
+cl_error cl_write_memory_value_external(const void *value,
+  const cl_memory_region_t *bank, cl_addr_t address, cl_value_type type)
+{
+  if (bank)
+    address += bank->base_guest;
+  return cl_abi_external_write_value(value, address, type);
+}
+
+#endif
 
 /**
  * Gets the final address referenced by a memory note's chain of pointers, and
@@ -434,14 +483,33 @@ bool cl_memnote_resolve_ptrs(cl_memnote_t *note)
   for (i = 0; i < note->pointer_passes; i++)
   {
     const cl_memory_region_t *region = cl_find_memory_region(final_addr);
-
+    
     if (!region)
       return false;
-    else if (!cl_read_memory(&final_addr, NULL, final_addr,
-                             region->pointer_length))
-      return false;
+    else
+    {
+      cl_value_type ptr_type;
 
-    final_addr += note->pointer_offsets[i];
+      switch (region->pointer_length)
+      {
+      case 2:
+        ptr_type = CL_MEMTYPE_UINT16;
+        break;
+      case 4:
+        ptr_type = CL_MEMTYPE_UINT32;
+        break;
+      case 8:
+        ptr_type = CL_MEMTYPE_INT64;
+        break;
+      default:
+        return false;
+      }
+      if (cl_read_memory_value(&final_addr, NULL, final_addr,
+                               ptr_type) != CL_OK)
+        return false;
+
+      final_addr += note->pointer_offsets[i];
+    }
   }
   note->address = final_addr;
 
@@ -459,7 +527,7 @@ bool cl_update_memnote(cl_memnote_t *note)
     /* The "previous" value is the value from the previous frame */
     note->previous = note->current;
 
-    cl_read_memory(&new_val, NULL, note->address, cl_sizeof_memtype(note->type));
+    cl_read_memory_value(&new_val, NULL, note->address, note->type);
     cl_ctr_store(&note->current, &new_val, note->type);
 
     /* Logic for "last unique" values; the previous value will persist */
@@ -485,54 +553,18 @@ void cl_update_memory(void)
   }
 }
 
-unsigned cl_write_memory(cl_memory_region_t *bank, cl_addr_t address,
-                         unsigned size, const void *value)
-{
-#if CL_EXTERNAL_MEMORY
-  unsigned written = 0;
-  CL_UNUSED(bank);
-
-  cl_abi_external_write(value, address, size, &written);
-
-  return written;
-#else
-  if (!size || !value)
-    return false;
-  else if (!bank)
-  {
-    bank = cl_find_memory_region(address);
-    if (!bank)
-      return false;
-    else
-      address -= bank->base_guest;
-  }
-  if (bank->base_host)
-  /* TODO: The address should be masked */
-    return cl_write(bank->base_host, value, address, size, bank->endianness);
-
-  return false;
-#endif
-}
-
 bool cl_write_memnote(cl_memnote_t *note, const cl_counter_t *value)
 {
   if (!note || !value)
    return false;
   else
   {
-   if (cl_memnote_resolve_ptrs(note))
-   {
-    if (cl_ctr_is_float(&note->current))
-      return cl_write_memory(NULL,
-                     note->address,
-                     cl_sizeof_memtype(note->type),
-                     &value->floatval) == cl_sizeof_memtype(note->type);
-    else
-      return cl_write_memory(NULL,
-                     note->address,
-                     cl_sizeof_memtype(note->type),
-                     &value->intval) == cl_sizeof_memtype(note->type);
-   }
+    if (cl_memnote_resolve_ptrs(note))
+    {
+      return cl_write_memory_value(cl_ctr_is_float(value) ?
+        (const void *)&value->floatval.fp : (const void *)&value->intval.i64,
+        NULL, note->address, note->type) == CL_OK;
+    }
   }
 
   return false;
