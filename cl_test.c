@@ -114,7 +114,7 @@ static cl_error cl_test_network_post(const char *url, char *data,
     response.data =
       "{"
       "\"success\":true,"
-      "\"session_id\":\"#0000000000000000000000000000000\""
+      "\"session_id\":\"#000000000000000000000000000000\""
       "}";
   }
   else if (strstr(url, CL_CLINT_URL CL_END_CLINT_START))
@@ -130,15 +130,31 @@ static cl_error cl_test_network_post(const char *url, char *data,
         "],"
         "\"achievements\":"
         "["
-          "{\"achievement_id\":1,\"name\":\"High Five\",\"description\":\""
-            "Increment a value to equal 5.\"}"
+          "{\"id\":1,\"title\":\"High Five\",\"description\":\""
+            "Increment a value to equal 5.\"},"
+          "{\"id\":2,\"title\":\"Not Happening\",\"description\":\""
+            "You will never achieve this.\"}"
         "],"
         "\"leaderboards\":"
         "["
-          "{\"leaderboard_id\":1,\"name\":\"High Scores\",\"description\":\""
+          "{\"leaderboard_id\":1,\"title\":\"High Scores\",\"description\":\""
             "Top scores for the game.\"}"
         "],"
         "\"script\":\"1 2 0 15 5 1 1 0 5 1 1 18 2 0 1\""
+      "}";
+  }
+  else if (strstr(url, CL_CLINT_URL CL_END_CLINT_ACHIEVEMENT))
+  {
+    response.data =
+      "{"
+        "\"success\":true"
+      "}";
+  }
+  else if (strstr(url, CL_CLINT_URL CL_END_CLINT_CLOSE))
+  {
+    response.data =
+      "{"
+        "\"success\":true"
       "}";
   }
   else
@@ -391,6 +407,12 @@ cl_error cl_test(void)
   error = cl_login_and_start(cl_test_system.identifier);
   if (error != CL_OK)
     return error;
+
+  for (i = 0; i < session.achievement_count; i++)
+    printf("Achievement %u: %s - %s\n",
+      session.achievements[i].id,
+      session.achievements[i].title,
+      session.achievements[i].description);
 
   /* Perform some virtual memory tests */
   printf("Performing virtual memory tests...\n");
