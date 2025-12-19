@@ -47,7 +47,7 @@ static cl_error cl_print_counter_values(char *buffer, unsigned len)
       snprintf(counter_buffer, sizeof(counter_buffer), "&c%u=%f",
                i, counter->floatval.fp);
     else
-      snprintf(counter_buffer, sizeof(counter_buffer), "&c%u=%lu",
+      snprintf(counter_buffer, sizeof(counter_buffer), "&c%u=%llu",
                i, counter->intval.raw);
 
     /* Check destination buffer can hold it */
@@ -152,7 +152,7 @@ static bool cl_act_post_achievement(cl_action_t *action)
 #if !CL_HAVE_EDITOR
   char data[CL_POST_DATA_SIZE];
 
-  snprintf(data, CL_POST_DATA_SIZE, "ach_id=%lu", ach_id.intval.raw);
+  snprintf(data, CL_POST_DATA_SIZE, "ach_id=%llu", ach_id.intval.raw);
   cl_network_post_clint(CL_END_CLINT_ACHIEVEMENT, data, NULL, NULL);
 
   /* Clear this action so we don't re-submit the achievement */
@@ -186,7 +186,7 @@ static bool cl_act_post_leaderboard(cl_action_t *action)
                                              action->arguments[1].uintval);
   char data[CL_POST_DATA_SIZE];
 
-  snprintf(data, CL_POST_DATA_SIZE, "ldb_id=%lu", ldb_id.intval.raw);
+  snprintf(data, CL_POST_DATA_SIZE, "ldb_id=%llu", ldb_id.intval.raw);
   if (cl_print_counter_values(data, sizeof(data)) != CL_OK)
     cl_message(CL_MSG_ERROR, "Unable to allocate leaderboard data.");
   else

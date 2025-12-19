@@ -1,5 +1,9 @@
 #include "cl_common.h"
 
+#if CL_SHOW_ERRORS || CL_LOGGING
+#include "cl_abi.h"
+#endif
+
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
@@ -33,11 +37,16 @@ __attribute__((__format__ (__printf__, 1, 0)))
 void cl_log(const char *format, ...)
 {
 #if CL_LOGGING
-  va_list argv;
+  if (!format)
+    return;
+  else
+  {
+    va_list argv;
 
-  va_start(argv, format);
-  vprintf(format, argv);
-  va_end(argv);
+    va_start(argv, format);
+    vprintf(format, argv);
+    va_end(argv);
+  }
 #endif
 }
 
@@ -64,7 +73,7 @@ cl_error cl_read_16(void *value, const void *src, cl_addr_t offset,
   uint16_t tmp = *((const uint16_t*)(
     (const uint8_t*)src + offset));
 
-#if CL_HOST_ENDIANNESS == CL_ENDIAN_BIG
+#if CL_HOST_ENDIANNESS == _CL_ENDIANNESS_BIG
   if (endianness == CL_ENDIAN_LITTLE)
 #else
   if (endianness == CL_ENDIAN_BIG)
@@ -98,12 +107,13 @@ cl_error cl_read_32(void *value, const void *src, cl_addr_t offset,
   uint32_t tmp = *((const uint32_t*)(
     (const uint8_t*)src + offset));
 
-#if CL_HOST_ENDIANNESS == CL_ENDIAN_BIG
+#if CL_HOST_ENDIANNESS == _CL_ENDIANNESS_BIG
   if (endianness == CL_ENDIAN_LITTLE)
 #else
   if (endianness == CL_ENDIAN_BIG)
 #endif
   {
+    printf("Swapping endian\n");
 #if defined(_MSC_VER)
     tmp = _byteswap_ulong(tmp);
 #elif defined(__GNUC__) || defined(__clang__)
@@ -135,7 +145,7 @@ cl_error cl_read_64(void *value, const void *src, cl_addr_t offset,
   uint64_t tmp = *((const uint64_t*)(
     (const uint8_t*)src + offset));
 
-#if CL_HOST_ENDIANNESS == CL_ENDIAN_BIG
+#if CL_HOST_ENDIANNESS == _CL_ENDIANNESS_BIG
   if (endianness == CL_ENDIAN_LITTLE)
 #else
   if (endianness == CL_ENDIAN_BIG)
@@ -266,7 +276,7 @@ cl_error cl_write_16(const void *value, void *dst, cl_addr_t offset,
 #endif
   uint16_t tmp = *(const uint16_t*)value;
 
-#if CL_HOST_ENDIANNESS == CL_ENDIAN_BIG
+#if CL_HOST_ENDIANNESS == _CL_ENDIANNESS_BIG
   if (endianness == CL_ENDIAN_LITTLE)
 #else
   if (endianness == CL_ENDIAN_BIG)
@@ -300,12 +310,13 @@ cl_error cl_write_32(const void *value, void *dst, cl_addr_t offset,
 #endif
   uint32_t tmp = *(const uint32_t*)value;
 
-#if CL_HOST_ENDIANNESS == CL_ENDIAN_BIG
+#if CL_HOST_ENDIANNESS == _CL_ENDIANNESS_BIG
   if (endianness == CL_ENDIAN_LITTLE)
 #else
   if (endianness == CL_ENDIAN_BIG)
 #endif
   {
+    printf("Swapping endian\n");
 #if defined(_MSC_VER)
     tmp = _byteswap_ulong(tmp);
 #elif defined(__GNUC__) || defined(__clang__)
@@ -337,7 +348,7 @@ cl_error cl_write_64(const void *value, void *dst, cl_addr_t offset,
 #endif
   uint64_t tmp = *(const uint64_t*)value;
 
-#if CL_HOST_ENDIANNESS == CL_ENDIAN_BIG
+#if CL_HOST_ENDIANNESS == _CL_ENDIANNESS_BIG
   if (endianness == CL_ENDIAN_LITTLE)
 #else
   if (endianness == CL_ENDIAN_BIG)

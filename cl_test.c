@@ -204,7 +204,7 @@ static cl_error cl_test_user_data(cl_user_t *user, unsigned index)
     return CL_ERR_PARAMETER_INVALID;
   snprintf(user->username, sizeof(user->username), "clint");
   snprintf(user->password, sizeof(user->password), "coffeecoffeefrog123");
-  snprintf(user->token, sizeof(user->token), "");
+  user->token[0] = '\0';
   snprintf(user->language, sizeof(user->language), "en_US");
 
   return CL_OK;
@@ -348,7 +348,7 @@ static cl_error cl_test_console_free(void)
   return CL_OK;
 }
 
-static cl_error cl_test(void)
+cl_error cl_test(void)
 {
   cl_search_t search;
   clock_t start, end;
@@ -432,7 +432,7 @@ static cl_error cl_test(void)
   cl_search_step(&search);
   end = clock();
   cpu_time_used = ((double)(end - start)) / CLOCKS_PER_SEC;
-  printf("%lu matches found. %u pages. %lu memory usage. Time: %.6f s\n",
+  printf(CL_SIZEF " matches found. %u pages. " CL_SIZEF " memory usage. Time: %.6f s\n",
     search.total_matches, search.total_page_count, search.memory_usage, cpu_time_used);
 
   printf("Compare to 1...");
@@ -446,7 +446,7 @@ static cl_error cl_test(void)
   cl_search_step(&search);
   end = clock();
   cpu_time_used = ((double)(end - start)) / CLOCKS_PER_SEC;
-  printf("%lu matches found. %u pages. %lu memory usage. Time: %.6f s\n",
+  printf(CL_SIZEF " matches found. %u pages. " CL_SIZEF " memory usage. Time: %.6f s\n",
     search.total_matches, search.total_page_count, search.memory_usage, cpu_time_used);
   
   printf("Compare to 2...");
@@ -457,7 +457,7 @@ static cl_error cl_test(void)
   cl_search_step(&search);
   end = clock();
   cpu_time_used = ((double)(end - start)) / CLOCKS_PER_SEC;
-  printf("%lu matches found. %u pages. %lu memory usage. Time: %.6f s\n",
+  printf(CL_SIZEF " matches found. %u pages. " CL_SIZEF " memory usage. Time: %.6f s\n",
     search.total_matches, search.total_page_count, search.memory_usage, cpu_time_used);
 
   printf("Compare to 3...");
@@ -469,7 +469,7 @@ static cl_error cl_test(void)
   cl_search_step(&search);
   end = clock();
   cpu_time_used = ((double)(end - start)) / CLOCKS_PER_SEC;
-  printf("%lu matches found. %u pages. %lu memory usage. Time: %.6f s\n",
+  printf(CL_SIZEF " matches found. %u pages. " CL_SIZEF " memory usage. Time: %.6f s\n",
     search.total_matches, search.total_page_count, search.memory_usage, cpu_time_used);
 
   if (search.total_matches != 1)
@@ -507,21 +507,6 @@ static cl_error cl_test(void)
     return error;
 
   printf("All tests completed successfully!\n");
-
-  return CL_OK;
-}
-
-int main(void)
-{
-  unsigned i;
-
-  for (i = 0; i < 10; i++)
-  {
-    printf("=== Running test iteration %u ===\n", i + 1);
-    if (cl_test() != CL_OK)
-      break;
-    printf("\n");
-  }
 
   return CL_OK;
 }

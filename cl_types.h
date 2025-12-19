@@ -116,10 +116,10 @@ typedef enum
   /* 89ABCDEF01234567 */
   CL_ENDIAN_WORD_FLIP_LB,
 
-#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-  CL_ENDIAN_NATIVE = CL_ENDIAN_BIG,
+#if CL_HOST_ENDIANNESS == _CL_ENDIANNESS_BIG
+  CL_ENDIAN_NATIVE = _CL_ENDIANNESS_BIG,
 #else
-  CL_ENDIAN_NATIVE = CL_ENDIAN_LITTLE,
+  CL_ENDIAN_NATIVE = _CL_ENDIANNESS_LITTLE,
 #endif
 
   CL_ENDIAN_SIZE
@@ -366,6 +366,13 @@ typedef struct
 
 /** A virtual address for the emulated system. */
 typedef uintptr_t cl_addr_t;
+#if CL_HOST_BITNESS == _CL_BITNESS_32
+  #define CL_ADDRF "%08X"
+  #define CL_SIZEF "%u"
+#else
+  #define CL_ADDRF "%016lX"
+  #define CL_SIZEF "%lu"
+#endif
 
 typedef struct cl_counter_t
 {

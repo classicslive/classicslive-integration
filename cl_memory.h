@@ -62,7 +62,7 @@ bool cl_init_membanks_libretro(const struct retro_memory_descriptor **descs,
  * @param flag The memory note flag to check. For example, CL_MEMFLAG_RICH.
  **/
 bool cl_get_memnote_flag(cl_memnote_t *note, uint8_t flag);
-bool cl_get_memnote_flag_from_key(uint32_t key, uint8_t flag);
+bool cl_get_memnote_flag_from_key(unsigned key, uint8_t flag);
 
 /**
  * Copies the current value of a memory note into a buffer.
@@ -154,7 +154,7 @@ bool cl_write_memnote_from_key(unsigned key, const cl_counter_t *value);
  * @return A pointer to the appropriate memory note, or NULL if one with the
  * given key does not exist.
  **/
-cl_memnote_t* cl_find_memnote(uint32_t key);
+cl_memnote_t* cl_find_memnote(unsigned key);
 
 /**
  * Adds a new memory note to the global memory context.

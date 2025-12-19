@@ -5,10 +5,15 @@
 
 #include <stdio.h>
 
+#if CL_HOST_PLATFORM == CL_PLATFORM_LINUX || \
+    CL_HOST_PLATFORM == CL_PLATFORM_MACOS || \
+    CL_HOST_PLATFORM == CL_PLATFORM_ANDROID
 #include <bits/types/struct_timespec.h>
+#else
+#include <time.h>
+#endif
 
 #include <lrc_hash.h>
-#include <retro_timers.h>
 #include <string/stdstring.h>
 
 #if CL_HAVE_FILESYSTEM
@@ -16,6 +21,7 @@
 #include <streams/chd_stream.h>
 #include <streams/interface_stream.h>
 #include <file/file_path.h>
+#include <retro_timers.h>
 #endif
 
 typedef struct cl_md5_ctx_t
