@@ -34,7 +34,7 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Clone libretro-common
-        run: git clone https://github.com/libretro/libretro-common"
+        run: git clone https://github.com/libretro/libretro-common
 
       - name: Set CLASSICS_LIVE_LIBRETRO_DIR
         shell: powershell
