@@ -1,0 +1,62 @@
+name: classicslive-integration CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-test-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y build-essential valgrind clang git
+
+      - name: Clone libretro-common
+        run: git clone https://github.com/libretro/libretro-common
+
+      - name: Set CLASSICS_LIVE_LIBRETRO_DIR
+        run: echo "CLASSICS_LIVE_LIBRETRO_DIR=$(pwd)/libretro-common" >> $GITHUB_ENV
+
+      - name: Build test suite
+        run: make
+
+      - name: Run test with ASAN
+        run: ./cl_test
+
+      - name: Run test with Valgrind
+        run: valgrind --leak-check=full --error-exitcode=1 ./cl_test
+
+  build-test-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install MSYS2 and Clang
+        run: choco install msys2 --yes
+
+      - name: Setup MSYS2 shell
+        shell: bash
+        run: |
+          pacman -Syu --noconfirm
+          pacman -S --noconfirm clang make git
+
+      - name: Clone libretro-common
+        shell: bash
+        run: git clone https://github.com/libretro/libretro-common
+
+      - name: Set CLASSICS_LIVE_LIBRETRO_DIR
+        shell: bash
+        run: echo "export CLASSICS_LIVE_LIBRETRO_DIR=$(pwd)/libretro-common" >> $GITHUB_ENV
+
+      - name: Build test suite
+        shell: bash
+        run: make
+
+      - name: Run test with ASAN
+        shell: bash
+        run: ./cl_test.exe
