@@ -115,7 +115,7 @@ static cl_error cl_test_network_post(const char *url, char *data,
       "{"
       "\"success\":true,"
       "\"session_id\":\"#000000000000000000000000000000\""
-      "}";
+      "}\n";
   }
   else if (strstr(url, CL_CLINT_URL CL_END_CLINT_START))
   {
@@ -141,21 +141,21 @@ static cl_error cl_test_network_post(const char *url, char *data,
             "Top scores for the game.\"}"
         "],"
         "\"script\":\"1 2 0 15 5 1 1 0 5 1 1 18 2 0 1\""
-      "}";
+      "}\n";
   }
   else if (strstr(url, CL_CLINT_URL CL_END_CLINT_ACHIEVEMENT))
   {
     response.data =
       "{"
         "\"success\":true"
-      "}";
+      "}\n";
   }
   else if (strstr(url, CL_CLINT_URL CL_END_CLINT_CLOSE))
   {
     response.data =
       "{"
         "\"success\":true"
-      "}";
+      "}\n";
   }
   else
   {
@@ -380,7 +380,8 @@ cl_error cl_test(void)
     cl_string_bitness(CL_HOST_BITNESS),
     cl_string_endianness(CL_HOST_ENDIANNESS));
   
-  /* Perform basic counter function tests */
+  printf("============================================================\n");
+  printf("Performing basic counter function tests...\n");
   error = cl_ctr_tests();
   if (!error)
     printf("Counter tests passed!\n");
@@ -390,19 +391,19 @@ cl_error cl_test(void)
     return error;
   }
 
-  /* Register the test ABI */
+  printf("============================================================\n");
   printf("Registering test ABI...\n");
   error = cl_abi_register(&cl_test_abi);
   if (error != CL_OK)
     return error;
 
-  /* Initialize the test console */
+  printf("============================================================\n");
   printf("Initializing test console...\n");
   error = cl_test_console_init();
   if (error != CL_OK)
     return error;
 
-  /* Perform login flow tests */
+  printf("============================================================\n");
   printf("Performing login flow tests...\n");
   error = cl_login_and_start(cl_test_system.identifier);
   if (error != CL_OK)
@@ -413,31 +414,35 @@ cl_error cl_test(void)
       session.achievements[i].id,
       session.achievements[i].title,
       session.achievements[i].description);
+  for (i = 0; i < session.leaderboard_count; i++)
+    printf("Leaderboard %u: %s - %s\n",
+      session.leaderboards[i].id,
+      session.leaderboards[i].title,
+      session.leaderboards[i].description);
 
-  /* Perform some virtual memory tests */
+  printf("============================================================\n");
   printf("Performing virtual memory tests...\n");
-  word = 0xDEADBEEF;
+  word = 0x0D15EA5E;
   cl_write_memory_value(&word, NULL, 0x30000000, CL_MEMTYPE_UINT32);
   cl_read_memory_value(&byte, NULL, 0x30000000, CL_MEMTYPE_UINT8);
-  if (byte != 0xEF)
+  if (byte != 0x5E)
   {
-    printf("Little-endian virtual memory read/write test failed (got 0x%02x)!\n", byte);
+    printf("Little-endian virtual memory read/write test failed (got 0x%02X)!\n", byte);
     return CL_ERR_CLIENT_RUNTIME;
   }
   else
-    printf("Little-endian virtual memory read/write test passed (got 0x%02x)!\n", byte);
-
+    printf("Little-endian virtual memory read/write test passed (got 0x%02X)!\n", byte);
   cl_write_memory_value(&word, NULL, 0x40000000, CL_MEMTYPE_UINT32);
   cl_read_memory_value(&byte, NULL, 0x40000000, CL_MEMTYPE_UINT8);
-  if (byte != 0xDE)
+  if (byte != 0x0D)
   {
-    printf("Big-endian virtual memory read/write test failed (got 0x%02x)!\n", byte);
+    printf("Big-endian virtual memory read/write test failed (got 0x%02X)!\n", byte);
     return CL_ERR_CLIENT_RUNTIME;
   }
   else
-    printf("Big-endian virtual memory read/write test passed (got 0x%02x)!\n", byte);
+    printf("Big-endian virtual memory read/write test passed (got 0x%02X)!\n", byte);
 
-  /* Initialize a search */
+  printf("============================================================\n");
   printf("Initializing memory search...");
   cl_search_init(&search);
   printf("change cmp...");
@@ -501,12 +506,12 @@ cl_error cl_test(void)
   }
   else
     printf("Memory search test passed!\n");
-
   printf("Freeing search...\n");
   cl_search_free(&search);
 
-  /* Run a few frames */
+  printf("============================================================\n");
   printf("Running simulated frames...\n");
+  printf("Achievement should unlock between 4 and 5...\n");
   word = 0x20000000;
   cl_write_memory_value(&word, NULL, 0x10000000, CL_MEMTYPE_UINT32);
   for (i = 0; i < 10; i++)
@@ -517,18 +522,17 @@ cl_error cl_test(void)
     printf(" - Frame %u completed, memory at 0x20000004 = 0x%08x\n", i, word);
   }
 
-  /* Close and free */
+  printf("============================================================\n");
   printf("Freeing test session...\n");
   error = cl_free();
   if (error != CL_OK)
     return error;
-  
   printf("Freeing test console...\n");
   error = cl_test_console_free();
   if (error != CL_OK)
     return error;
 
-  printf("All tests completed successfully!\n");
+  printf("\nd(. _ . )b All tests completed successfully!\n");
 
   return CL_OK;
 }
