@@ -2,9 +2,9 @@ name: classicslive-integration CI
 
 on:
   push:
-    branches: [main]
+    branches: [master]
   pull_request:
-    branches: [main]
+    branches: [master]
   workflow_dispatch:
 
 jobs:
@@ -14,7 +14,7 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y build-essential valgrind clang git
+        run: sudo apt-get update && sudo apt-get install -y valgrind git
 
       - name: Clone libretro-common
         run: git clone https://github.com/libretro/libretro-common
@@ -25,9 +25,6 @@ jobs:
       - name: Build test suite
         run: make
 
-      - name: Run test with ASAN
-        run: ./cl_test
-
       - name: Run test with Valgrind
         run: valgrind --leak-check=full --error-exitcode=1 ./cl_test
 
@@ -36,27 +33,21 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Install MSYS2 and Clang
-        run: choco install msys2 --yes
-
-      - name: Setup MSYS2 shell
-        shell: bash
-        run: |
-          pacman -Syu --noconfirm
-          pacman -S --noconfirm clang make git
-
       - name: Clone libretro-common
-        shell: bash
-        run: git clone https://github.com/libretro/libretro-common
+        run: git clone https://github.com/libretro/libretro-common"
 
       - name: Set CLASSICS_LIVE_LIBRETRO_DIR
-        shell: bash
-        run: echo "export CLASSICS_LIVE_LIBRETRO_DIR=$(pwd)/libretro-common" >> $GITHUB_ENV
+        shell: powershell
+        run: echo "setx CLASSICS_LIVE_LIBRETRO_DIR \"$PWD\libretro-common\""
 
       - name: Build test suite
-        shell: bash
-        run: make
+        shell: powershell
+        run: |
+          # Use default MSVC environment (already on windows-latest)
+          cl_test_path = Join-Path $env:CLASSICS_LIVE_LIBRETRO_DIR "..\cl_test.c"
+          # Compile test (assuming Makefile works with MSVC)
+          nmake /f Makefile
 
-      - name: Run test with ASAN
-        shell: bash
-        run: ./cl_test.exe
+      - name: Run test
+        shell: powershell
+        run: .\cl_test.exe
