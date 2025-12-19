@@ -29,20 +29,20 @@ jobs:
         run: valgrind --leak-check=full --error-exitcode=1 ./cl_test
 
   build-test-windows:
-  runs-on: windows-latest
-  steps:
-    - uses: actions/checkout@v3
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
 
-    - name: Clone libretro-common
-      shell: bash
-      run: git clone https://github.com/libretro/libretro-common
+      - name: Clone libretro-common
+        shell: bash
+        run: git clone https://github.com/libretro/libretro-common
 
-    - name: Build test suite
-      shell: bash
-      run: |
-        export CLASSICS_LIVE_LIBRETRO_DIR="$PWD/libretro-common"
-        make
+      - name: Build test suite
+        shell: bash
+        run: |
+          export CLASSICS_LIVE_LIBRETRO_DIR="$PWD/libretro-common"
+          make
 
-    - name: Run test
-      shell: bash
-      run: ./cl_test.exe
+      - name: Run test
+        shell: bash
+        run: ./cl_test.exe
