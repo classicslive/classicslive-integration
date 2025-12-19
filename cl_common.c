@@ -113,7 +113,6 @@ cl_error cl_read_32(void *value, const void *src, cl_addr_t offset,
   if (endianness == CL_ENDIAN_BIG)
 #endif
   {
-    printf("Swapping endian\n");
 #if defined(_MSC_VER)
     tmp = _byteswap_ulong(tmp);
 #elif defined(__GNUC__) || defined(__clang__)
@@ -316,7 +315,6 @@ cl_error cl_write_32(const void *value, void *dst, cl_addr_t offset,
   if (endianness == CL_ENDIAN_BIG)
 #endif
   {
-    printf("Swapping endian\n");
 #if defined(_MSC_VER)
     tmp = _byteswap_ulong(tmp);
 #elif defined(__GNUC__) || defined(__clang__)
