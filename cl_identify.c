@@ -9,8 +9,6 @@
     CL_HOST_PLATFORM == CL_PLATFORM_MACOS || \
     CL_HOST_PLATFORM == CL_PLATFORM_ANDROID
 #include <bits/types/struct_timespec.h>
-#else
-#include <time.h>
 #endif
 
 #include <lrc_hash.h>
