@@ -57,18 +57,14 @@ typedef struct
   cl_addr_t matches;
 } cl_search_page_region_t;
 
+/**
+ * An opaque handle representing a target value for searches.
+ * The actual implementation is available in `cl_search.c`.
+ */
 typedef union
 {
-  unsigned char u8;
-  signed char s8;
-  unsigned short u16;
-  signed short s16;
-  unsigned int u32;
-  signed int s32;
-  unsigned long u64;
-  signed long s64;
-  float fp;
-  double dfp;
+  unsigned char raw[8];
+  double _align;
 } cl_search_target_t;
 
 typedef struct

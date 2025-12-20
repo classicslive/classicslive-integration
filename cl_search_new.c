@@ -9,6 +9,7 @@
   #include <windows.h>
 #endif
 
+#include <stdint.h>
 #include <string.h>
 
 #if CL_EXTERNAL_MEMORY
@@ -31,6 +32,21 @@
  */
 #define CL_SEARCH_CHUNK_SIZE CL_MB(4)
 #endif
+
+typedef union
+{
+  uint8_t u8;
+  int8_t s8;
+  uint16_t u16;
+  int16_t s16;
+  uint32_t u32;
+  int32_t s32;
+  int64_t s64;
+  float fp;
+  double dfp;
+} cl_search_target_impl_t;
+
+#define CL_TARGET(target) ((cl_search_target_impl_t *)&(target))
 
 /**
  * Allocate a chunk of page-aligned memory.
@@ -85,7 +101,7 @@ static unsigned CL_PASTE3(cl_search_cmp_imm_, b, _##d)( \
   unsigned char match; \
   a *chunk_data_cast = (a*)chunk_data; \
   const a *chunk_data_end_cast = (const a*)chunk_data_end; \
-  const a right = ((cl_search_target_t*)target)->b; \
+  const a right = ((cl_search_target_impl_t *)(target))->b; \
   while (chunk_data_cast < chunk_data_end_cast) \
   { \
     match = (*chunk_data_cast c right) & *chunk_validity; \
@@ -131,13 +147,13 @@ static unsigned CL_PASTE3(cl_search_cmp_prv_, b, _##d)( \
   CL_SEARCH_CMP_IMMEDIATE_TEMPLATE(a, b, !=, neq) \
   CL_SEARCH_CMP_PREVIOUS_TEMPLATE(a, b, !=, neq) \
 
-CL_SEARCH_CMP_IMMEDIATE_UNROLL(unsigned char, u8)
-CL_SEARCH_CMP_IMMEDIATE_UNROLL(signed char, s8)
-CL_SEARCH_CMP_IMMEDIATE_UNROLL(unsigned short, u16)
-CL_SEARCH_CMP_IMMEDIATE_UNROLL(signed short, s16)
-CL_SEARCH_CMP_IMMEDIATE_UNROLL(unsigned int, u32)
-CL_SEARCH_CMP_IMMEDIATE_UNROLL(signed int, s32)
-CL_SEARCH_CMP_IMMEDIATE_UNROLL(signed long, s64)
+CL_SEARCH_CMP_IMMEDIATE_UNROLL(uint8_t, u8)
+CL_SEARCH_CMP_IMMEDIATE_UNROLL(int8_t, s8)
+CL_SEARCH_CMP_IMMEDIATE_UNROLL(uint16_t, u16)
+CL_SEARCH_CMP_IMMEDIATE_UNROLL(int16_t, s16)
+CL_SEARCH_CMP_IMMEDIATE_UNROLL(uint32_t, u32)
+CL_SEARCH_CMP_IMMEDIATE_UNROLL(int32_t, s32)
+CL_SEARCH_CMP_IMMEDIATE_UNROLL(int64_t, s64)
 CL_SEARCH_CMP_IMMEDIATE_UNROLL(float, fp)
 CL_SEARCH_CMP_IMMEDIATE_UNROLL(double, dfp)
 
@@ -344,6 +360,70 @@ cl_error cl_search_change_compare_type(cl_search_t *search,
   }
 }
 
+/**
+ * Return the canonical target value of a search.
+ * @param search A pointer to the search to get the target from
+ * @param out_target A pointer to store the target value into
+ */
+static cl_error cl_search_get_target(const cl_search_t *search, int64_t *out)
+{
+  if (!search || !out)
+    return CL_ERR_PARAMETER_NULL;
+  else
+  {
+    cl_search_target_impl_t *target = CL_TARGET(search->params.target);
+
+    switch (search->params.value_size)
+    {
+    case 1:
+      *out = target->s8;
+      return CL_OK;
+    case 2:
+      *out = target->s16;
+      return CL_OK;
+    case 4:
+      *out = target->s32;
+      return CL_OK;
+    case 8:
+      *out = target->s64;
+      return CL_OK;
+    default:
+      return CL_ERR_PARAMETER_INVALID;
+    }
+  }
+}
+
+static cl_error cl_search_set_target(cl_search_t *search, int64_t value)
+{
+  if (!search)
+    return CL_ERR_PARAMETER_NULL;
+  else
+  {
+    cl_search_target_impl_t *target = CL_TARGET(search->params.target);
+
+    target->s64 = 0;
+    switch (search->params.value_size)
+    {
+    case 1:
+      target->s8 = (int8_t)value;
+      break;
+    case 2:
+      target->s16 = (int16_t)value;
+      break;
+    case 4:
+      target->s32 = (int32_t)value;
+      break;
+    case 8:
+      target->s64 = (int64_t)value;
+      break;
+    default:
+      return CL_ERR_PARAMETER_INVALID;
+    }
+
+    return CL_OK;
+  }
+}
+
 cl_error cl_search_change_value_type(cl_search_t *search, cl_value_type type)
 {
   if (!search)
@@ -352,8 +432,12 @@ cl_error cl_search_change_value_type(cl_search_t *search, cl_value_type type)
     return CL_ERR_PARAMETER_INVALID;
   else
   {
+    int64_t target_value = 0;
+
+    cl_search_get_target(search, &target_value);
     search->params.value_type = type;
     search->params.value_size = cl_sizeof_memtype(type);
+    cl_search_set_target(search, target_value);
 
     return CL_OK;
   }
@@ -368,21 +452,22 @@ cl_error cl_search_change_target(cl_search_t *search, const void *value)
   else
   {
     cl_search_target_t target;
+    cl_search_target_impl_t *target_impl = CL_TARGET(target);
 
-    memset(&target, 0, sizeof(cl_search_target_t));
+    target_impl->s64 = 0;
     switch (search->params.value_size)
     {
     case 1:
-      memcpy(&target.u8, value, 1);
+      target_impl->s8 = *(const int8_t*)value;
       break;
     case 2:
-      memcpy(&target.u16, value, 2);
+      target_impl->s16 = *(const int16_t*)value;
       break;
     case 4:
-      memcpy(&target.u32, value, 4);
+      target_impl->s32 = *(const int32_t*)value;
       break;
     case 8:
-      memcpy(&target.u64, value, 8);
+      target_impl->s64 = *(const int64_t*)value;
       break;
     default:
       return CL_ERR_PARAMETER_INVALID;
@@ -441,6 +526,11 @@ cl_error cl_search_init(cl_search_t *search)
     return CL_ERR_PARAMETER_NULL;
   else if (memory.region_count == 0)
     return CL_ERR_PARAMETER_INVALID;
+  else if (sizeof(cl_search_target_impl_t) != sizeof(cl_search_target_t))
+  {
+    cl_message(CL_MSG_ERROR, "Compile: search target impl size mismatch");
+    return CL_ERR_CLIENT_COMPILE;
+  }
 
   /* Zero-init the search */
   memset(search, 0, sizeof(cl_search_t));
