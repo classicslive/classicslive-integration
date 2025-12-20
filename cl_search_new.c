@@ -619,11 +619,8 @@ static cl_error cl_search_step_first(cl_search_t *search)
 
       cl_search_step_page(page, search->params, function, NULL);
 
-      if (page->matches == 0)
-      {
-        /* reuse this page for next chunk */
-      }
-      else
+      /* If there were no matches, reuse the allocated page */
+      if (page->matches > 0)
       {
         if (!prev_page)
           page_region->first_page = page;
