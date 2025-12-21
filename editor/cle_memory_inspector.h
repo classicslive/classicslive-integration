@@ -82,6 +82,8 @@ private slots:
 
    void onRightClickTabs(const QPoint &pos);
 
+   void onTargetChanged(const QString&);
+
    void requestAddMemoryNote(cl_memnote_t note);
    void requestAddMemoryNote(cl_addr_t address);
    void requestPointerSearch(cl_addr_t address);

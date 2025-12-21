@@ -63,6 +63,8 @@ CleMemoryInspector::CleMemoryInspector()
 
    /* Initialize text entry box for comparison value */
    m_TextEntry = new QLineEdit();
+   connect(m_TextEntry, SIGNAL(textChanged(const QString&)), 
+      this, SLOT(onTargetChanged()));
    connect(m_TextEntry, SIGNAL(returnPressed()), 
       m_SearchButton, SIGNAL(clicked()));
 
@@ -289,6 +291,15 @@ void CleMemoryInspector::onRightClickTabs(const QPoint &pos)
 
       menu.exec(m_Tabs->mapToGlobal(pos));
     }
+  }
+}
+
+void CleMemoryInspector::onTargetChanged(const QString& target)
+{
+  if (!m_CurrentSearch->setTarget(target))
+  {
+    cl_log("Search input failed: %s\n", target.toStdString().c_str());
+    m_TextEntry->setText("");
   }
 }
 

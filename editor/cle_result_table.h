@@ -49,6 +49,7 @@ public:
   virtual cl_value_type valueType(void) { return CL_MEMTYPE_NOT_SET; }
 
   virtual cl_error setCompareType(const cl_compare_type type) = 0;
+  virtual cl_error setTarget(const QString &target) = 0;
   virtual cl_error setValueType(const cl_value_type type) = 0;
 
 public slots:

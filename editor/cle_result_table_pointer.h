@@ -29,6 +29,7 @@ public:
   cl_value_type valueType(void) override { return CL_MEMTYPE_NOT_SET; }
 
   cl_error setCompareType(const cl_compare_type type) override {}
+  cl_error setTarget(const QString& target) override {}
   cl_error setValueType(const cl_value_type type) override {}
 
 public slots:
