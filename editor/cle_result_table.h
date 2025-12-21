@@ -19,7 +19,7 @@ public:
   /**
    * Return an address representing the last clicked row.
    */
-  virtual cl_addr_t getClickedResultAddress() = 0;
+  virtual cl_addr_t getClickedResultAddress(void) = 0;
 
   /**
    * Return a pointer to the relevant search data.
@@ -29,13 +29,13 @@ public:
 
   virtual int isInitted(void) { return 0; }
 
-   /*
-      Recreate all rows to adapt to changes in the search data.
-      (Use when a search is reset, stepped through, etc.)
+  /**
+   * Recreate all rows to adapt to changes in the search data.
+   * (Use when a search is reset, stepped through, etc.)
    */
   virtual cl_error rebuild(void) = 0;
 
-  virtual cl_error reset(uint8_t value_type) = 0;
+  virtual cl_error reset(void) = 0;
    
   /**
    * Redraw the currently visible table rows with new information.
@@ -78,7 +78,7 @@ protected:
     * @param params The params of the search type.
     * @param string The string the user entered into the result entry.
     */
-  void writeMemory(const cl_addr_t address, const cl_search_parameters_t& params,
+  cl_error writeMemory(const cl_addr_t address, const cl_search_parameters_t& params,
     const QString& string);
 };
 

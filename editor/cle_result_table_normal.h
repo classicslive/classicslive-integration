@@ -26,7 +26,7 @@ public:
   void *searchData(void) override;
   int isInitted(void) override { return true; }
   cl_error rebuild(void) override;
-  cl_error reset(uint8_t value_type) override;
+  cl_error reset(void) override;
   cl_error run(void) override;
   cl_error step(void) override;
 
@@ -45,7 +45,7 @@ public:
     return cl_search_change_compare_type(&m_Search, type);
   }
 
-  cl_error setValueType(const cl_value_type tyoe) override
+  cl_error setValueType(const cl_value_type type) override
   {
     return cl_search_change_value_type(&m_Search, type);
   }

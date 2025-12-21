@@ -202,38 +202,41 @@ void CleHexWidget::onClickPointerSearch()
 
 void CleHexWidget::onRightClick(cl_addr_t address, QPoint& pos)
 {
-   if (address < m_Position || pos.isNull())
+  if (address < m_Position || pos.isNull())
+    return;
+  else
+  {
+    QMenu menu;
+    QAction *action_add = menu.addAction(tr("&Add memory note..."));
+    QAction *action_ptr = menu.addAction(tr("Search for &pointers"));
+    QAction *action_goto;
+    const cl_memory_region_t *region;
+    cl_addr_t goto_address;
+    cl_value_type ptr_type;
+
+    setCursorOffset(address);
+    connect(action_add, SIGNAL(triggered()), this,
+      SLOT(onClickAddMemoryNote()));
+    connect(action_ptr, SIGNAL(triggered()), this,
+      SLOT(onClickPointerSearch()));
+
+    /* Allow following a pointer if it is valid */
+    region = cl_find_memory_region(address);
+    if (!region)
       return;
-   else
-   {
-      QMenu menu;
-      QAction *action_add = menu.addAction(tr("&Add memory note..."));
-      QAction *action_ptr = menu.addAction(tr("Search for &pointers"));
-      QAction *action_goto;
-      const cl_memory_region_t *region;
-      cl_addr_t goto_address;
 
-      setCursorOffset(address);
-      connect(action_add, SIGNAL(triggered()), this, 
-         SLOT(onClickAddMemoryNote()));
-      connect(action_ptr, SIGNAL(triggered()), this, 
-         SLOT(onClickPointerSearch()));
+    ptr_type = cl_pointer_type(region->pointer_length);
+    if (cl_read_memory_value(&goto_address, nullptr, address, ptr_type) &&
+      cl_find_memory_region(goto_address))
+    {
+      m_CursorOffset = goto_address;
+      action_goto = menu.addAction(tr("&Goto this address"));
+      connect(action_goto, SIGNAL(triggered()), this,
+        SLOT(onClickGoto()));
+    }
 
-      /* Allow following a pointer if it is valid */
-      region = cl_find_memory_region(address);
-      if (!region)
-        return;
-      else if (cl_read_memory(&goto_address, nullptr, address, region->pointer_length) &&
-          cl_find_memory_region(goto_address))
-      {
-         m_CursorOffset = goto_address;
-         action_goto = menu.addAction(tr("&Goto this address"));
-         connect(action_goto, SIGNAL(triggered()), this,
-            SLOT(onClickGoto()));
-      }
-
-      menu.exec(mapToGlobal(pos));
-   }
+    menu.exec(mapToGlobal(pos));
+  }
 }
 
 void CleHexWidget::paintEvent(QPaintEvent *event)
@@ -290,12 +293,16 @@ void CleHexWidget::repaintAscii(char new_char, uint8_t index)
 
 void CleHexWidget::repaintRect(const void *buffer, uint8_t index)
 {
-  uint64_t val = 0;
+  int64_t val = 0;
 
   /* Update the hex value drawn over the given rect */
   if (buffer)
   {
-    cl_read(&val, reinterpret_cast<const uint8_t*>(buffer), index * m_Size, m_Size, m_UseByteSwap ? CL_ENDIAN_BIG : CL_ENDIAN_LITTLE);
+    cl_read_value(&val,
+                  reinterpret_cast<const uint8_t*>(buffer),
+                  index * m_Size,
+                  cl_pointer_type(m_Size),
+                  m_UseByteSwap ? CL_ENDIAN_BIG : CL_ENDIAN_LITTLE);
 
     switch (m_Size)
     {

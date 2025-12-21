@@ -50,6 +50,27 @@ void cl_log(const char *format, ...)
 #endif
 }
 
+cl_value_type cl_pointer_type(const unsigned size)
+{
+  switch (size)
+  {
+  case 1:
+    return CL_MEMTYPE_UINT8;
+  case 2:
+    return CL_MEMTYPE_UINT16;
+  case 3:
+  case 4:
+    return CL_MEMTYPE_UINT32;
+  case 5:
+  case 6:
+  case 7:
+  case 8:
+    return CL_MEMTYPE_INT64;
+  }
+
+  return CL_MEMTYPE_NOT_SET;
+}
+
 cl_error cl_read_8(void *value, const void *src, cl_addr_t offset)
 {
 #if CL_SAFETY

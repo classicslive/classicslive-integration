@@ -3,16 +3,16 @@
 
 extern "C"
 {
-  #include "../cl_memory.h"
+  #include "../cl_types.h"
 }
 
 #include <QString>
 
-uint32_t stringToValue(QString string, bool *ok);
+int64_t stringToValue(QString string, bool *ok);
 
 /* Output an appropriately formatted C-string representing a memory value. */
-void valueToString(char *string, uint8_t length, uint32_t value, 
-  uint8_t memtype);
+void valueToString(char *string, unsigned length, int64_t value,
+  cl_value_type memtype);
 
 typedef struct
 {

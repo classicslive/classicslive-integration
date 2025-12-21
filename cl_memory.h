@@ -7,19 +7,6 @@
    as well as on timed intervals to retrieve a play status string. */
 #define CL_MEMFLAG_RICH 0
 
-typedef enum
-{
-  CL_SRCTYPE_IMMEDIATE_INT = 0,
-  CL_SRCTYPE_CURRENT_RAM,
-  CL_SRCTYPE_PREVIOUS_RAM,
-  CL_SRCTYPE_LAST_UNIQUE_RAM,
-  CL_SRCTYPE_ROM,
-  CL_SRCTYPE_COUNTER,
-  CL_SRCTYPE_IMMEDIATE_FLOAT,
-
-  CL_SRCTYPE_SIZE
-} cl_src_t;
-
 #include "cl_config.h"
 #include "cl_counter.h"
 #include "cl_types.h"

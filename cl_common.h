@@ -21,6 +21,12 @@ void cl_message(cl_log_level level, const char *format, ...);
  */
 void cl_log(const char *format, ...);
 
+/**
+ * Returns the value type that represents a pointer of a given size.
+ * @param size Pointer size, in bytes
+ */
+cl_value_type cl_pointer_type(const unsigned size);
+
 cl_error cl_read_8(void *value, const void *src, cl_addr_t offset);
 cl_error cl_read_16(void *value, const void *src, cl_addr_t offset,
   cl_endianness endianness);

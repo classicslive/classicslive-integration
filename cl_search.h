@@ -6,18 +6,18 @@
 
 typedef struct cl_search_params_t
 {
-   uint8_t compare_type;
-   uint8_t size;
-   cl_value_type value_type;
+  cl_compare_type compare_type;
+  unsigned size;
+  cl_value_type value_type;
 } cl_search_params_t;
 
 typedef struct cl_pointerresult_t
 {
-   cl_addr_t address_initial;
-   cl_addr_t address_final;
-   uint32_t  value_current;
-   uint32_t  value_previous;
-   uint32_t  offsets[CL_POINTER_MAX_PASSES];
+  cl_addr_t address_initial;
+  cl_addr_t address_final;
+  uint32_t  value_current;
+  uint32_t  value_previous;
+  uint32_t  offsets[CL_POINTER_MAX_PASSES];
 } cl_pointerresult_t;
 
 typedef struct cl_pointersearch_t

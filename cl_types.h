@@ -49,6 +49,20 @@ typedef enum
   CL_COMPARE_SIZE
 } cl_compare_type;
 
+/** @todo make immediate 1 */
+typedef enum
+{
+  CL_SRCTYPE_IMMEDIATE_INT = 0,
+  CL_SRCTYPE_CURRENT_RAM,
+  CL_SRCTYPE_PREVIOUS_RAM,
+  CL_SRCTYPE_LAST_UNIQUE_RAM,
+  CL_SRCTYPE_ROM,
+  CL_SRCTYPE_COUNTER,
+  CL_SRCTYPE_IMMEDIATE_FLOAT,
+
+  CL_SRCTYPE_SIZE
+} cl_src_t;
+
 /**
  * A -1 value to represent invalid addresses in memory regions, as 0 for NULL
  * may be a valid address on some emulated systems.

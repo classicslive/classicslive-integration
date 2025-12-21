@@ -1,5 +1,10 @@
 #include "cle_action_block_comparison.h"
 
+extern "C"
+{
+  #include "../cl_memory.h"
+}
+
 CleActionBlockComparison::CleActionBlockComparison(cl_action_t *action,
   QWidget* parent = nullptr) : CleActionBlock(action, parent)
 {

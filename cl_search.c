@@ -126,10 +126,11 @@ bool resolve_pointerresult(cl_addr_t *final_address, const cl_pointerresult_t *r
   for (i = 0; i < passes; i++)
   {
     const cl_memory_region_t *region = cl_find_memory_region(address);
+    cl_value_type ptr_type = cl_pointer_type(region->pointer_length);
 
     if (!region)
       return false;
-    else if (!cl_read_memory(&address, NULL, address, region->pointer_length))
+    else if (!cl_read_memory_value(&address, NULL, address, ptr_type))
       return false;
     else
       address += result->offsets[i];
@@ -176,7 +177,8 @@ bool add_pass(cl_pointersearch_t* search, uint32_t range, uint32_t max_results)
 
       for (k = 0; k < region->size; k += region->pointer_length)
       {
-        cl_read_memory_internal(&value, region, k, region->pointer_length);
+        cl_value_type ptr_type = cl_pointer_type(region->pointer_length);
+        cl_read_memory_value_internal(&value, region, k, ptr_type);
 
         if (value <= target && value >= target - range)
         {
@@ -223,7 +225,7 @@ bool cl_pointersearch_init(cl_pointersearch_t *search,
     uint32_t i, j;
 
     /* Is the address we're looking for valid? */
-    if (!cl_read_memory(&prev_value, NULL, address, cl_sizeof_memtype(val_type)))
+    if (!cl_read_memory_value(&prev_value, NULL, address, val_type))
     {
       cl_log("Address %08X is invalid for a pointer search.\n", address);
       return false;
@@ -251,12 +253,13 @@ bool cl_pointersearch_init(cl_pointersearch_t *search,
 
 #if CL_EXTERNAL_MEMORY
       region->base_host = malloc(region->size);
-      cl_read_memory_external(region->base_host, NULL, region->base_guest, region->size);
+      cl_read_memory_buffer_external(region->base_host, NULL, region->base_guest, region->size);
 #endif
 
       for (j = 0; j < region->size; j += region->pointer_length)
       {
-        cl_read_memory_internal(&value, region, j, region->pointer_length);
+        cl_value_type ptr_type = cl_pointer_type(region->pointer_length);
+        cl_read_memory_value_internal(&value, region, j, ptr_type);
 
         if (value <= address && value >= address - range)
         {
@@ -322,7 +325,7 @@ uint32_t cl_pointersearch_step(cl_pointersearch_t *search, void *value)
 
       if (!resolve_pointerresult(&address, result, search->passes))
         continue;
-      else if (!cl_read_memory(&final_value, NULL, address, search->params.size))
+      else if (!cl_read_memory_value(&final_value, NULL, address, search->params.value_type))
         continue;
       else
       {
@@ -375,7 +378,7 @@ void cl_pointersearch_update(cl_pointersearch_t *search)
       if (!resolve_pointerresult(&result->address_final, result, search->passes))
         continue;
       else
-        cl_read_memory(&result->value_current, NULL, result->address_final, search->params.size);
+        cl_read_memory_value(&result->value_current, NULL, result->address_final, search->params.value_type);
     }
   }
 }

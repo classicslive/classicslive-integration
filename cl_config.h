@@ -154,6 +154,27 @@ typedef enum
 #define CL_LIBRETRO false
 #endif
 
+#if CL_EXTERNAL_MEMORY
+#ifndef CL_SEARCH_BUCKET_SIZE
+/**
+ * The amount of data to retrieve from the external process at a time when
+ * processing a search.
+ */
+#define CL_SEARCH_BUCKET_SIZE CL_MB(128)
+#endif
+#endif
+
+#ifndef CL_SEARCH_CHUNK_SIZE
+/**
+ * The granularity of data to keep in memory as search results.
+ * The total allocation per chunk is twice this size, as the validity bitmap
+ * is stored alongside the data itself.
+ * This value was decided on by guessing to see which was most performant. :B
+ * @todo Make configurable?
+ */
+#define CL_SEARCH_CHUNK_SIZE CL_MB(4)
+#endif
+
 #ifndef CL_URL_HOSTNAME
 /**
  * The full hostname for the CL website.

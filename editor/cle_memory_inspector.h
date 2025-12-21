@@ -64,7 +64,7 @@ private:
    QTabBar        *m_Tabs;
    QTimer         *m_UpdateTimer;
 
-   uint8_t getCurrentCompareType(void);
+   cl_compare_type getCurrentCompareType(void);
    cl_value_type getCurrentSizeType(void);
    void    rebuildLayout(void);
 

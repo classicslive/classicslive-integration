@@ -1,5 +1,5 @@
-#ifndef CL_SEARCH_H
-#define CL_SEARCH_H
+#ifndef CL_SEARCH_NEW_H
+#define CL_SEARCH_NEW_H
 
 #include "cl_types.h"
 
@@ -14,7 +14,7 @@ struct cl_search_page_t
   void *chunk;
 
   /* A pointer to the position of the validity bitmap within the chunk */
-  void *validity;
+  unsigned char *validity;
 
   /* The starting address of the memory chunk */
   cl_addr_t start;
@@ -154,6 +154,19 @@ cl_error cl_search_free(cl_search_t *search);
  * @param search A pointer to the search to initialize
  */
 cl_error cl_search_init(cl_search_t *search);
+
+/**
+ * Remove one address from the search, freeing any memory if possible.
+ * @param search A pointer to the search
+ * @param address The address to invalidate
+ */
+cl_error cl_search_remove(cl_search_t *search, cl_addr_t address);
+
+/**
+ * Resets a search, freeing the data but retaining the parameters.
+ * @param search A pointer to the search to reset
+ */
+cl_error cl_search_reset(cl_search_t *search);
 
 /**
  * Filters the values to only those that match the given `params`. The total

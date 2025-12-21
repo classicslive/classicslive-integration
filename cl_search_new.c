@@ -12,27 +12,6 @@
 #include <stdint.h>
 #include <string.h>
 
-#if CL_EXTERNAL_MEMORY
-#ifndef CL_SEARCH_BUCKET_SIZE
-/**
- * The amount of data to retrieve from the external process at a time when
- * processing a search.
- */
-#define CL_SEARCH_BUCKET_SIZE CL_MB(128)
-#endif
-#endif
-
-#ifndef CL_SEARCH_CHUNK_SIZE
-/**
- * The granularity of data to keep in memory as search results.
- * The total allocation per chunk is twice this size, as the validity bitmap
- * is stored alongside the data itself.
- * This value was decided on by guessing to see which was most performant. :B
- * @todo Make configurable?
- */
-#define CL_SEARCH_CHUNK_SIZE CL_MB(4)
-#endif
-
 typedef union
 {
   uint8_t u8;
@@ -564,6 +543,7 @@ static cl_error cl_search_step_first(cl_search_t *search)
   cl_addr_t bucket_size = 0;
 #endif
   cl_search_compare_func_t function = cl_search_comparison_function(search->params);
+  int64_t print_target = 0;
   unsigned i;
 
   if (!function)
@@ -574,6 +554,9 @@ static cl_error cl_search_step_first(cl_search_t *search)
   if (!bucket)
     return CL_ERR_CLIENT_RUNTIME;
 #endif
+
+  cl_search_get_target(search, &print_target);
+  cl_log("Performing initial search step with %li...", print_target);
 
   for (i = 0; i < search->page_region_count; i++)
   {
@@ -665,6 +648,10 @@ static cl_error cl_search_step_first(cl_search_t *search)
 #if CL_EXTERNAL_MEMORY
   cl_munmap(bucket, CL_SEARCH_BUCKET_SIZE);
 #endif
+  cl_search_profile_memory(search);
+
+  cl_log("%u matches, %u bytes memory usage.\n",
+         search->total_matches, search->memory_usage);
 
   return cl_search_profile_memory(search);
 }
@@ -679,11 +666,15 @@ cl_error cl_search_step(cl_search_t *search)
   {
     cl_search_compare_func_t function;
     cl_addr_t total_matches = 0;
+    int64_t print_target = 0;
     unsigned i;
 
     function = cl_search_comparison_function(search->params);
     if (!function)
       return CL_ERR_PARAMETER_INVALID;
+
+    cl_search_get_target(search, &print_target);
+    cl_log("Performing search step %u with %li...", search->steps, print_target);
 
     for (i = 0; i < search->page_region_count; i++)
     {
@@ -736,8 +727,73 @@ cl_error cl_search_step(cl_search_t *search)
     }
     search->total_matches = total_matches;
     search->steps++;
+    cl_search_profile_memory(search);
 
-    return cl_search_profile_memory(search);
+    cl_log("%u matches, %u bytes memory usage.\n", total_matches, search->memory_usage);
+
+    return CL_OK;
+  }
+}
+
+cl_error cl_search_remove(cl_search_t *search, cl_addr_t address)
+{
+  cl_search_page_region_t *page_region;
+  cl_search_page_t *page;
+  unsigned i;
+
+  if (!search)
+    return CL_ERR_PARAMETER_NULL;
+
+  for (i = 0; i < search->page_region_count; i++)
+  {
+    page_region = &search->page_regions[i];
+
+    /* Is it in this region? */
+    if (address < page_region->region->base_guest ||
+        address >= page_region->region->base_guest + page_region->region->size)
+      continue;
+
+    page = page_region->first_page;
+
+    while (page)
+    {
+      /* Is it in this page? */
+      if (address >= page->start && address < page->start + page->size)
+      {
+        cl_addr_t offset = address - page->start;
+        unsigned char *target = &page->validity[offset / search->params.value_size];
+
+        if (*target)
+        {
+          page->validity[offset / search->params.value_size] = 0;
+          page->matches--;
+          if (page->matches == 0)
+            cl_search_free_page(search, page);
+
+          return CL_OK;
+        }
+      }
+      page = page->next;
+    }
+  }
+
+  return CL_ERR_PARAMETER_INVALID;
+}
+
+cl_error cl_search_reset(cl_search_t *search)
+{
+  if (!search)
+    return CL_ERR_PARAMETER_NULL;
+  else
+  {
+    cl_search_parameters_t params = search->params;
+    cl_error error = cl_search_free(search);
+
+    if (error)
+      return error;
+    search->params = params;
+
+    return CL_OK;
   }
 }
 
@@ -748,7 +804,7 @@ cl_error cl_search_backup_value(void *dst, const cl_search_t *search,
   cl_search_page_t *page;
   unsigned i;
 
-#if 0 /* this is already too slow */
+#if CL_SAFETY
   if (!search || !dst)
     return CL_ERR_PARAMETER_NULL;
 #endif
