@@ -90,8 +90,8 @@ typedef struct
    */
   const void *target_ptr;
 
-  /* Whether to compare to the previous value instead of a target */
-  unsigned compare_to_previous;
+  /** Whether to use the target value as a value in comparisons */
+  unsigned target_none;
 } cl_search_parameters_t;
 
 /** 
@@ -121,6 +121,9 @@ typedef struct
 
   /* The total memory usage of the search, in bytes */
   cl_addr_t memory_usage;
+
+  /* The amount of time taken by the last search step, in seconds */
+  double time_taken;
 } cl_search_t;
 
 /**
