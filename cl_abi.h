@@ -38,6 +38,8 @@ cl_error cl_abi_install_memory_regions(cl_memory_region_t **regions,
 
 /**
  * Requests from the frontend the name of the target library or program.
+ * Make sure the string returned remains valid for the lifetime of the
+ *   program.
  * This could be the name of a dynamically linked library, an external
  *   process name, or the name of a program classicslive-integration has
  *   been statically compiled into.

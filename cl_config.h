@@ -172,7 +172,7 @@ typedef enum
  * This value was decided on by guessing to see which was most performant. :B
  * @todo Make configurable?
  */
-#define CL_SEARCH_CHUNK_SIZE CL_MB(4)
+#define CL_SEARCH_CHUNK_SIZE CL_KB(4)
 #endif
 
 #ifndef CL_URL_HOSTNAME
