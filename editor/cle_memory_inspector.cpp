@@ -56,15 +56,17 @@ CleMemoryInspector::CleMemoryInspector()
    m_SizeDropdown = new QComboBox();
    m_SizeDropdown->addItem(tr("1-byte values"), CL_MEMTYPE_UINT8);
    m_SizeDropdown->addItem(tr("2-byte values"), CL_MEMTYPE_UINT16);
-   m_SizeDropdown->addItem(tr("4-byte values"), CL_MEMTYPE_INT32);
+   m_SizeDropdown->addItem(tr("4-byte values"), CL_MEMTYPE_UINT32);
    m_SizeDropdown->addItem(tr("float values"),  CL_MEMTYPE_FLOAT);
+   m_SizeDropdown->addItem(tr("8-byte values"), CL_MEMTYPE_INT64);
+   m_SizeDropdown->addItem(tr("double values"),  CL_MEMTYPE_DOUBLE);
    connect(m_SizeDropdown, SIGNAL(activated(int)),
       this, SLOT(onChangeSizeType()));
 
    /* Initialize text entry box for comparison value */
    m_TextEntry = new QLineEdit();
-   connect(m_TextEntry, SIGNAL(textChanged(const QString&)), 
-      this, SLOT(onTargetChanged()));
+   connect(m_TextEntry, SIGNAL(textChanged(const QString&)),
+      this, SLOT(onTargetChanged(const QString&)));
    connect(m_TextEntry, SIGNAL(returnPressed()), 
       m_SearchButton, SIGNAL(clicked()));
 
@@ -110,6 +112,9 @@ CleMemoryInspector::CleMemoryInspector()
 
    memset(m_Searches, 0, sizeof(m_Searches));
    m_Searches[0] = new CleResultTableNormal(this);
+   m_Searches[0]->setCompareType(getCurrentCompareType());
+   m_Searches[0]->setTarget(m_TextEntry->text());
+   m_Searches[0]->setValueType(getCurrentSizeType());
    m_CurrentSearch = m_Searches[0];
 
    m_TableStack = new QStackedWidget(this);
@@ -205,6 +210,10 @@ void CleMemoryInspector::onChangeTab(void)
     m_Tabs->addTab("+");
     m_TabCount++;
     m_Searches[new_tab] = new CleResultTableNormal(this);
+    m_Searches[new_tab]->setCompareType(getCurrentCompareType());
+    m_Searches[new_tab]->setTarget(m_TextEntry->text());
+    m_Searches[new_tab]->setValueType(getCurrentSizeType());
+    m_SizeDropdown->setDisabled(false);
     m_TableStack->addWidget(m_Searches[new_tab]->table());
   }
   m_CurrentSearch = m_Searches[new_tab];
@@ -235,6 +244,9 @@ void CleMemoryInspector::onClickNew()
 
     m_CurrentSearch->setCompareType(getCurrentCompareType());
     m_CurrentSearch->setValueType(getCurrentSizeType());
+    m_CurrentSearch->setTarget(m_TextEntry->text());
+
+    m_SizeDropdown->setDisabled(false);
   }
 }
 
@@ -246,11 +258,13 @@ void CleMemoryInspector::onClickSearch()
   {
     if (!m_CurrentSearch->isInitted())
       onClickNew();
-    if (!m_CurrentSearch->step())
+    if (m_CurrentSearch->step() != CL_OK)
     {
-      cl_log("Search input failed: %s\n", m_TextEntry->text().toStdString().c_str());
+      cl_log("Search step failed: %s\n", m_TextEntry->text().toStdString().c_str());
       m_TextEntry->setText("");
     }
+    else
+      m_SizeDropdown->setDisabled(true);
   }
 }
 
@@ -296,11 +310,13 @@ void CleMemoryInspector::onRightClickTabs(const QPoint &pos)
 
 void CleMemoryInspector::onTargetChanged(const QString& target)
 {
-  if (!m_CurrentSearch->setTarget(target))
+  if (m_CurrentSearch->setTarget(target) != CL_OK)
   {
     cl_log("Search input failed: %s\n", target.toStdString().c_str());
-    m_TextEntry->setText("");
+    m_TextEntry->setStyleSheet("color: gray;");
   }
+  else
+    m_TextEntry->setStyleSheet("color: white;");
 }
 
 void CleMemoryInspector::requestAddMemoryNote(cl_memnote_t note)

@@ -141,7 +141,7 @@ void CleResultTableNormal::onResultSelectionChanged(void)
 cl_error CleResultTableNormal::rebuild(void)
 {
   char temp_string[32];
-  int64_t temp_value = 0;
+  unsigned char temp_value[8];
   unsigned val_size = m_Search.params.value_size;
   cl_value_type val_type = m_Search.params.value_type;
   unsigned current_row = 0;
@@ -196,7 +196,7 @@ cl_error CleResultTableNormal::rebuild(void)
         m_Table->setItem(current_row, 0, new QTableWidgetItem(QString(temp_string)));
 
         /* Previous value (from chunk) */
-        memcpy(&temp_value, data + offset, val_size);
+        cl_read_value(&temp_value, data, offset, val_type, page->region->endianness);
         valueToString(temp_string, sizeof(temp_string), temp_value, val_type);
         m_Table->setItem(current_row, 1, new QTableWidgetItem(QString(temp_string)));
 
@@ -263,7 +263,7 @@ cl_error CleResultTableNormal::run(void)
     item = m_Table->item(i, COL_PREVIOUS_VALUE);
     if (item)
     {
-      valueToString(temp_string, sizeof(temp_string), prev_value, val_type);
+      valueToString(temp_string, sizeof(temp_string), &prev_value, val_type);
       item->setText(temp_string);
     }
 
@@ -273,7 +273,7 @@ cl_error CleResultTableNormal::run(void)
       item = m_Table->item(i, COL_CURRENT_VALUE);
       if (item)
       {
-        valueToString(temp_string, sizeof(temp_string), curr_value, val_type);
+        valueToString(temp_string, sizeof(temp_string), &curr_value, val_type);
         item->setText(temp_string);
 
         /* Highlight changed values in red */
