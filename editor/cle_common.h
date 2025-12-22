@@ -11,8 +11,7 @@ extern "C"
 int64_t stringToValue(QString string, bool *ok);
 
 /* Output an appropriately formatted C-string representing a memory value. */
-void valueToString(char *string, unsigned length, int64_t value,
-  cl_value_type memtype);
+cl_error valueToString(char *string, unsigned length, const void *value, cl_value_type type);
 
 typedef struct
 {

@@ -49,34 +49,41 @@ int64_t stringToValue(QString string, bool *ok)
   }
 }
 
-void valueToString(char *string, unsigned length, int64_t value,
-  cl_value_type memtype)
+cl_error valueToString(char *string, unsigned length, const void *value, cl_value_type type)
 {
-  switch (memtype)
+  switch (type)
   {
   case CL_MEMTYPE_INT8:
-    snprintf(string, length, "%02lX (%li)", value, value);
+    snprintf(string, length, "%02X (%i)", *(int8_t*)value, *(int8_t*)value);
     break;
   case CL_MEMTYPE_UINT8:
-    snprintf(string, length, "%02lX (%lu)", value, value);
+    snprintf(string, length, "%02X (%u)", *(uint8_t*)value, *(uint8_t*)value);
     break;
   case CL_MEMTYPE_INT16:
-    snprintf(string, length, "%04lX (%li)", value, value);
+    snprintf(string, length, "%04X (%i)", *(int16_t*)value, *(int16_t*)value);
     break;
   case CL_MEMTYPE_UINT16:
-    snprintf(string, length, "%04lX (%lu)", value, value);
-      break;
+    snprintf(string, length, "%04X (%u)", *(uint16_t*)value, *(uint16_t*)value);
+    break;
   case CL_MEMTYPE_INT32:
-    snprintf(string, length, "%08lX (%li)", value, value);
+    snprintf(string, length, "%08X (%i)", *(int32_t*)value, *(int32_t*)value);
     break;
   case CL_MEMTYPE_UINT32:
-    snprintf(string, length, "%08lX (%lu)", value, value);
+    snprintf(string, length, "%08X (%u)", *(uint32_t*)value, *(uint32_t*)value);
+    break;
+  case CL_MEMTYPE_INT64:
+    snprintf(string, length, "%08lX (%li)", *(int64_t*)value, *(int64_t*)value);
     break;
   case CL_MEMTYPE_FLOAT:
-    snprintf(string, length, "%08lX (%f)", value, *((float*)(&value)));
+    snprintf(string, length, "%f", *(float*)value);
+    break;
+  case CL_MEMTYPE_DOUBLE:
+    snprintf(string, length, "%f", *(double*)value);
     break;
   default:
-    snprintf(string, length, "%08lX", value);
-    break;
+    snprintf(string, length, "???");
+    return CL_ERR_PARAMETER_INVALID;
   }
+
+  return CL_OK;
 }
