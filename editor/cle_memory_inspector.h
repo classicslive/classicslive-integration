@@ -58,8 +58,9 @@ private:
    QComboBox      *m_SizeDropdown;
    QLineEdit      *m_TextEntry;
    QPushButton    *m_NewButton;
-   QPushButton    *m_SearchButton;
-   QSlider        *m_Slider;
+   QPushButton    *m_SearchButton = nullptr;
+   QSlider        *m_Slider = nullptr;
+   QLabel         *m_Status = nullptr;
    QStackedWidget *m_TableStack;
    QTabBar        *m_Tabs;
    QTimer         *m_UpdateTimer;

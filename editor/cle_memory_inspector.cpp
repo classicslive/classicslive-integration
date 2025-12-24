@@ -16,15 +16,15 @@ void CleMemoryInspector::rebuildLayout()
    m_Layout = new QGridLayout(this);
 
    /* Initialize window layout */
-   m_Layout->addWidget(m_Tabs,            0, 0, 1, 2);
+   m_Layout->addWidget(m_Tabs,            0, 0, 1, 4);
    m_Layout->addWidget(m_SizeDropdown,    1, 0);
-   m_Layout->addWidget(m_NewButton,       1, 1);
-   m_Layout->addWidget(m_CompareDropdown, 2, 0);
-   m_Layout->addWidget(m_TextEntry,       2, 1);
-   m_Layout->addWidget(m_SearchButton,    3, 0, 1, 2);
-   m_Layout->addWidget(m_TableStack,      4, 0, 2, 2);
-   m_Layout->addWidget(m_HexWidget,       6, 0, 2, 2);
-   m_Layout->addWidget(m_Slider,          6, 2, 1, 1);
+   m_Layout->addWidget(m_CompareDropdown, 1, 1);
+   m_Layout->addWidget(m_TextEntry,       1, 2);
+   m_Layout->addWidget(m_SearchButton,    1, 3);
+   m_Layout->addWidget(m_TableStack,      2, 0, 2, 4);
+   m_Layout->addWidget(m_HexWidget,       4, 0, 2, 2);
+   m_Layout->addWidget(m_Slider,          4, 2, 2, 1);
+   m_Layout->addWidget(m_Status,          6, 0, 1, 4);
    setLayout(m_Layout);
 }
 
@@ -104,6 +104,10 @@ CleMemoryInspector::CleMemoryInspector()
    m_HexWidget->setByteSwapEnabled(memory.regions[0].endianness == CL_ENDIAN_BIG);
    m_HexWidget->setOffset(memory.regions[0].base_guest);
    m_HexWidget->setRange(memory.regions[0].base_guest, memory.regions[0].base_guest + memory.regions[0].size + 1);
+
+  /* Initialize status footer */
+  m_Status = new QLabel(tr("Matches: 0 | Scanned: 0 MB | Scan time: 0.00 s"));
+  m_Status->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
 
    /* Initialize timer for updating search rows */
    m_UpdateTimer = new QTimer(this);
@@ -264,7 +268,10 @@ void CleMemoryInspector::onClickSearch()
       m_TextEntry->setText("");
     }
     else
+    {
       m_SizeDropdown->setDisabled(true);
+      m_Status->setText(m_CurrentSearch->statusString());
+    }
   }
 }
 

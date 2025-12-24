@@ -285,6 +285,15 @@ cl_error CleResultTableNormal::run(void)
   return CL_OK;
 }
 
+QString CleResultTableNormal::statusString(void)
+{
+  return QString("Matches: %1 | Scanned: %2 MB | Usage: %3 MB | Scan time: %4 s")
+    .arg(m_Search.total_matches)
+    .arg(m_Search.memory_scanned / (1024.0 * 1024.0), 0, 'f', 6)
+    .arg(m_Search.memory_usage / (1024.0 * 1024.0), 0, 'f', 6)
+    .arg(m_Search.time_taken, 0, 'f', 6);
+}
+
 cl_error CleResultTableNormal::step(void)
 {
   cl_error err = cl_search_step(&m_Search);

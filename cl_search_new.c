@@ -275,7 +275,7 @@ static unsigned CL_PASTE3(cl_search_cmp_dlt_, b, _##d)( \
   const a delta = ((const cl_search_target_impl_t*)(target))->b; \
   while (cur < end) \
   { \
-    match = ((*cur) c (*prev + delta)) & *chunk_validity; \
+    match = ((*cur) == (*prev c delta)) & *chunk_validity; \
     *chunk_validity = match; \
     matches += match; \
     cur++; \
@@ -301,8 +301,8 @@ static unsigned CL_PASTE4(cl_search_cmp_dlt_, b, _##d, _swapboth)( \
   const a delta = ((const cl_search_target_impl_t*)(target))->b; \
   while (cur < end) \
   { \
-    match = (((a)CL_SEARCH_SWAP_##b(*cur) c \
-             ((a)CL_SEARCH_SWAP_##b(*prev) + delta))) & *chunk_validity; \
+    match = (((a)CL_SEARCH_SWAP_##b(*cur) == \
+             ((a)CL_SEARCH_SWAP_##b(*prev) c delta))) & *chunk_validity; \
     *chunk_validity = match; \
     matches += match; \
     cur++; \
@@ -322,8 +322,8 @@ static unsigned CL_PASTE4(cl_search_cmp_dlt_, b, _##d, _swapboth)( \
   CL_SEARCH_CMP_PREVIOUS_TEMPLATE(a, b, >, gtr) \
   CL_SEARCH_CMP_IMMEDIATE_TEMPLATE(a, b, !=, neq) \
   CL_SEARCH_CMP_PREVIOUS_TEMPLATE(a, b, !=, neq) \
-  CL_SEARCH_CMP_DELTA_TEMPLATE(a, b, >, inc) \
-  CL_SEARCH_CMP_DELTA_TEMPLATE(a, b, <, dec) \
+  CL_SEARCH_CMP_DELTA_TEMPLATE(a, b, +, inc) \
+  CL_SEARCH_CMP_DELTA_TEMPLATE(a, b, -, dec) \
   \
 
 /** Unroll kernels with endianness accounted for */
@@ -346,11 +346,11 @@ static unsigned CL_PASTE4(cl_search_cmp_dlt_, b, _##d, _swapboth)( \
   CL_SEARCH_CMP_PREVIOUS_TEMPLATE(a, b, >, gtr) \
   CL_SEARCH_CMP_PREVIOUS_SWAPBOTH_TEMPLATE(a, b, >, gtr) \
   \
-  CL_SEARCH_CMP_DELTA_TEMPLATE(a, b, >, inc) \
-  CL_SEARCH_CMP_DELTA_SWAPBOTH_TEMPLATE(a, b, >, inc) \
+  CL_SEARCH_CMP_DELTA_TEMPLATE(a, b, +, inc) \
+  CL_SEARCH_CMP_DELTA_SWAPBOTH_TEMPLATE(a, b, +, inc) \
   \
-  CL_SEARCH_CMP_DELTA_TEMPLATE(a, b, <, dec) \
-  CL_SEARCH_CMP_DELTA_SWAPBOTH_TEMPLATE(a, b, <, dec) \
+  CL_SEARCH_CMP_DELTA_TEMPLATE(a, b, -, dec) \
+  CL_SEARCH_CMP_DELTA_SWAPBOTH_TEMPLATE(a, b, -, dec) \
   \
 
 CL_SEARCH_CMP_IMMEDIATE_UNROLL_8BIT(uint8_t, u8)
@@ -444,12 +444,14 @@ static cl_search_compare_func_t cl_search_comparison_function(
                   cl_search_cmp_imm_u16_equ);
     case CL_COMPARE_GREATER:
       return params.target_none
-        ? cl_search_cmp_prv_u16_gtr
+        ? (swap ? cl_search_cmp_prv_u16_gtr_swapboth :
+                  cl_search_cmp_prv_u16_gtr)
         : (swap ? cl_search_cmp_imm_u16_gtr_swapguest :
                   cl_search_cmp_imm_u16_gtr);
     case CL_COMPARE_LESS:
       return params.target_none
-        ? cl_search_cmp_prv_u16_les
+        ? (swap ? cl_search_cmp_prv_u16_les_swapboth :
+                  cl_search_cmp_prv_u16_les)
         : (swap ? cl_search_cmp_imm_u16_les_swapguest :
                   cl_search_cmp_imm_u16_les);
     case CL_COMPARE_NOT_EQUAL:
@@ -483,12 +485,14 @@ static cl_search_compare_func_t cl_search_comparison_function(
                   cl_search_cmp_imm_s16_equ);
     case CL_COMPARE_GREATER:
       return params.target_none
-        ? cl_search_cmp_prv_s16_gtr
+        ? (swap ? cl_search_cmp_prv_s16_gtr_swapboth :
+                  cl_search_cmp_prv_s16_gtr)
         : (swap ? cl_search_cmp_imm_s16_gtr_swapguest :
                   cl_search_cmp_imm_s16_gtr);
     case CL_COMPARE_LESS:
       return params.target_none
-        ? cl_search_cmp_prv_s16_les
+        ? (swap ? cl_search_cmp_prv_s16_les_swapboth :
+                  cl_search_cmp_prv_s16_les)
         : (swap ? cl_search_cmp_imm_s16_les_swapguest :
                   cl_search_cmp_imm_s16_les);
     case CL_COMPARE_NOT_EQUAL:
@@ -522,12 +526,14 @@ static cl_search_compare_func_t cl_search_comparison_function(
                   cl_search_cmp_imm_u32_equ);
     case CL_COMPARE_GREATER:
       return params.target_none
-        ? cl_search_cmp_prv_u32_gtr
+        ? (swap ? cl_search_cmp_prv_u32_gtr_swapboth :  
+                  cl_search_cmp_prv_u32_gtr)
         : (swap ? cl_search_cmp_imm_u32_gtr_swapguest :
                   cl_search_cmp_imm_u32_gtr);
     case CL_COMPARE_LESS:
       return params.target_none
-        ? cl_search_cmp_prv_u32_les
+        ? (swap ? cl_search_cmp_prv_u32_les_swapboth :
+                  cl_search_cmp_prv_u32_les)
         : (swap ? cl_search_cmp_imm_u32_les_swapguest :
                   cl_search_cmp_imm_u32_les);
     case CL_COMPARE_NOT_EQUAL:
@@ -561,12 +567,14 @@ static cl_search_compare_func_t cl_search_comparison_function(
                   cl_search_cmp_imm_s32_equ);
     case CL_COMPARE_GREATER:
       return params.target_none
-        ? cl_search_cmp_prv_s32_gtr
+        ? (swap ? cl_search_cmp_prv_s32_gtr_swapboth :
+                  cl_search_cmp_prv_s32_gtr)
         : (swap ? cl_search_cmp_imm_s32_gtr_swapguest :
                   cl_search_cmp_imm_s32_gtr);
     case CL_COMPARE_LESS:
       return params.target_none
-        ? cl_search_cmp_prv_s32_les
+        ? (swap ? cl_search_cmp_prv_s32_les_swapboth :
+                  cl_search_cmp_prv_s32_les)
         : (swap ? cl_search_cmp_imm_s32_les_swapguest :
                   cl_search_cmp_imm_s32_les);
     case CL_COMPARE_NOT_EQUAL:
@@ -600,12 +608,14 @@ static cl_search_compare_func_t cl_search_comparison_function(
                   cl_search_cmp_imm_s64_equ);
     case CL_COMPARE_GREATER:
       return params.target_none
-        ? cl_search_cmp_prv_s64_gtr
+        ? (swap ? cl_search_cmp_prv_s64_gtr_swapboth :
+                  cl_search_cmp_prv_s64_gtr)
         : (swap ? cl_search_cmp_imm_s64_gtr_swapguest :
                   cl_search_cmp_imm_s64_gtr);
     case CL_COMPARE_LESS:
       return params.target_none
-        ? cl_search_cmp_prv_s64_les
+        ? (swap ? cl_search_cmp_prv_s64_les_swapboth :
+                  cl_search_cmp_prv_s64_les)
         : (swap ? cl_search_cmp_imm_s64_les_swapguest :
                   cl_search_cmp_imm_s64_les);
     case CL_COMPARE_NOT_EQUAL:
@@ -639,12 +649,14 @@ static cl_search_compare_func_t cl_search_comparison_function(
                   cl_search_cmp_imm_fp_equ);
     case CL_COMPARE_GREATER:
       return params.target_none
-        ? cl_search_cmp_prv_fp_gtr
+        ? (swap ? cl_search_cmp_prv_fp_gtr_swapboth :
+                  cl_search_cmp_prv_fp_gtr)
         : (swap ? cl_search_cmp_imm_fp_gtr_swapguest :
                   cl_search_cmp_imm_fp_gtr);
     case CL_COMPARE_LESS:
       return params.target_none
-        ? cl_search_cmp_prv_fp_les
+        ? (swap ? cl_search_cmp_prv_fp_les_swapboth :
+                  cl_search_cmp_prv_fp_les)
         : (swap ? cl_search_cmp_imm_fp_les_swapguest :
                   cl_search_cmp_imm_fp_les);
     case CL_COMPARE_NOT_EQUAL:
@@ -678,12 +690,14 @@ static cl_search_compare_func_t cl_search_comparison_function(
                   cl_search_cmp_imm_dfp_equ);
     case CL_COMPARE_GREATER:
       return params.target_none
-        ? cl_search_cmp_prv_dfp_gtr
+        ? (swap ? cl_search_cmp_prv_dfp_gtr_swapboth :
+                  cl_search_cmp_prv_dfp_gtr)
         : (swap ? cl_search_cmp_imm_dfp_gtr_swapguest :
                   cl_search_cmp_imm_dfp_gtr);
     case CL_COMPARE_LESS:
       return params.target_none
-        ? cl_search_cmp_prv_dfp_les
+        ? (swap ? cl_search_cmp_prv_dfp_les_swapboth :
+                  cl_search_cmp_prv_dfp_les)
         : (swap ? cl_search_cmp_imm_dfp_les_swapguest :
                   cl_search_cmp_imm_dfp_les);
     case CL_COMPARE_NOT_EQUAL:
@@ -782,11 +796,11 @@ cl_error cl_search_change_compare_type(cl_search_t *search,
 }
 
 /**
- * Return the canonical target value of a search.
+ * Return the canonical integer target value of a search.
  * @param search A pointer to the search to get the target from
  * @param out_target A pointer to store the target value into
  */
-static cl_error cl_search_get_target(const cl_search_t *search, int64_t *out)
+static cl_error cl_search_get_target_int(const cl_search_t *search, int64_t *out)
 {
   if (!search || !out)
     return CL_ERR_PARAMETER_NULL;
@@ -807,6 +821,33 @@ static cl_error cl_search_get_target(const cl_search_t *search, int64_t *out)
       return CL_OK;
     case 8:
       *out = target->s64;
+      return CL_OK;
+    default:
+      return CL_ERR_PARAMETER_INVALID;
+    }
+  }
+}
+
+/**
+ * Return the canonical floating-point target value of a search.
+ * @param search A pointer to the search to get the target from
+ * @param out_target A pointer to store the target value into
+ */
+static cl_error cl_search_get_target_float(const cl_search_t *search, double *out)
+{
+  if (!search || !out)
+    return CL_ERR_PARAMETER_NULL;
+  else
+  {
+    cl_search_target_impl_t *target = CL_TARGET(search->params.target);
+
+    switch (search->params.value_size)
+    {
+    case 4:
+      *out = target->fp;
+      return CL_OK;
+    case 8:
+      *out = target->dfp;
       return CL_OK;
     default:
       return CL_ERR_PARAMETER_INVALID;
@@ -855,7 +896,7 @@ cl_error cl_search_change_value_type(cl_search_t *search, cl_value_type type)
   {
     int64_t target_value = 0;
 
-    cl_search_get_target(search, &target_value);
+    cl_search_get_target_int(search, &target_value);
     search->params.value_type = type;
     search->params.value_size = cl_sizeof_memtype(type);
     cl_search_set_target(search, target_value);
@@ -971,6 +1012,44 @@ cl_error cl_search_init(cl_search_t *search)
   return cl_search_profile_memory(search);
 }
 
+static cl_error cl_search_step_print(const cl_search_t *search)
+{
+  cl_log("==============================\n");
+  cl_log("Search step %u:\n", search->steps);
+  cl_log("Find all %s %s ",
+    cl_string_value_type(search->params.value_type),
+    cl_string_compare_type(search->params.compare_type));
+  if (search->params.target_none)
+    cl_log("%s", (search->params.compare_type == CL_COMPARE_INCREASED ||
+                  search->params.compare_type == CL_COMPARE_DECREASED) ?
+                    "by any amount.\n" : "previous value.\n");
+  else if (search->params.value_type == CL_MEMTYPE_FLOAT ||
+           search->params.value_type == CL_MEMTYPE_DOUBLE)
+  {
+    double target_value = 0.0;
+
+    cl_search_get_target_float(search, &target_value);
+    cl_log("target value %f.\n", target_value);
+  }
+  else
+  {
+    int64_t target_value = 0;
+
+    cl_search_get_target_int(search, &target_value);
+    cl_log("target value %li.\n", target_value);
+  }
+  cl_log("------------------------------\n");
+  cl_log("Total memory scanned: %.6f MB\n",
+    ((double)search->memory_scanned) / (1024.0 * 1024.0));
+  cl_log("Total matched addresses: %llu\n", (unsigned long long)search->total_matches);
+  cl_log("Total pages allocated: %llu\n", (unsigned long long)search->total_page_count);
+  cl_log("Time taken: %.6f seconds\n", search->time_taken);
+  cl_log("Estimated memory usage: %.6f MB\n",
+    ((double)search->memory_usage) / (1024.0 * 1024.0));
+
+  return CL_OK;
+}
+
 /**
  * Performs the first search step, which is responsible for allocating the
  * initial round of chunks.
@@ -985,7 +1064,6 @@ static cl_error cl_search_step_first(cl_search_t *search)
   cl_addr_t bucket_size = 0;
 #endif
   cl_search_compare_func_t function;
-  int64_t print_target = 0;
   clock_t start = clock();
   unsigned i;
 
@@ -994,9 +1072,6 @@ static cl_error cl_search_step_first(cl_search_t *search)
   if (!bucket)
     return CL_ERR_CLIENT_RUNTIME;
 #endif
-
-  cl_search_get_target(search, &print_target);
-  cl_log("Performing initial search step with %li...", print_target);
 
   for (i = 0; i < search->page_region_count; i++)
   {
@@ -1085,6 +1160,7 @@ static cl_error cl_search_step_first(cl_search_t *search)
 
     if (page && page->matches == 0)
       cl_search_free_page(search, page);
+    search->memory_scanned += page_region->region->size;
   }
 
   search->steps = 1;
@@ -1095,9 +1171,7 @@ static cl_error cl_search_step_first(cl_search_t *search)
   cl_search_profile_memory(search);
   search->time_taken = ((double)(clock() - start)) / CLOCKS_PER_SEC;
 
-  cl_log("%u matches, %u pages, %u bytes memory usage in %.6f seconds.\n",
-         search->total_matches, search->total_page_count,
-         search->memory_usage, search->time_taken);
+  cl_search_step_print(search);
 
   return cl_search_profile_memory(search);
 }
@@ -1112,14 +1186,12 @@ cl_error cl_search_step(cl_search_t *search)
   {
     cl_search_compare_func_t function;
     cl_addr_t total_matches = 0;
-    int64_t print_target = 0;
     clock_t start = clock();
     void *prev_buffer = malloc(CL_SEARCH_CHUNK_SIZE);
     unsigned i;
 
-    cl_search_get_target(search, &print_target);
-    cl_log("Performing search step %u with %li...", search->steps, print_target);
     search->time_taken = clock();
+    search->memory_scanned = 0;
 
     for (i = 0; i < search->page_region_count; i++)
     {
@@ -1141,6 +1213,7 @@ cl_error cl_search_step(cl_search_t *search)
         cl_read_memory_buffer(page->chunk, page->region,
           page->start - page->region->base_guest, page->size);
         error = cl_search_step_page(page, search->params, function, prev_buffer);
+        search->memory_scanned += page->size;
 
         if (error != CL_OK)
           goto error;
@@ -1179,10 +1252,7 @@ cl_error cl_search_step(cl_search_t *search)
     search->steps++;
     cl_search_profile_memory(search);
     search->time_taken = ((double)(clock() - start)) / CLOCKS_PER_SEC;
-
-    cl_log("%u matches, %u pages, %u bytes memory usage in %.6f seconds.\n",
-           search->total_matches, search->total_page_count,
-           search->memory_usage, search->time_taken);
+    cl_search_step_print(search);
     free(prev_buffer);
 
     return CL_OK;

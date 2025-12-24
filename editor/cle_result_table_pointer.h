@@ -23,6 +23,7 @@ public:
   cl_error rebuild() override;
   cl_error reset(void) override;
   cl_error run(void) override;
+  QString statusString(void) override { return ""; }
   cl_error step(void) override;
 
   cl_compare_type compareType(void) override { return m_Search.params.compare_type; }

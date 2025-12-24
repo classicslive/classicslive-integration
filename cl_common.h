@@ -59,9 +59,11 @@ cl_error cl_write_buffer(const void *src, void *dst, cl_addr_t offset,
 unsigned cl_sizeof_memtype(const cl_value_type type);
 
 const char *cl_string_bitness(cl_bitness bitness);
+const char *cl_string_compare_type(cl_compare_type compare_type);
 const char *cl_string_endianness(cl_endianness endianness);
 const char *cl_string_error(cl_error error);
 const char *cl_string_platform(cl_platform platform);
+const char *cl_string_value_type(cl_value_type type);
 
 bool cl_strto(const char **pos, void *value, unsigned size, bool is_signed);
 

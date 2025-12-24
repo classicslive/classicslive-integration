@@ -476,6 +476,29 @@ const char *cl_string_bitness(cl_bitness bitness)
   return "Undefined bitness";
 }
 
+const char *cl_string_compare_type(cl_compare_type compare_type)
+{
+  switch (compare_type)
+  {
+  case CL_COMPARE_EQUAL:
+    return "equal to";
+  case CL_COMPARE_NOT_EQUAL:
+    return "not equal to";
+  case CL_COMPARE_GREATER:
+    return "greater than";
+  case CL_COMPARE_LESS:
+    return "less than";
+  case CL_COMPARE_INCREASED:
+    return "increased by";
+  case CL_COMPARE_DECREASED:
+    return "decreased by";
+  case CL_COMPARE_SIZE:
+    return "Invalid compare type";
+  }
+
+  return "Undefined compare type";
+}
+
 const char *cl_string_endianness(cl_endianness endianness)
 {
   switch (endianness)
@@ -560,4 +583,35 @@ const char *cl_string_error(cl_error error)
   }
 
   return "Invalid error code";
+}
+
+const char *cl_string_value_type(cl_value_type type)
+{
+  switch (type)
+  {
+  case CL_MEMTYPE_INT8:
+    return "int8_t";
+  case CL_MEMTYPE_UINT8:
+    return "uint8_t";
+  case CL_MEMTYPE_INT16:
+    return "int16_t";
+  case CL_MEMTYPE_UINT16:
+    return "uint16_t";
+  case CL_MEMTYPE_INT32:
+    return "int32_t";
+  case CL_MEMTYPE_UINT32:
+    return "uint32_t";
+  case CL_MEMTYPE_INT64:
+    return "int64_t";
+  case CL_MEMTYPE_DOUBLE:
+    return "double";
+  case CL_MEMTYPE_FLOAT:
+    return "float";
+  case CL_MEMTYPE_NOT_SET:
+    return "Type not set";
+  case CL_MEMTYPE_SIZE:
+    return "Invalid value type";
+  }
+
+  return "Undefined value type";
 }

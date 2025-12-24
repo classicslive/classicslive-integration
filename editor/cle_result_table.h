@@ -43,6 +43,8 @@ public:
    */
   virtual cl_error run(void) = 0;
 
+  virtual QString statusString(void) = 0;
+
   virtual cl_error step(void) = 0;
 
   virtual cl_compare_type compareType(void) { return CL_COMPARE_INVALID; }

@@ -122,6 +122,9 @@ typedef struct
   /* The total memory usage of the search, in bytes */
   cl_addr_t memory_usage;
 
+  /* The total amount of memory scanned in the last step, in bytes */
+  cl_addr_t memory_scanned;
+
   /* The amount of time taken by the last search step, in seconds */
   double time_taken;
 } cl_search_t;
