@@ -1,5 +1,6 @@
 #include "cl_search_new.h"
 
+#include "cl_abi.h"
 #include "cl_config.h"
 #include "cl_memory.h"
 
@@ -1073,6 +1074,7 @@ static cl_error cl_search_step_first(cl_search_t *search)
     return CL_ERR_CLIENT_RUNTIME;
 #endif
 
+  cl_abi_set_pause(1);
   for (i = 0; i < search->page_region_count; i++)
   {
     cl_search_page_region_t *page_region = &search->page_regions[i];
@@ -1170,6 +1172,7 @@ static cl_error cl_search_step_first(cl_search_t *search)
 #endif
   cl_search_profile_memory(search);
   search->time_taken = ((double)(clock() - start)) / CLOCKS_PER_SEC;
+  cl_abi_set_pause(0);
 
   cl_search_step_print(search);
 
@@ -1205,6 +1208,7 @@ cl_error cl_search_step(cl_search_t *search)
       if (!function)
         continue;
 
+      cl_abi_set_pause(1);
       while (page)
       {
         cl_error error;
@@ -1254,11 +1258,13 @@ cl_error cl_search_step(cl_search_t *search)
     search->time_taken = ((double)(clock() - start)) / CLOCKS_PER_SEC;
     cl_search_step_print(search);
     free(prev_buffer);
+    cl_abi_set_pause(0);
 
     return CL_OK;
 
     error:
     free(prev_buffer);
+    cl_abi_set_pause(0);
     return CL_ERR_CLIENT_RUNTIME;
   }
 }
