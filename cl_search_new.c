@@ -4,9 +4,9 @@
 #include "cl_config.h"
 #include "cl_memory.h"
 
-#if CL_HOST_PLATFORM == _CL_PLATFORM_LINUX && 0
+#if CL_HOST_PLATFORM == _CL_PLATFORM_LINUX
   #include <sys/mman.h>
-#elif CL_HOST_PLATFORM == _CL_PLATFORM_WINDOWS && 0
+#elif CL_HOST_PLATFORM == _CL_PLATFORM_WINDOWS
   #include <windows.h>
 #endif
 
@@ -35,14 +35,14 @@ typedef union
  */
 static void *cl_mmap(size_t size)
 {
-#if CL_HOST_PLATFORM == _CL_PLATFORM_LINUX && 0
+#if CL_HOST_PLATFORM == _CL_PLATFORM_LINUX
   void *p = mmap(0, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 
   if (p == CL_ADDRESS_INVALID)
     return NULL;
   else
     return p;
-#elif CL_HOST_PLATFORM == _CL_PLATFORM_WINDOWS && 0
+#elif CL_HOST_PLATFORM == _CL_PLATFORM_WINDOWS
   return VirtualAlloc(0, size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 #else
   return malloc(size);
@@ -56,9 +56,9 @@ static void *cl_mmap(size_t size)
  */
 static void cl_munmap(void *p, size_t size)
 {
-#if CL_HOST_PLATFORM == _CL_PLATFORM_LINUX && 0
+#if CL_HOST_PLATFORM == _CL_PLATFORM_LINUX
   munmap(p, size);
-#elif CL_HOST_PLATFORM == _CL_PLATFORM_WINDOWS && 0
+#elif CL_HOST_PLATFORM == _CL_PLATFORM_WINDOWS
   CL_UNUSED(size);
   VirtualFree(p, 0, MEM_RELEASE);
 #else
@@ -942,12 +942,11 @@ cl_error cl_search_change_target(cl_search_t *search, const void *value)
   return CL_OK;
 }
 
-static cl_error cl_search_free_page(const cl_search_t *search,
-  cl_search_page_t *page)
+static cl_error cl_search_free_page(cl_search_page_t *page)
 {
   if (page)
   {
-    cl_munmap(page->chunk, page->size + page->size / search->params.value_size);
+    free(page->chunk);
     free(page);
 
     return CL_OK;
@@ -1104,7 +1103,7 @@ static cl_error cl_search_step_first(cl_search_t *search)
       if (!page)
       {
         page = (cl_search_page_t*)calloc(1, sizeof(cl_search_page_t));
-        page->chunk = cl_mmap(size + size / search->params.value_size);
+        page->chunk = malloc(size + size / search->params.value_size);
         page->validity = (void*)((unsigned char*)page->chunk + size);
       }
 
@@ -1161,7 +1160,7 @@ static cl_error cl_search_step_first(cl_search_t *search)
     }
 
     if (page && page->matches == 0)
-      cl_search_free_page(search, page);
+      cl_search_free_page(page);
     search->memory_scanned += page_region->region->size;
   }
 
@@ -1230,7 +1229,7 @@ cl_error cl_search_step(cl_search_t *search)
             page_region->first_page = page->next;
 
           next_page = page->next;
-          cl_search_free_page(search, page);
+          cl_search_free_page(page);
           page_region->page_count--;
           search->total_page_count--;
           page = next_page;
@@ -1301,8 +1300,6 @@ cl_error cl_search_remove(cl_search_t *search, cl_addr_t address)
         {
           page->validity[offset / search->params.value_size] = 0;
           page->matches--;
-          if (page->matches == 0)
-            cl_search_free_page(search, page);
 
           return CL_OK;
         }
