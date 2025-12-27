@@ -115,4 +115,6 @@ cl_error CleResultTable::writeMemory(const cl_addr_t address,
   default:
     return CL_ERR_PARAMETER_INVALID;
   }
+
+  return CL_OK;
 }
