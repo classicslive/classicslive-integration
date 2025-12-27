@@ -28,6 +28,8 @@ typedef union
 
 #define CL_TARGET(target) ((cl_search_target_impl_t *)&(target))
 
+#if CL_EXTERNAL_MEMORY
+
 /**
  * Allocate a chunk of page-aligned memory.
  * @param size The number of bytes to allocate
@@ -66,6 +68,8 @@ static void cl_munmap(void *p, size_t size)
   free(p);
 #endif
 }
+
+#endif
 
 #define CL_PASTE2(a, b) a##b
 #define CL_PASTE3(a, b, c) a##b##c
@@ -970,7 +974,7 @@ cl_error cl_search_free(cl_search_t *search)
     while (page)
     {
       next_page = page->next;
-      cl_search_free_page(search, page);
+      cl_search_free_page(page);
       page = next_page;
     }
   }
@@ -1041,8 +1045,8 @@ static cl_error cl_search_step_print(const cl_search_t *search)
   cl_log("------------------------------\n");
   cl_log("Total memory scanned: %.6f MB\n",
     ((double)search->memory_scanned) / (1024.0 * 1024.0));
-  cl_log("Total matched addresses: %llu\n", (unsigned long long)search->total_matches);
-  cl_log("Total pages allocated: %llu\n", (unsigned long long)search->total_page_count);
+  cl_log("Total matched addresses: %llu\n", search->total_matches);
+  cl_log("Total pages allocated: %llu\n", search->total_page_count);
   cl_log("Time taken: %.6f seconds\n", search->time_taken);
   cl_log("Estimated memory usage: %.6f MB\n",
     ((double)search->memory_usage) / (1024.0 * 1024.0));
