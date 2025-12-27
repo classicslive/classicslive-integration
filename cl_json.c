@@ -378,8 +378,10 @@ static void unescape(char *s)
           src++;
           for (i = 0; i < 2 && isxdigit((unsigned char)*src); i++, src++)
           {
-            val = val * 16 + (isdigit(*src) ? *src - '0' :
-                              (tolower(*src) - 'a' + 10));
+            val = val * 16 +
+                  (isdigit((unsigned char)*src)
+                    ? (unsigned char)*src - '0'
+                    : (tolower((unsigned char)*src) - 'a' + 10));
           }
           *dst++ = (char)val;
           src--;

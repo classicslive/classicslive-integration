@@ -1,6 +1,6 @@
 # Paths
 CLASSICS_LIVE_DIR ?= $(PWD)
-CLASSICS_LIVE_LIBRETRO_DIR ?= $(PWD)/../libretro-common
+CLASSICS_LIVE_LIBRETRO_DIR ?= $(CLASSICS_LIVE_DIR)/../libretro-common
 
 CLASSICS_LIVE_SOURCES_CLASSICSLIVE = \
     $(CLASSICS_LIVE_DIR)/cl_abi.c \
@@ -14,7 +14,7 @@ CLASSICS_LIVE_SOURCES_CLASSICSLIVE = \
     $(CLASSICS_LIVE_DIR)/cl_memory.c \
     $(CLASSICS_LIVE_DIR)/cl_network.c \
     $(CLASSICS_LIVE_DIR)/cl_script.c \
-    $(CLASSICS_LIVE_DIR)/cl_search.c \
+    $(CLASSICS_LIVE_DIR)/cl_search_new.c \
     $(CLASSICS_LIVE_DIR)/3rdparty/jsonsax/jsonsax.c \
     $(CLASSICS_LIVE_DIR)/3rdparty/jsonsax/jsonsax_full.c \
 
@@ -31,8 +31,14 @@ CLASSICS_LIVE_SOURCES_LIBRETRO = \
     $(CLASSICS_LIVE_LIBRETRO_DIR)/streams/memory_stream.c \
     $(CLASSICS_LIVE_LIBRETRO_DIR)/string/stdstring.c \
     $(CLASSICS_LIVE_LIBRETRO_DIR)/time/rtime.c \
-    $(CLASSICS_LIVE_LIBRETRO_DIR)/utils/md5.c \
+    $(CLASSICS_LIVE_LIBRETRO_DIR)/utils/md5.c
+
+# VFS is sometimes needed, sometimes not, and sometimes broken. Define this
+# variable if it causes issues.
+ifndef CL_OMIT_VFS
+CLASSICS_LIVE_SOURCES_LIBRETRO += \
     $(CLASSICS_LIVE_LIBRETRO_DIR)/vfs/vfs_implementation.c
+endif
 
 ifeq ($(CL_HAVE_FILESYSTEM),1)
 CLASSICS_LIVE_SOURCES_LIBRETRO += \

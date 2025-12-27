@@ -23,6 +23,7 @@ SOURCES += \
     $$CL_DIR/cl_network.c \
     $$CL_DIR/cl_script.c \
     $$CL_DIR/cl_search.c \
+    $$CL_DIR/cl_search_new.c \
     $$CL_DIR/3rdparty/jsonsax/jsonsax.c \
     $$CL_DIR/3rdparty/jsonsax/jsonsax_full.c
 
@@ -39,6 +40,7 @@ HEADERS += \
     $$CL_DIR/cl_network.h \
     $$CL_DIR/cl_script.h \
     $$CL_DIR/cl_search.h \
+    $$CL_DIR/cl_search_new.h \
     $$CL_DIR/cl_types.h \
     $$CL_DIR/3rdparty/jsonsax/jsonsax.h \
     $$CL_DIR/3rdparty/jsonsax/jsonsax_full.h

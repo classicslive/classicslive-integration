@@ -13,7 +13,7 @@
  * @param library The name of the core, which can be used to choose more
  * specific identification methods.
  * @param callback A function to run after identification is complete.
- **/
+ */
 bool cl_identify(const void *info_data, const unsigned info_size,
                  const char *info_path, const char *library, char *checksum,
                  CL_TASK_CB_T callback);

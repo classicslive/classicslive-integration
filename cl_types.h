@@ -1,6 +1,8 @@
 #ifndef CL_TYPES_H
 #define CL_TYPES_H
 
+#include "cl_config.h"
+
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -30,6 +32,36 @@ typedef enum
 
   CL_ERR_SIZE
 } cl_error;
+
+typedef enum
+{
+  CL_COMPARE_INVALID = 0,
+
+  CL_COMPARE_EQUAL,
+  CL_COMPARE_GREATER,
+  CL_COMPARE_LESS,
+  CL_COMPARE_NOT_EQUAL,
+  CL_COMPARE_INCREASED,
+  CL_COMPARE_DECREASED,
+  CL_COMPARE_ABOVE,
+  CL_COMPARE_BELOW,
+
+  CL_COMPARE_SIZE
+} cl_compare_type;
+
+/** @todo make immediate 1 */
+typedef enum
+{
+  CL_SRCTYPE_IMMEDIATE_INT = 0,
+  CL_SRCTYPE_CURRENT_RAM,
+  CL_SRCTYPE_PREVIOUS_RAM,
+  CL_SRCTYPE_LAST_UNIQUE_RAM,
+  CL_SRCTYPE_ROM,
+  CL_SRCTYPE_COUNTER,
+  CL_SRCTYPE_IMMEDIATE_FLOAT,
+
+  CL_SRCTYPE_SIZE
+} cl_src_t;
 
 /**
  * A -1 value to represent invalid addresses in memory regions, as 0 for NULL
@@ -98,10 +130,10 @@ typedef enum
   /* 89ABCDEF01234567 */
   CL_ENDIAN_WORD_FLIP_LB,
 
-#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-  CL_ENDIAN_NATIVE = CL_ENDIAN_BIG,
+#if CL_HOST_ENDIANNESS == _CL_ENDIANNESS_BIG
+  CL_ENDIAN_NATIVE = _CL_ENDIANNESS_BIG,
 #else
-  CL_ENDIAN_NATIVE = CL_ENDIAN_LITTLE,
+  CL_ENDIAN_NATIVE = _CL_ENDIANNESS_LITTLE,
 #endif
 
   CL_ENDIAN_SIZE
@@ -348,6 +380,13 @@ typedef struct
 
 /** A virtual address for the emulated system. */
 typedef uintptr_t cl_addr_t;
+#if CL_HOST_BITNESS == _CL_BITNESS_32
+  #define CL_ADDRF "%08X"
+  #define CL_SIZEF "%u"
+#else
+  #define CL_ADDRF "%016lX"
+  #define CL_SIZEF "%lu"
+#endif
 
 typedef struct cl_counter_t
 {

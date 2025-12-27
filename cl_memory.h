@@ -7,28 +7,6 @@
    as well as on timed intervals to retrieve a play status string. */
 #define CL_MEMFLAG_RICH 0
 
-typedef enum
-{
-  CL_SRCTYPE_IMMEDIATE_INT = 0,
-  CL_SRCTYPE_CURRENT_RAM,
-  CL_SRCTYPE_PREVIOUS_RAM,
-  CL_SRCTYPE_LAST_UNIQUE_RAM,
-  CL_SRCTYPE_ROM,
-  CL_SRCTYPE_COUNTER,
-  CL_SRCTYPE_IMMEDIATE_FLOAT,
-
-  CL_SRCTYPE_SIZE
-} cl_src_t;
-
-#define CLE_CMPTYPE_EQUAL     1
-#define CLE_CMPTYPE_GREATER   2
-#define CLE_CMPTYPE_LESS      3
-#define CLE_CMPTYPE_NOT_EQUAL 4
-#define CLE_CMPTYPE_INCREASED 5
-#define CLE_CMPTYPE_DECREASED 6
-#define CLE_CMPTYPE_ABOVE     7
-#define CLE_CMPTYPE_BELOW     8
-
 #include "cl_config.h"
 #include "cl_counter.h"
 #include "cl_types.h"
@@ -71,7 +49,7 @@ bool cl_init_membanks_libretro(const struct retro_memory_descriptor **descs,
  * @param flag The memory note flag to check. For example, CL_MEMFLAG_RICH.
  **/
 bool cl_get_memnote_flag(cl_memnote_t *note, uint8_t flag);
-bool cl_get_memnote_flag_from_key(uint32_t key, uint8_t flag);
+bool cl_get_memnote_flag_from_key(unsigned key, uint8_t flag);
 
 /**
  * Copies the current value of a memory note into a buffer.
@@ -86,22 +64,8 @@ bool cl_get_memnote_value_from_key(cl_counter_t *value, unsigned key, unsigned t
 /* Populate a memory holder with values returned by the web API */
 bool cl_init_memory(const char **pos);
 
-/** 
- * Reads a value at a virtual memory address into a buffer by using the memory
- *   bank data pointer.
- * In most cases, the cl_read_memory macro should be used instead.
- * @param value The buffer to be read into.
- * @param bank A pointer to a specific memory bank, or NULL to have it be 
- * looked up automatically.
- * @param address The virtual memory address to read from.
- * @param size The number of bytes to read.
- **/
-unsigned cl_read_memory_internal(void *value, const cl_memory_region_t *bank,
-  cl_addr_t address, unsigned size);
-
-#if CL_EXTERNAL_MEMORY
-/** 
- * Reads a value at a virtual memory address into a buffer by reading external
+/**
+ * Reads a value at a virtual memory address into a buffer by reading internal
  *   process memory.
  * In most cases, the cl_read_memory macro should be used instead.
  * @param value The buffer to be read into.
@@ -109,41 +73,57 @@ unsigned cl_read_memory_internal(void *value, const cl_memory_region_t *bank,
  * looked up automatically.
  * @param address The virtual memory address to read from.
  * @param size The number of bytes to read.
- **/
-unsigned cl_read_memory_external(void *value, const cl_memory_region_t *bank,
-  cl_addr_t address, unsigned size);
+ */
+cl_error cl_read_memory_buffer_internal(void *buffer,
+  const cl_memory_region_t *bank, cl_addr_t address, cl_addr_t size);
+
+/**
+ * Reads a value at a virtual memory address into a buffer by reading internal
+ *   process memory.
+ * In most cases, the cl_read_memory macro should be used instead.
+ * @param value The buffer to be read into.
+ * @param bank A pointer to a specific memory bank, or NULL to have it be 
+ * looked up automatically.
+ * @param address The virtual memory address to read from.
+ * @param type The type of value to read.
+ */
+cl_error cl_read_memory_value_internal(void *buffer,
+  const cl_memory_region_t *bank, cl_addr_t address, cl_value_type type);
+
+cl_error cl_write_memory_buffer_internal(const void *buffer,
+  const cl_memory_region_t *bank, cl_addr_t address, cl_addr_t size);
+
+cl_error cl_write_memory_value_internal(const void *buffer,
+  const cl_memory_region_t *bank, cl_addr_t address, cl_value_type type);
+
+#if CL_EXTERNAL_MEMORY
+cl_error cl_read_memory_buffer_external(void *buffer,
+  const cl_memory_region_t *bank, cl_addr_t address, cl_addr_t size);
+cl_error cl_read_memory_value_external(void *buffer,
+  const cl_memory_region_t *bank, cl_addr_t address, cl_value_type type);
+cl_error cl_write_memory_buffer_external(const void *buffer,
+  const cl_memory_region_t *bank, cl_addr_t address, cl_addr_t size);
+cl_error cl_write_memory_value_external(const void *buffer,
+  const cl_memory_region_t *bank, cl_addr_t address, cl_value_type type);
 #endif
 
 #if CL_EXTERNAL_MEMORY
-#define cl_read_memory cl_read_memory_external
+#define cl_read_memory_buffer cl_read_memory_buffer_external
+#define cl_read_memory_value cl_read_memory_value_external
+#define cl_write_memory_buffer cl_write_memory_buffer_external
+#define cl_write_memory_value cl_write_memory_value_external
 #else
-#define cl_read_memory cl_read_memory_internal
+#define cl_read_memory_buffer cl_read_memory_buffer_internal
+#define cl_read_memory_value cl_read_memory_value_internal
+#define cl_write_memory_buffer cl_write_memory_buffer_internal
+#define cl_write_memory_value cl_write_memory_value_internal
 #endif
-
-/**
- * Returns the size (in bytes) of a given memory type ID.
- * @param type A type of memory value. For example, CL_MEMTYPE_8BIT.
- * @return The number of bytes the memory type takes up, or 0 if invalid.
- **/
-unsigned cl_sizeof_memtype(const cl_value_type type);
 
 /**
  * Steps through all memory notes and updates their values. Should be called 
  * once per frame.
  **/
 void cl_update_memory(void);
-
-/**
- * Writes the given data to a location in emulated virtual memory.
- * @param bank A pointer to a specific memory bank, or NULL to have it be 
- * looked up automatically.
- * @param address The virtual address to write to.
- * @param size The number of bytes to write.
- * @param value A pointer to the source data.
- * @return Number of bytes written.
- **/
-unsigned cl_write_memory(cl_memory_region_t *bank, cl_addr_t address,
-                         unsigned size, const void *value);
 
 /**
  * Writes the value referenced by a memory note with a given value.
@@ -161,7 +141,7 @@ bool cl_write_memnote_from_key(unsigned key, const cl_counter_t *value);
  * @return A pointer to the appropriate memory note, or NULL if one with the
  * given key does not exist.
  **/
-cl_memnote_t* cl_find_memnote(uint32_t key);
+cl_memnote_t* cl_find_memnote(unsigned key);
 
 /**
  * Adds a new memory note to the global memory context.

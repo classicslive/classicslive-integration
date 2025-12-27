@@ -58,13 +58,14 @@ private:
    QComboBox      *m_SizeDropdown;
    QLineEdit      *m_TextEntry;
    QPushButton    *m_NewButton;
-   QPushButton    *m_SearchButton;
-   QSlider        *m_Slider;
+   QPushButton    *m_SearchButton = nullptr;
+   QSlider        *m_Slider = nullptr;
+   QLabel         *m_Status = nullptr;
    QStackedWidget *m_TableStack;
    QTabBar        *m_Tabs;
    QTimer         *m_UpdateTimer;
 
-   uint8_t getCurrentCompareType(void);
+   cl_compare_type getCurrentCompareType(void);
    cl_value_type getCurrentSizeType(void);
    void    rebuildLayout(void);
 
@@ -81,6 +82,8 @@ private slots:
    void onHexWidgetValueEdited(cl_addr_t address, uint8_t value);
 
    void onRightClickTabs(const QPoint &pos);
+
+   void onTargetChanged(const QString&);
 
    void requestAddMemoryNote(cl_memnote_t note);
    void requestAddMemoryNote(cl_addr_t address);

@@ -7,7 +7,7 @@
 
 extern "C" 
 {
-   #include "../cl_common.h"
+  #include "../cl_common.h"
 }
 
 #define COL_ADDRESS        0
@@ -16,267 +16,293 @@ extern "C"
 
 CleResultTableNormal::CleResultTableNormal(QWidget *parent)
 {
-   CleResultTable::init();
+  CleResultTable::init();
 
-   /* Normal-specific table styling */
-   m_Table->setColumnCount(3);
+  /* Normal-specific table styling */
+  m_Table->setColumnCount(3);
 
-   /* Initialize result table column headers */
-   QStringList TableHeader;
-   TableHeader << tr("Address") << tr("Previous") << tr("Current");
-   m_Table->setHorizontalHeaderLabels(TableHeader);
+  /* Initialize result table column headers */
+  QStringList TableHeader;
+  TableHeader << tr("Address") << tr("Previous") << tr("Current");
+  m_Table->setHorizontalHeaderLabels(TableHeader);
 
-   /* Qt connections to parent */
-   connect(this, SIGNAL(addressChanged(cl_addr_t)),
-      parent, SLOT(onAddressChanged(cl_addr_t)));
-   connect(this, SIGNAL(requestAddMemoryNote(cl_memnote_t)),
-      parent, SLOT(requestAddMemoryNote(cl_memnote_t)));
-   connect(this, SIGNAL(requestPointerSearch(cl_addr_t)),
-      parent, SLOT(requestPointerSearch(cl_addr_t)));
+  /* Qt connections to parent */
+  connect(this, SIGNAL(addressChanged(cl_addr_t)),
+    parent, SLOT(onAddressChanged(cl_addr_t)));
+  connect(this, SIGNAL(requestAddMemoryNote(cl_memnote_t)),
+    parent, SLOT(requestAddMemoryNote(cl_memnote_t)));
+  connect(this, SIGNAL(requestPointerSearch(cl_addr_t)),
+    parent, SLOT(requestPointerSearch(cl_addr_t)));
 
-   cl_search_init(&m_Search);
+  cl_search_init(&m_Search);
 }
 
-CleResultTableNormal::~CleResultTableNormal()
+CleResultTableNormal::~CleResultTableNormal(void)
 {
-   cl_search_free(&m_Search);
+  cl_search_free(&m_Search);
 }
 
-cl_addr_t CleResultTableNormal::getClickedResultAddress()
+cl_addr_t CleResultTableNormal::getClickedResultAddress(void)
 {
-   return m_Table->item(m_Table->currentRow(), COL_ADDRESS)->text().split(" ")[0].toULong(NULL, 16);
+  return m_Table->item(m_Table->currentRow(), COL_ADDRESS)->text().split(" ")[0].toULong(NULL, 16);
 }
 
-void *CleResultTableNormal::getSearchData()
+void *CleResultTableNormal::searchData(void)
 {
-   return (void*)(&m_Search);
+  return &m_Search;
 }
 
 void CleResultTableNormal::onResultClick(QTableWidgetItem *item) //todo
 {
-   emit addressChanged(getClickedResultAddress() & ~0xF);
+  CL_UNUSED(item);
+  emit addressChanged(getClickedResultAddress() & ~0xF);
 }
 
-void CleResultTableNormal::onResultDoubleClick()
+void CleResultTableNormal::onResultDoubleClick(void)
 {
-   if (m_Table->currentColumn() == COL_CURRENT_VALUE)
-   {
-      uint32_t i;
+  if (m_Table->currentColumn() == COL_CURRENT_VALUE)
+  {
+    int i;
 
-      /* We gray out the other entries because they won't update while
-         we're editing. */
-      for (i = 0; i < m_Table->rowCount(); i++)
-         m_Table->item(i, COL_CURRENT_VALUE)->setTextColor(Qt::gray);
-      m_CurrentEditedRow = m_Table->currentRow();
-   }
+    /* We gray out the other entries because they won't update while
+       we're editing. */
+    for (i = 0; i < m_Table->rowCount(); i++)
+      m_Table->item(i, COL_CURRENT_VALUE)->setForeground(Qt::gray);
+    m_CurrentEditedRow = m_Table->currentRow();
+  }
 }
 
 void CleResultTableNormal::onResultEdited(QTableWidgetItem *result)
 {
-   if (result->row() == m_CurrentEditedRow && result->column() == COL_CURRENT_VALUE)
-   {
-      if (result->isSelected())
-         writeMemory(getClickedResultAddress(), m_Search.params, result->text());
-      m_CurrentEditedRow = -1;
-   }
+  if (result->row() == m_CurrentEditedRow && result->column() == COL_CURRENT_VALUE)
+  {
+    if (result->isSelected())
+      writeMemory(getClickedResultAddress(), m_Search.params, result->text());
+    m_CurrentEditedRow = -1;
+  }
 }
 
-void CleResultTableNormal::onClickResultAddMemoryNote()
+void CleResultTableNormal::onClickResultAddMemoryNote(void)
 {
-   cl_memnote_t note;
+  cl_memnote_t note;
 
-   note.address_initial = getClickedResultAddress();
-   note.type = m_Search.params.value_type;
-   note.pointer_passes = 0;
+  memset(&note, 0, sizeof(note));
+  note.address_initial = getClickedResultAddress();
+  note.type = m_Search.params.value_type;
+  note.pointer_passes = 0;
 
-   emit requestAddMemoryNote(note);
+  emit requestAddMemoryNote(note);
 }
 
-void CleResultTableNormal::onClickResultPointerSearch()
+void CleResultTableNormal::onClickResultPointerSearch(void)
 {
-   emit requestPointerSearch(getClickedResultAddress());
+  emit requestPointerSearch(getClickedResultAddress());
 }
 
-void CleResultTableNormal::onClickResultRemove()
+void CleResultTableNormal::onClickResultRemove(void)
 {
-   if (cl_search_remove(&m_Search, getClickedResultAddress()))
-      rebuild();
+  if (cl_search_remove(&m_Search, getClickedResultAddress()) == CL_OK)
+    rebuild();
 }
 
 void CleResultTableNormal::onResultRightClick(const QPoint& pos)
 {
-   if (pos.isNull())
+  if (pos.isNull())
+    return;
+  else
+  {
+    m_ClickedResult = m_Table->rowAt(pos.y());
+    if (m_ClickedResult < 0 || m_ClickedResult >= m_Table->rowCount())
       return;
-   else
-   {
-      m_ClickedResult = m_Table->rowAt(pos.y());
-      if (m_ClickedResult < 0 || m_ClickedResult >= m_Table->rowCount())
-         return;
-      else
+    else
+    {
+      QMenu menu;
+      QAction *action_add = menu.addAction(tr("&Add memory note..."));
+      QAction *action_ptr = menu.addAction(tr("Search for &pointers..."));
+      QAction *action_remove = menu.addAction(tr("&Remove"));
+
+      connect(action_add, SIGNAL(triggered()), this,
+        SLOT(onClickResultAddMemoryNote()));
+      connect(action_ptr, SIGNAL(triggered()), this,
+        SLOT(onClickResultPointerSearch()));
+      connect(action_remove, SIGNAL(triggered()), this,
+        SLOT(onClickResultRemove()));
+
+      menu.exec(m_Table->mapToGlobal(pos));
+    }
+  }
+}
+
+void CleResultTableNormal::onResultSelectionChanged(void)
+{
+  m_CurrentEditedRow = -1;
+}
+
+cl_error CleResultTableNormal::rebuild(void)
+{
+  char temp_string[32];
+  unsigned char temp_value[8];
+  unsigned val_size = m_Search.params.value_size;
+  cl_value_type val_type = m_Search.params.value_type;
+  unsigned current_row = 0;
+  unsigned matches = m_Search.total_matches;
+  unsigned char *chunk_buffer;
+
+  if (matches == 0)
+  {
+    m_Table->setRowCount(0);
+    return CL_OK;
+  }
+  if (matches > CLE_SEARCH_MAX_ROWS)
+    matches = CLE_SEARCH_MAX_ROWS;
+
+  m_Table->setRowCount(matches);
+  chunk_buffer = reinterpret_cast<unsigned char*>(malloc(CL_SEARCH_CHUNK_SIZE));
+
+  for (unsigned i = 0; i < m_Search.page_region_count; i++)
+  {
+    cl_search_page_t* page;
+
+    /* Skip entire region if no matches */
+    if (m_Search.page_regions[i].matches == 0)
+      continue;
+    page = m_Search.page_regions[i].first_page;
+    while (page)
+    {
+      unsigned char *data = (unsigned char*)page->chunk;
+      unsigned char *valid = (unsigned char*)page->validity;
+
+      /* Skip entire page if no matches */
+      if (page->matches == 0)
       {
-         QMenu menu;
-         QAction *action_add    = menu.addAction(tr("&Add memory note..."));
-         QAction *action_ptr    = menu.addAction(tr("Search for &pointers..."));
-         QAction *action_remove = menu.addAction(tr("&Remove"));
-
-         connect(action_add, SIGNAL(triggered()), this, 
-            SLOT(onClickResultAddMemoryNote()));
-         connect(action_ptr, SIGNAL(triggered()), this, 
-            SLOT(onClickResultPointerSearch()));
-         connect(action_remove, SIGNAL(triggered()), this, 
-            SLOT(onClickResultRemove()));
-
-         menu.exec(m_Table->mapToGlobal(pos));
+        page = page->next;
+        continue;
       }
-   }
-}
 
-void CleResultTableNormal::onResultSelectionChanged()
-{
-   m_CurrentEditedRow = -1;
-}
+      /* This page has matches, so copy a chunk from live memory for current values */
+      cl_read_memory_buffer(chunk_buffer, page->region, 0, page->size);
 
-void CleResultTableNormal::rebuild()
-{
-   char     temp_string[32];
-   uint8_t  size, val_type;
-   uint32_t current_row, matches, temp_value, i, j;
-
-   /* (De)allocate rows */
-   matches = m_Search.matches;
-   if (matches > CLE_SEARCH_MAX_ROWS)
-      matches = CLE_SEARCH_MAX_ROWS;
-   else if (matches == 0)
-   {
-      m_Table->setRowCount(0);
-      return;
-   }
-
-   current_row = 0;
-   size        = m_Search.params.size;
-   val_type    = m_Search.params.value_type;
-
-   for (i = 0; i < memory.region_count; i++)
-   {
-      if (!m_Search.searchbanks[i].any_valid)
-         continue;
-
-      for (j = 0; j < memory.regions[i].size; j += size)
+      for (cl_addr_t offset = 0; offset < page->size; offset += val_size)
       {
-         /* This value was filtered out */
-         if (!m_Search.searchbanks[i].valid[j])
-            continue;
+        /* Skip value if not a match */
+        if (!valid[offset / val_size])
+          continue;
 
-         /* This value is still valid; add a new row */
-         m_Table->insertRow(current_row);
+        /* Create a new row */
+        m_Table->insertRow(current_row);
 
-         /* Address */
-         snprintf(temp_string, 256, "%08X", j + memory.regions[i].base_guest);
-         m_Table->setItem(current_row, 0, new QTableWidgetItem(QString(temp_string)));
-         /* Previous value */
-         cl_read_search(&temp_value, &m_Search, &m_Search.searchbanks[i], j);
-         valueToString(temp_string, sizeof(temp_string), temp_value, val_type);
-         m_Table->setItem(current_row, 1, new QTableWidgetItem(QString(temp_string)));
-         /* Current value */
-         cl_read_memory(&temp_value, /*&memory.banks[i]*/nullptr, j + memory.regions[i].base_guest, size);
-         valueToString(temp_string, sizeof(temp_string), temp_value, val_type);
-         m_Table->setItem(current_row, 2, new QTableWidgetItem(QString(temp_string)));
-         current_row++;
+        /* Address */
+        snprintf(temp_string, sizeof(temp_string), "%08X", (unsigned)(page->start + offset));
+        m_Table->setItem(current_row, 0, new QTableWidgetItem(QString(temp_string)));
 
-         /* No need to continue */
-         if (current_row == matches)
-         {
-            m_Table->setRowCount(matches);
-            return;
-         }
+        /* Previous value (from chunk) */
+        cl_read_value(&temp_value, data, offset, val_type, page->region->endianness);
+        valueToString(temp_string, sizeof(temp_string), temp_value, val_type);
+        m_Table->setItem(current_row, 1, new QTableWidgetItem(QString(temp_string)));
+
+        /* Current value (from live memory) */
+        cl_read_value(&temp_value, chunk_buffer, offset, val_type, page->region->endianness);
+        valueToString(temp_string, sizeof(temp_string), temp_value, val_type);
+        m_Table->setItem(current_row, 2, new QTableWidgetItem(QString(temp_string)));
+
+        current_row++;
+        if (current_row == matches)
+        {
+          m_Table->setRowCount(matches);
+          free(chunk_buffer);
+          return CL_OK;
+        }
       }
-   }
+      page = page->next;
+    }
+  }
+  m_Table->setRowCount(matches);
+  free(chunk_buffer);
+
+  return CL_ERR_CLIENT_RUNTIME;
 }
 
-void CleResultTableNormal::reset(uint8_t value_type)
+cl_error CleResultTableNormal::reset(void)
 {
-   cl_search_reset(&m_Search);
-   m_Table->setRowCount(0);
+  cl_search_reset(&m_Search);
+  m_Table->setRowCount(0);
+
+  return CL_OK;
 }
 
-void CleResultTableNormal::run()
+cl_error CleResultTableNormal::run(void)
 {
-   QTableWidgetItem *item;
-   char     temp_string[32];
-   uint8_t  size, val_type;
-   uint32_t address, curr_value = 0, prev_value = 0, i, j;
+  QTableWidgetItem *item;
+  char temp_string[32];
+  cl_value_type val_type = m_Search.params.value_type;
+  cl_addr_t address = 0;
+  int64_t curr_value = 0, prev_value = 0;
+  int i;
 
-   size     = m_Search.params.size;
-   val_type = m_Search.params.value_type;
+  for (i = 0; i < m_Table->rowCount(); i++)
+  {
+    item = m_Table->item(i, 0);
+    if (!item)
+      continue;
 
-   for (i = 0; i < m_Table->rowCount(); i++)
-   {
-      item = m_Table->item(i, 0);
-      if (!item)
-         return;
+    /* Only update rows that are visible */
+    if (i < m_Table->verticalScrollBar()->value())
+      continue;
+    if (i > m_Table->verticalScrollBar()->value() + m_Table->height() / 16)
+      break;
 
-      /* Don't visually update search results that are out of view */
-      if (i < m_Table->verticalScrollBar()->value())
-         continue;
-      else if (i > m_Table->verticalScrollBar()->value() + m_Table->size().height() / 16)
-         break;
+    /* Parse the address from the first column */
+    address = item->text().split(" ")[0].toULong(NULL, 16);
 
-      /* Kind of gross, but should save some memory 
-         Only a few results should be redrawn at any time anyway */
-      address = item->text().split(" ")[0].toULong(NULL, 16);
+    /* Get the two values */
+    if (cl_read_memory_value(&curr_value, nullptr, address, val_type) != CL_OK ||
+        cl_search_backup_value(&prev_value, &m_Search, address) != CL_OK)
+      continue;
 
-      if (!cl_read_memory(&curr_value, NULL, address, size) ||
-          !cl_read_search(&prev_value, &m_Search, NULL, address))
-         break;
-
-      /* Update previous value column */
-      item = m_Table->item(i, COL_PREVIOUS_VALUE);
-      valueToString(temp_string, sizeof(temp_string), prev_value, val_type);
+    /* Update previous value column */
+    item = m_Table->item(i, COL_PREVIOUS_VALUE);
+    if (item)
+    {
+      valueToString(temp_string, sizeof(temp_string), &prev_value, val_type);
       item->setText(temp_string);
+    }
 
-      /* Update current value column */
-      if (m_CurrentEditedRow < 0)
+    /* Update current value column */
+    if (m_CurrentEditedRow < 0)
+    {
+      item = m_Table->item(i, COL_CURRENT_VALUE);
+      if (item)
       {
-         item = m_Table->item(i, COL_CURRENT_VALUE);
+        valueToString(temp_string, sizeof(temp_string), &curr_value, val_type);
+        item->setText(temp_string);
 
-         valueToString(temp_string, sizeof(temp_string), curr_value, val_type);
-         item->setText(temp_string);
-
-         /* Display changed values in red */
-         item->setTextColor(prev_value != curr_value ? Qt::red : Qt::white);
+        /* Highlight changed values in red */
+        item->setForeground(prev_value != curr_value ? Qt::red : Qt::white);
       }
-   }
+    }
+  }
+
+  return CL_OK;
 }
 
-bool CleResultTableNormal::step(const QString& text)
+QString CleResultTableNormal::statusString(void)
 {
-   void *compare_value;
-   bool  no_input = text.isEmpty();
-   bool  ok = true;
+  return QString("Matches: %1 | Scanned: %2 MB | Usage: %3 MB | Scan time: %4 s")
+    .arg(m_Search.total_matches)
+    .arg(m_Search.memory_scanned / (1024.0 * 1024.0), 0, 'f', 6)
+    .arg(m_Search.memory_usage / (1024.0 * 1024.0), 0, 'f', 6)
+    .arg(m_Search.time_taken, 0, 'f', 6);
+}
 
-   if (m_Search.params.value_type == CL_MEMTYPE_FLOAT)
-      compare_value = new float(text.toFloat(&ok));
-   else
-      compare_value = new uint32_t(stringToValue(text, &ok));
+cl_error CleResultTableNormal::step(void)
+{
+  cl_error err = cl_search_step(&m_Search);
 
-   /* Run the C code for doing the actual search */
-   if (ok || no_input)
-      cl_search_step
-      (
-         &m_Search,
-         no_input ? NULL : compare_value
-      );
-   else if (text.front() == '"' && text.back() == '"')
-      cl_search_ascii
-      (
-         &m_Search, 
-         text.mid(1, text.length() - 2).toStdString().c_str(), 
-         text.length() - 2
-      );
-   else
-      return false;
-   free(compare_value);
-   rebuild();
-
-   return true;
+  if (err)
+    return err;
+  else
+  {
+    rebuild();
+    return CL_OK;
+  }
 }

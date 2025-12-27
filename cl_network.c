@@ -40,7 +40,7 @@ static char *cl_build_generic_post_data(void)
           written = snprintf(temp, sizeof(temp), "&m%u=%f",
                              note->key, value.floatval.fp);
         else
-          written = snprintf(temp, sizeof(temp), "&m%u=%li",
+          written = snprintf(temp, sizeof(temp), "&m%u=%lli",
                              note->key, value.intval.i64);
 
         /* Grow buffer if needed */

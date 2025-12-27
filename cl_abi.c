@@ -19,7 +19,10 @@ cl_error cl_abi_register(const cl_abi_t *abi)
         !abi->functions.core.user_data)
       return CL_ERR_PARAMETER_INVALID;
 #if CL_EXTERNAL_MEMORY
-    else if (!abi->functions.external.read || !abi->functions.external.write)
+    else if (!abi->functions.external.read_buffer ||
+             !abi->functions.external.read_value ||
+             !abi->functions.external.write_buffer ||
+             !abi->functions.external.write_value)
       return CL_ERR_PARAMETER_INVALID;
 #endif
     else
@@ -91,22 +94,44 @@ cl_error cl_abi_user_data(cl_user_t *user, unsigned index)
 
 #if CL_EXTERNAL_MEMORY
 
-cl_error cl_abi_external_read(void *dest, cl_addr_t address,
+cl_error cl_abi_external_read_buffer(void *dest, cl_addr_t address,
                               unsigned size, unsigned *read)
 {
-  if (cl_g_abi && cl_g_abi->functions.external.read && dest)
-    return cl_g_abi->functions.external.read(dest, address, size, read);
-  else
+#if CL_SAFETY
+  if (!dest || !read || !cl_g_abi || !cl_g_abi->functions.external.read_buffer)
     return CL_ERR_PARAMETER_NULL;
+#endif
+  return cl_g_abi->functions.external.read_buffer(dest, address, size, read);
 }
 
-cl_error cl_abi_external_write(const void *src, cl_addr_t address,
+cl_error cl_abi_external_read_value(void *dest, cl_addr_t address,
+                              cl_value_type type)
+{
+#if CL_SAFETY
+  if (!dest || !cl_g_abi || !cl_g_abi->functions.external.read_value)
+    return CL_ERR_PARAMETER_NULL;
+#endif
+  return cl_g_abi->functions.external.read_value(dest, address, type);
+}
+
+cl_error cl_abi_external_write_buffer(const void *src, cl_addr_t address,
                                unsigned size, unsigned *written)
 {
-  if (cl_g_abi && cl_g_abi->functions.external.write && src)
-    return cl_g_abi->functions.external.write(src, address, size, written);
-  else
+#if CL_SAFETY
+  if (!src || !written || !cl_g_abi || !cl_g_abi->functions.external.write_buffer)
     return CL_ERR_PARAMETER_NULL;
+#endif
+  return cl_g_abi->functions.external.write_buffer(src, address, size, written);
+}
+
+cl_error cl_abi_external_write_value(const void *src, cl_addr_t address,
+                               cl_value_type type)
+{
+#if CL_SAFETY
+  if (!src || !cl_g_abi || !cl_g_abi->functions.external.write_value)
+    return CL_ERR_PARAMETER_NULL;
+#endif
+  return cl_g_abi->functions.external.write_value(src, address, type);
 }
 
 #endif

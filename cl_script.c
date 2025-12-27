@@ -7,7 +7,7 @@
 
 cl_script_t script;
 
-void cl_page_free(cl_page_t *page)
+static void cl_page_free(cl_page_t *page)
 {
   unsigned i;
 
@@ -31,7 +31,7 @@ void cl_script_free(void)
   script.page_count = 0;
 }
 
-bool cl_init_page(const char **pos, cl_page_t *page)
+static bool cl_init_page(const char **pos, cl_page_t *page)
 {
   cl_action_t *action      = NULL;
   cl_action_t *prev_action = NULL;
@@ -145,7 +145,7 @@ static unsigned cl_process_if_statements(cl_page_t *page, unsigned pos)
   return i;
 }
 
-bool cl_process_actions(cl_page_t *page)
+static bool cl_process_actions(cl_page_t *page)
 {
   bool success = true;
   unsigned i = 0;

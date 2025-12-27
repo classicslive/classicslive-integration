@@ -22,30 +22,48 @@ void cl_message(cl_log_level level, const char *format, ...);
 void cl_log(const char *format, ...);
 
 /**
- * Reads data from one location to another, automatically applying transforms
- *   for size and endianness differences.
- * @param dest The destination buffer.
- * @param src The source buffer.
- * @param offset The location from which to start reading from src.
- * @param size The number of bytes to read from src.
- * @param endianness The endianness of dest. For example, CL_ENDIAN_LITTLE.
- * @return Whether the read succeeded.
+ * Returns the value type that represents a pointer of a given size.
+ * @param size Pointer size, in bytes
  */
-bool cl_read(void *dest, const uint8_t *src, cl_addr_t offset, unsigned size,
+cl_value_type cl_pointer_type(const unsigned size);
+
+cl_error cl_read_8(void *value, const void *src, cl_addr_t offset);
+cl_error cl_read_16(void *value, const void *src, cl_addr_t offset,
   cl_endianness endianness);
+cl_error cl_read_32(void *value, const void *src, cl_addr_t offset,
+  cl_endianness endianness);
+cl_error cl_read_64(void *value, const void *src, cl_addr_t offset,
+  cl_endianness endianness);
+cl_error cl_read_value(void *value, const void *src, cl_addr_t offset,
+  cl_value_type type, cl_endianness endianness);
+cl_error cl_read_buffer(void *dst, const void *src, cl_addr_t offset,
+  cl_addr_t size);
+
+cl_error cl_write_8(const void *value, void *dst, cl_addr_t offset);
+cl_error cl_write_16(const void *value, void *dst, cl_addr_t offset,
+  cl_endianness endianness);
+cl_error cl_write_32(const void *value, void *dst, cl_addr_t offset,
+  cl_endianness endianness);
+cl_error cl_write_64(const void *value, void *dst, cl_addr_t offset,
+  cl_endianness endianness);
+cl_error cl_write_value(const void *value, void *dst, cl_addr_t offset,
+  cl_value_type type, cl_endianness endianness);
+cl_error cl_write_buffer(const void *src, void *dst, cl_addr_t offset,
+  cl_addr_t size);
 
 /**
- * Writes data from one location to another, automatically applying transforms
- *   for size and endianness differences.
- * @param dest The destination buffer.
- * @param src The source buffer.
- * @param offset The location from which to start reading from src.
- * @param size The number of bytes to read from src.
- * @param endianness The endianness of dest. For example, CL_ENDIAN_LITTLE.
- * @return Whether the write succeeded.
+ * Returns the size (in bytes) of a given value type.
+ * @param type A type of memory value. For example, CL_MEMTYPE_8BIT.
+ * @return The number of bytes the memory type takes up, or 0 if invalid.
  */
-bool cl_write(uint8_t *dest, const void *src, cl_addr_t offset, unsigned size,
-  cl_endianness endianness);
+unsigned cl_sizeof_memtype(const cl_value_type type);
+
+const char *cl_string_bitness(cl_bitness bitness);
+const char *cl_string_compare_type(cl_compare_type compare_type);
+const char *cl_string_endianness(cl_endianness endianness);
+const char *cl_string_error(cl_error error);
+const char *cl_string_platform(cl_platform platform);
+const char *cl_string_value_type(cl_value_type type);
 
 bool cl_strto(const char **pos, void *value, unsigned size, bool is_signed);
 

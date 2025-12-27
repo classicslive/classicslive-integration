@@ -80,18 +80,6 @@ typedef struct
   bool (*function)(cl_action_t*);
 } cl_acttype_t;
 
-typedef enum
-{
-  CL_CMPTYPE_INVALID = 0,
-
-  CL_CMPTYPE_IFEQUAL,
-  CL_CMPTYPE_IFGREATER,
-  CL_CMPTYPE_IFLESS,
-  CL_CMPTYPE_IFNEQUAL,
-  
-  CL_CMPTYPE_SIZE
-} cl_compare_type;
-
 bool cl_free_action(cl_action_t *action);
 
 /* Assign the correct function pointer for the type of action */
