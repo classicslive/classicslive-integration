@@ -1,5 +1,19 @@
 #include "cle_common.h"
 
+QString formatBytes(double bytes)
+{
+  const double kb = 1024.0;
+  const double mb = kb * 1024.0;
+  const double gb = mb * 1024.0;
+
+  if (bytes >= gb)
+    return QString("%1 GB").arg(bytes / gb, 0, 'f', 2);
+  else if (bytes >= mb)
+    return QString("%1 MB").arg(bytes / mb, 0, 'f', 2);
+  else
+    return QString("%1 KB").arg(bytes / kb, 0, 'f', 2);
+}
+
 int64_t stringToValue(QString string, bool *ok)
 {
   if (string.isEmpty())

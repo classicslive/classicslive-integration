@@ -43,6 +43,7 @@ cl_error CleResultTable::init(void)
   return CL_OK;
 }
 
+/** @todo floating point */
 cl_error CleResultTable::writeMemory(const cl_addr_t address,
   const cl_search_parameters_t& params, const QString& string)
 {

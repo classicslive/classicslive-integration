@@ -8,6 +8,8 @@ extern "C"
 
 #include <QString>
 
+QString formatBytes(double bytes);
+
 int64_t stringToValue(QString string, bool *ok);
 
 /* Output an appropriately formatted C-string representing a memory value. */

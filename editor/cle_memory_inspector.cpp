@@ -13,19 +13,23 @@ extern "C"
 
 void CleMemoryInspector::rebuildLayout()
 {
-   m_Layout = new QGridLayout(this);
+  if (layout())
+    delete layout();
 
-   /* Initialize window layout */
-   m_Layout->addWidget(m_Tabs,            0, 0, 1, 4);
-   m_Layout->addWidget(m_SizeDropdown,    1, 0);
-   m_Layout->addWidget(m_CompareDropdown, 1, 1);
-   m_Layout->addWidget(m_TextEntry,       1, 2);
-   m_Layout->addWidget(m_SearchButton,    1, 3);
-   m_Layout->addWidget(m_TableStack,      2, 0, 2, 4);
-   m_Layout->addWidget(m_HexWidget,       4, 0, 2, 2);
-   m_Layout->addWidget(m_Slider,          4, 2, 2, 1);
-   m_Layout->addWidget(m_Status,          6, 0, 1, 4);
-   setLayout(m_Layout);
+  m_Layout = new QGridLayout(this);
+
+  /* Initialize window layout */
+  m_Layout->addWidget(m_Tabs,            0, 0, 1, 4);
+  m_Layout->addWidget(m_SizeDropdown,    1, 0, 1, 1);
+  m_Layout->addWidget(m_CompareDropdown, 1, 1, 1, 1);
+  m_Layout->addWidget(m_TextEntry,       1, 2, 1, 1);
+  m_Layout->addWidget(m_SearchButton,    1, 3, 1, 1);
+  m_Layout->addWidget(m_TableStack,      2, 0, 2, 4);
+  m_Layout->addWidget(m_HexWidget,       4, 0, 2, 3);
+  m_Layout->addWidget(m_Slider,          4, 3, 2, 1);
+  m_Layout->addWidget(m_Status,          6, 0, 1, 3);
+  m_Layout->addWidget(m_NewButton,       6, 3, 1, 1);
+  setLayout(m_Layout);
 }
 
 CleMemoryInspector::CleMemoryInspector()
@@ -48,8 +52,6 @@ CleMemoryInspector::CleMemoryInspector()
    m_CompareDropdown->addItem(tr("are not equal to..."), CL_COMPARE_NOT_EQUAL);
    m_CompareDropdown->addItem(tr("have increased by..."), CL_COMPARE_INCREASED);
    m_CompareDropdown->addItem(tr("have decreased by..."), CL_COMPARE_DECREASED);
-   m_CompareDropdown->addItem(tr("are above address..."), CL_COMPARE_ABOVE);
-   m_CompareDropdown->addItem(tr("are below address..."), CL_COMPARE_BELOW);
    connect(m_CompareDropdown, SIGNAL(activated(int)), 
       this, SLOT(onChangeCompareType()));
 
@@ -82,12 +84,12 @@ CleMemoryInspector::CleMemoryInspector()
       this, SLOT(onRightClickTabs(const QPoint&)));
 
    /* Initialize scrollbar */
-   m_Slider = new QSlider(this);
+   m_Slider = new QSlider(Qt::Vertical, this);
    m_Slider->setInvertedAppearance(true);
    m_Slider->setTickInterval(1024 * 1024); //1MB
    m_Slider->setTickPosition(QSlider::TicksRight);
-   connect(m_Slider, SIGNAL(sliderMoved(int)),
-      this, SLOT(onChangeScrollbar(int)));
+   connect(m_Slider, SIGNAL(valueChanged(int)),
+           this, SLOT(onChangeScrollbar(int)));
 
    /* Initialize hex value view widget */
    m_HexWidget = new CleHexWidget(this, 1);
@@ -149,24 +151,24 @@ cl_value_type CleMemoryInspector::getCurrentSizeType(void)
 
 void CleMemoryInspector::onAddressChanged(cl_addr_t address)
 {
-   cl_memory_region_t *new_bank = cl_find_memory_region(address);
+  cl_memory_region_t *new_bank = cl_find_memory_region(address);
+  if (!new_bank)
+    return;
 
-   if (!new_bank)
-      return;
-   else
-   {
-      if (m_CurrentMembank != new_bank)
-      {
-         m_HexWidget->setRange(new_bank->base_guest, new_bank->base_guest + new_bank->size + 1);
-         m_CurrentMembank = new_bank;
-      }
-      m_AddressOffset = address - m_CurrentMembank->base_guest;
-      m_HexWidget->setOffset(address);
+  if (m_CurrentMembank != new_bank)
+  {
+    m_CurrentMembank = new_bank;
+    m_HexWidget->setRange(new_bank->base_guest,
+                          new_bank->base_guest + new_bank->size + 1);
+    m_Slider->setMinimum(0);
+    m_Slider->setMaximum(new_bank->size - 256);
+  }
 
-      m_Slider->setMinimum(0);
-      m_Slider->setMaximum(m_CurrentMembank->size - 256);
-      m_Slider->setValue(address - m_CurrentMembank->base_guest);
-   }
+  m_AddressOffset = address - m_CurrentMembank->base_guest;
+  m_HexWidget->setOffset(address);
+
+  if (m_Slider->value() != m_AddressOffset)
+    m_Slider->setValue(m_AddressOffset);
 }
 
 void CleMemoryInspector::onChangeCompareType(void)
@@ -183,8 +185,6 @@ void CleMemoryInspector::onChangeCompareType(void)
   case CL_COMPARE_DECREASED:
     m_TextEntry->setPlaceholderText(tr("any amount"));
     break;
-  case CL_COMPARE_ABOVE:
-  case CL_COMPARE_BELOW:
   default:
     m_TextEntry->setPlaceholderText("");
   }
