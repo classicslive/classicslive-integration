@@ -319,7 +319,7 @@ void CleHexWidget::repaintRect(const void *buffer, uint8_t index)
       snprintf(m_Texts[index], 16, "%016llX", val);
       break;
     default:
-      snprintf(m_Texts[index], 16, "Err", val);
+      snprintf(m_Texts[index], 16, "Err");
     }
 
     /* Draw rect */

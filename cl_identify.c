@@ -305,7 +305,7 @@ static bool cl_identify_cue(char *path, char *extension)
         /* Apply CUE pathname back to binary track */
         filename_length = end - beginning - 1;
         strncpy(final, beginning, filename_length);
-        strncpy(path_temp, path, CL_MAX_PATH - 1);
+        strncpy(path_temp, path, sizeof(path_temp) - 1);
         fill_pathname_resolve_relative(path, path_temp, final, sizeof(path_temp));
 
         /* Would extension lengths other than 3 ever be used? */
@@ -372,9 +372,9 @@ bool cl_identify(const void *info_data, const unsigned info_size,
   char      path[CL_MAX_PATH];
   unsigned  size = 0;
 
-  strncpy(path, info_path, sizeof(path));
-  strncpy(extension, path_get_extension(path), sizeof(extension));
-  strncpy(extension, string_to_upper(extension), sizeof(extension));
+  strncpy(path, info_path, sizeof(path) - 1);
+  strncpy(extension, path_get_extension(path), sizeof(extension) - 1);
+  strncpy(extension, string_to_upper(extension), sizeof(extension) - 1);
 
   /*
     Hashing GC or Wii discs uses a background task that waits until the

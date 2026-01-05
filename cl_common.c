@@ -492,6 +492,7 @@ const char *cl_string_compare_type(cl_compare_type compare_type)
     return "increased by";
   case CL_COMPARE_DECREASED:
     return "decreased by";
+  case CL_COMPARE_INVALID:
   case CL_COMPARE_SIZE:
     return "Invalid compare type";
   }
