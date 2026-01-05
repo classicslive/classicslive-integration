@@ -549,4 +549,14 @@ typedef struct cl_memory_t
 #define CL_MB(a) ((cl_addr_t)(a) << 20)
 #define CL_GB(a) ((cl_addr_t)(a) << 30)
 
+#if CL_HOST_PLATFORM == _CL_PLATFORM_LINUX
+  #define CL_FS64 "%li"
+  #define CL_FU64 "%lu"
+  #define CL_FX64 "%lX"
+#else
+  #define CL_FS64 "%lli"
+  #define CL_FU64 "%llu"
+  #define CL_FX64 "%llX"
+#endif
+
 #endif

@@ -1045,8 +1045,8 @@ static cl_error cl_search_step_print(const cl_search_t *search)
   cl_log("------------------------------\n");
   cl_log("Total memory scanned: %.6f MB\n",
     ((double)search->memory_scanned) / (1024.0 * 1024.0));
-  cl_log("Total matched addresses: %llu\n", search->total_matches);
-  cl_log("Total pages allocated: %llu\n", search->total_page_count);
+  cl_log("Total matched addresses: " CL_FU64 "\n", search->total_matches);
+  cl_log("Total pages allocated: " CL_FU64 "\n", search->total_page_count);
   cl_log("Time taken: %.6f seconds\n", search->time_taken);
   cl_log("Estimated memory usage: %.6f MB\n",
     ((double)search->memory_usage) / (1024.0 * 1024.0));

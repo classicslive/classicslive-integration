@@ -47,7 +47,7 @@ static cl_error cl_print_counter_values(char *buffer, unsigned len)
       snprintf(counter_buffer, sizeof(counter_buffer), "&c%u=%f",
                i, counter->floatval.fp);
     else
-      snprintf(counter_buffer, sizeof(counter_buffer), "&c%u=%llu",
+      snprintf(counter_buffer, sizeof(counter_buffer), "&c%u=" CL_FU64,
                i, counter->intval.raw);
 
     /* Check destination buffer can hold it */
@@ -149,18 +149,17 @@ static bool cl_act_post_achievement(cl_action_t *action)
 {
   cl_counter_t ach_id = cl_get_compare_value(action->arguments[0].uintval,
                                              action->arguments[1].uintval);
-#if !CL_HAVE_EDITOR
+#if CL_HAVE_EDITOR
+  cl_message(CL_MSG_INFO, "Editor mode: Achievement " CL_FU64 " unlocked.",
+    ach_id.intval.raw);
+#else
   char data[CL_POST_DATA_SIZE];
 
-  snprintf(data, CL_POST_DATA_SIZE, "ach_id=%llu", ach_id.intval.raw);
+  snprintf(data, CL_POST_DATA_SIZE, "achievement_id=" CL_FU64, ach_id.intval.raw);
   cl_network_post_clint(CL_END_CLINT_ACHIEVEMENT, data, NULL, NULL);
-
+#endif
   /* Clear this action so we don't re-submit the achievement */
   cl_free_action(action);
-#else
-  cl_message(CL_MSG_INFO, "Editor mode: Achievement %lu unlocked.",
-    ach_id.intval.raw);
-#endif
 
   return true;
 }
@@ -186,7 +185,7 @@ static bool cl_act_post_leaderboard(cl_action_t *action)
                                              action->arguments[1].uintval);
   char data[CL_POST_DATA_SIZE];
 
-  snprintf(data, CL_POST_DATA_SIZE, "ldb_id=%llu", ldb_id.intval.raw);
+  snprintf(data, CL_POST_DATA_SIZE, "leaderboard_id=" CL_FU64, ldb_id.intval.raw);
   if (cl_print_counter_values(data, sizeof(data)) != CL_OK)
     cl_message(CL_MSG_ERROR, "Unable to allocate leaderboard data.");
   else
