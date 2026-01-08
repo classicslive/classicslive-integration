@@ -180,6 +180,7 @@ static CL_NETWORK_CB(cl_login_cb)
         CL_JSON_TYPE_BOOLEAN, sizeof(success)))
     {
       cl_log("Malformed JSON output on login.\n%s", response.data);
+      session.state = CL_SESSION_NONE;
       return;
     }
     else if (!success)
@@ -191,6 +192,11 @@ static CL_NETWORK_CB(cl_login_cb)
     if (cl_json_get(session.id, response.data, CL_JSON_KEY_SESSION_ID,
         CL_JSON_TYPE_STRING, sizeof(session.id)))
       session.state = CL_SESSION_LOGGED_IN;
+    else
+    {
+      cl_log("No session ID received on login.\n%s", response.data);
+      session.state = CL_SESSION_NONE;
+    }
   }
 }
 
