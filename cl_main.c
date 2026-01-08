@@ -177,13 +177,16 @@ static CL_NETWORK_CB(cl_login_cb)
     unsigned char success;
 
     if (!cl_json_get(&success, response.data, CL_JSON_KEY_SUCCESS,
-        CL_JSON_TYPE_BOOLEAN, 0))
+        CL_JSON_TYPE_BOOLEAN, sizeof(success)))
     {
       cl_log("Malformed JSON output on login.\n%s", response.data);
       return;
     }
     else if (!success)
+    {
+      session.state = CL_SESSION_NONE;
       return;
+    }
 
     if (cl_json_get(session.id, response.data, CL_JSON_KEY_SESSION_ID,
         CL_JSON_TYPE_STRING, sizeof(session.id)))
