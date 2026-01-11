@@ -5,22 +5,31 @@
 
 #include <stdio.h>
 
-#if CL_HOST_PLATFORM == CL_PLATFORM_LINUX || \
-    CL_HOST_PLATFORM == CL_PLATFORM_MACOS || \
-    CL_HOST_PLATFORM == CL_PLATFORM_ANDROID
+#if CL_HOST_PLATFORM == _CL_PLATFORM_LINUX || \
+    CL_HOST_PLATFORM == _CL_PLATFORM_MACOS || \
+    CL_HOST_PLATFORM == _CL_PLATFORM_ANDROID
 #include <bits/types/struct_timespec.h>
 #endif
 
+#if CL_HAVE_MD5
 #include <lrc_hash.h>
-#include <string/stdstring.h>
+#include <string.h>
+#endif
 
 #if CL_HAVE_FILESYSTEM
-#include <streams/file_stream.h>
-#include <streams/chd_stream.h>
-#include <streams/interface_stream.h>
 #include <file/file_path.h>
 #include <retro_timers.h>
+#include <streams/chd_stream.h>
+#include <streams/file_stream.h>
+#include <streams/interface_stream.h>
 #endif
+
+#define CL_DOLPHIN_SIZE 0x002C
+#define CL_ISO9660_SIZE 0x0800
+#define CL_NCCH_SIZE    0x0200
+#define CL_MAX_PATH     4096
+
+#if CL_HAVE_MD5
 
 typedef struct cl_md5_ctx_t
 {
@@ -31,11 +40,6 @@ typedef struct cl_md5_ctx_t
   bool      free_on_finish;
   char     *md5_final;
 } cl_md5_ctx_t;
-
-#define CL_DOLPHIN_SIZE 0x002C
-#define CL_ISO9660_SIZE 0x0800
-#define CL_NCCH_SIZE    0x0200
-#define CL_MAX_PATH     4096
 
 static void cl_task_md5(struct cl_task_t *task)
 {
@@ -80,6 +84,8 @@ static void cl_push_md5_task(void *data, unsigned size, char *checksum,
 
   cl_abi_thread(task);
 }
+
+#endif
 
 #if CL_HAVE_FILESYSTEM
 /*
@@ -454,7 +460,7 @@ bool cl_identify(const void *info_data, const unsigned info_size,
 
   return true;
 }
-#else
+#elif CL_HAVE_MD5
 bool cl_identify(const void *info_data, const unsigned info_size,
                  const char *info_path, const char *library, char *checksum,
                  CL_TASK_CB_T callback)
@@ -474,6 +480,19 @@ bool cl_identify(const void *info_data, const unsigned info_size,
     }
   }
 
+  return false;
+}
+#else
+bool cl_identify(const void *info_data, const unsigned info_size,
+                 const char *info_path, const char *library, char *checksum,
+                 CL_TASK_CB_T callback)
+{
+  CL_UNUSED(info_data);
+  CL_UNUSED(info_size);
+  CL_UNUSED(info_path);
+  CL_UNUSED(library);
+  CL_UNUSED(checksum);
+  CL_UNUSED(callback);
   return false;
 }
 #endif

@@ -118,7 +118,7 @@ typedef enum
  * Whether or not the Classics Live Editor is included in this implementation.
  * The Classics Live Editor requires a C++ compiler and Qt5.
  */
-#define CL_HAVE_EDITOR false
+#define CL_HAVE_EDITOR 0
 #endif
 
 #ifndef CL_HAVE_FILESYSTEM
@@ -126,7 +126,14 @@ typedef enum
  * Whether or not the filesystem will be accessed in this implementation.
  * If false, only raw data passed in cl_init can be used for indentification.
  */
-#define CL_HAVE_FILESYSTEM false
+#define CL_HAVE_FILESYSTEM 0
+#endif
+
+#ifndef CL_HAVE_MD5
+/**
+ * Whether or not MD5 hashing is available in this implementation.
+ */
+#define CL_HAVE_MD5 1
 #endif
 
 #ifndef CL_HAVE_SSL
@@ -134,7 +141,7 @@ typedef enum
  * Whether or not the networking callbacks in this implementation support HTTPS.
  * This should be assumed true and only changed with caution.
  */
-#define CL_HAVE_SSL true
+#define CL_HAVE_SSL 1
 #endif
 
 #ifndef CL_EXTERNAL_MEMORY
@@ -144,14 +151,14 @@ typedef enum
  * If true, the frontend needs to supply implementations of cl_fe_memory_read
  * and cl_fe_memory_write. See cl_frontend.h.
  */
-#define CL_EXTERNAL_MEMORY false
+#define CL_EXTERNAL_MEMORY 0
 #endif
 
 #ifndef CL_LIBRETRO
 /**
  * Whether or not this implementation is a libretro frontend.
  */
-#define CL_LIBRETRO false
+#define CL_LIBRETRO 0
 #endif
 
 #if CL_EXTERNAL_MEMORY
