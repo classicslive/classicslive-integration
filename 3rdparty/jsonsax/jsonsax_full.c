@@ -3127,6 +3127,7 @@ typedef WriteBufferData* WriteBuffer;
 
 static void WriteBuffer_Reset(WriteBuffer buffer)
 {
+   buffer->bytes[0] = 0;
    buffer->used = 0;
 }
 
