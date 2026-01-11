@@ -283,12 +283,16 @@ cl_error cl_login_and_start(cl_game_identifier_t identifier)
     error = cl_abi_library_name(&library_name);
     if (error)
       return error;
+
     session.identifier = identifier;
-    if (identifier.type == CL_GAMEIDENTIFIER_FILE_HASH)
+
+    if (identifier.type == CL_GAMEIDENTIFIER_FILE_HASH &&
+        identifier.checksum[0] == '\0')
       cl_identify(identifier.data, identifier.size, identifier.filename,
                   library_name, session.identifier.checksum,
                   cl_login_and_start_cb_1);
-    else if (identifier.type == CL_GAMEIDENTIFIER_PRODUCT_CODE)
+    else if (identifier.type == CL_GAMEIDENTIFIER_PRODUCT_CODE ||
+             identifier.type == CL_GAMEIDENTIFIER_FILE_HASH)
       cl_login_internal(cl_login_and_start_cb_2);
     else
       return CL_ERR_PARAMETER_INVALID;
