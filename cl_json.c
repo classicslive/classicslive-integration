@@ -74,6 +74,7 @@ static const cl_json_key_map_t cl_json_key_map[] =
   { CL_JSON_KEY_GAME_ID,        "game_id"        },
   { CL_JSON_KEY_ICON_URL,       "icon_url"       },
   { CL_JSON_KEY_ID,             "id"             },
+  { CL_JSON_KEY_LANGUAGE,       "language"       },
   { CL_JSON_KEY_LEADERBOARDS,   "leaderboards"   },
   { CL_JSON_KEY_MEMORY_NOTE_ID, "memory_note_id" },
   { CL_JSON_KEY_MEMORY_NOTES,   "memory_notes"   },
@@ -85,8 +86,10 @@ static const cl_json_key_map_t cl_json_key_map[] =
   { CL_JSON_KEY_SESSION_ID,     "session_id"     },
   { CL_JSON_KEY_SUCCESS,        "success"        },
   { CL_JSON_KEY_TITLE,          "title"          },
+  { CL_JSON_KEY_TOKEN_CLINT,    "token_clint"    },
   { CL_JSON_KEY_TYPE,           "type"           },
   { CL_JSON_KEY_UNLOCKED,       "unlocked"       },
+  { CL_JSON_KEY_USERNAME,       "username"       },
 
   { CL_JSON_KEY_NONE,           NULL             }
 };
