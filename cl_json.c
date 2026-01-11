@@ -80,6 +80,7 @@ static const cl_json_key_map_t cl_json_key_map[] =
   { CL_JSON_KEY_MEMORY_NOTES,   "memory_notes"   },
   { CL_JSON_KEY_OFFSETS,        "offsets"        },
   { CL_JSON_KEY_ORDER,          "order"          },
+  { CL_JSON_KEY_PASSWORD,       "password"       },
   { CL_JSON_KEY_POINTER_SIZE,   "pointer_size"   },
   { CL_JSON_KEY_REASON,         "reason"         },
   { CL_JSON_KEY_SCRIPT,         "script"         },
