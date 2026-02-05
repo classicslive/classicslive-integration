@@ -101,9 +101,9 @@ cl_error cl_read_16(void *value, const void *src, cl_addr_t offset,
 #endif
   {
 #if defined(_MSC_VER)
-    *((uint16_t*)value) = _byteswap_ushort(tmp);
+    tmp = _byteswap_ushort(tmp);
 #elif defined(__GNUC__) || defined(__clang__)
-    *((uint16_t*)value) = __builtin_bswap16(tmp);
+    tmp = __builtin_bswap16(tmp);
 #else
     tmp = (tmp >> 8) | (tmp << 8);
 #endif
