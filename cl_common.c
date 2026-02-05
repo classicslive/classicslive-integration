@@ -24,7 +24,7 @@ void cl_message(cl_log_level level, const char *format, ...)
   va_list argv;
 
   va_start(argv, format);
-  vsprintf(msg, format, argv);
+  vsnprintf(msg, sizeof(msg), format, argv);
   msg[sizeof(msg) - 1] = '\0';
   cl_abi_display_message(level, msg);
   va_end(argv);
