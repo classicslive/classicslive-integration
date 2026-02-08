@@ -29,9 +29,9 @@ typedef struct cl_pointersearch_t
    uint32_t            result_count;
 } cl_pointersearch_t;
 
-bool cl_pointersearch_free(cl_pointersearch_t *search);
+cl_error cl_pointersearch_free(cl_pointersearch_t *search);
 
-bool cl_pointersearch_init(cl_pointersearch_t *search, cl_addr_t address, 
+cl_error cl_pointersearch_init(cl_pointersearch_t *search, cl_addr_t address,
    uint8_t size, uint8_t passes, uint32_t range, uint32_t max_results);
 
 uint32_t cl_pointersearch_step(cl_pointersearch_t *search, void *value);

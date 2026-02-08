@@ -232,12 +232,12 @@ cl_error cl_read_buffer(void *dst, const void *src, cl_addr_t offset,
   return CL_OK;
 }
 
-bool cl_strto(const char **pos, void *value, unsigned size, bool is_signed)
+cl_error cl_strto(const char **pos, void *value, unsigned size, cl_bool is_signed)
 {
   char *end = NULL;
 
   if (**pos == '\0')
-    return false;
+    return CL_ERR_PARAMETER_INVALID;
 
   switch (size)
   {
@@ -266,11 +266,11 @@ bool cl_strto(const char **pos, void *value, unsigned size, bool is_signed)
       *(uint64_t*)value = (uint64_t)strtoull(*pos, &end, CL_RADIX);
     break;
   default:
-    return false;
+    return CL_ERR_PARAMETER_INVALID;
   }
   *pos = end;
 
-  return true;
+  return CL_OK;
 }
 
 cl_error cl_write_8(const void *value, void *dst, cl_addr_t offset)

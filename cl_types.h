@@ -3,12 +3,16 @@
 
 #include "cl_config.h"
 
-#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <time.h>
 
 #define CL_SESSION_ID_LENGTH 32
+
+typedef unsigned char cl_bool;
+
+#define CL_TRUE 1
+#define CL_FALSE 0
 
 typedef enum
 {
@@ -83,7 +87,7 @@ typedef enum
  */
 #define CL_INTEGRATION_VERSION 1
 
-#define CL_LOGGING true
+#define CL_LOGGING CL_TRUE
 
 /**
  * How often, in seconds, to ping back to the server to update current status.
@@ -95,14 +99,14 @@ typedef enum
  */
 #define CL_RADIX 10
 
-#define CL_SHOW_ERRORS true
+#define CL_SHOW_ERRORS CL_TRUE
 
 /**
  * Format string to print the contents of a buffer representing an MD5 hash.
  */
 #define CL_SNPRINTF_MD5 "%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X"
 
-#define CL_TASK_MUTE true
+#define CL_TASK_MUTE CL_TRUE
 
 /**
  * Used for unit tests to print a descriptive failure message.
@@ -173,7 +177,7 @@ typedef struct
   char icon_url[64];
   unsigned flags;
   unsigned id;
-  bool unlocked;
+  cl_bool unlocked;
 } cl_achievement_t;
 
 typedef struct
@@ -526,7 +530,7 @@ typedef struct cl_memnote_t
 #if CL_HAVE_EDITOR
   /* Metadata for generated human-readable strings in Live Editor */
   cl_memnote_ex_t details;
-  bool edited;
+  cl_bool edited;
 #endif
 } cl_memnote_t;
 

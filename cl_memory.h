@@ -35,10 +35,10 @@ void cl_free_memnote(cl_memnote_t *note);
  * informed via environment callback RETRO_ENVIRONMENT_SET_MEMORY_MAPS.
  * @param descs An array of libretro memory descriptors.
  * @param num_descs The count of elements in descs.
- * @return Whether or not memory banks could be initialized.
+ * @return CL_OK if memory banks could be initialized; error code otherwise.
  */
 struct retro_memory_descriptor;
-bool cl_init_membanks_libretro(const struct retro_memory_descriptor **descs,
+cl_error cl_init_membanks_libretro(const struct retro_memory_descriptor **descs,
                                const unsigned num_descs);
 #endif
 
@@ -48,8 +48,8 @@ bool cl_init_membanks_libretro(const struct retro_memory_descriptor **descs,
  * @param key A memory note key to be looked up automatically.
  * @param flag The memory note flag to check. For example, CL_MEMFLAG_RICH.
  **/
-bool cl_get_memnote_flag(cl_memnote_t *note, uint8_t flag);
-bool cl_get_memnote_flag_from_key(unsigned key, uint8_t flag);
+cl_error cl_get_memnote_flag(cl_memnote_t *note, uint8_t flag);
+cl_error cl_get_memnote_flag_from_key(unsigned key, uint8_t flag);
 
 /**
  * Copies the current value of a memory note into a buffer.
@@ -58,11 +58,11 @@ bool cl_get_memnote_flag_from_key(unsigned key, uint8_t flag);
  * @param key A memory note key to be looked up automatically.
  * @param type The data type of the buffer. For example, CL_MEMTYPE_32BIT.
  **/
-bool cl_get_memnote_value(cl_counter_t *value, cl_memnote_t *note, unsigned type);
-bool cl_get_memnote_value_from_key(cl_counter_t *value, unsigned key, unsigned type);
+cl_error cl_get_memnote_value(cl_counter_t *value, cl_memnote_t *note, unsigned type);
+cl_error cl_get_memnote_value_from_key(cl_counter_t *value, unsigned key, unsigned type);
 
 /* Populate a memory holder with values returned by the web API */
-bool cl_init_memory(const char **pos);
+cl_error cl_init_memory(const char **pos);
 
 /**
  * Reads a value at a virtual memory address into a buffer by reading internal
@@ -130,10 +130,10 @@ void cl_update_memory(void);
  * @param note A pointer to a memory note.
  * @param key The unique key of a memory note.
  * @param value A buffer containing the source value.
- * @return Whether or not the write succeeded.
+ * @return CL_OK if the write succeeded; error code otherwise.
  **/
-bool cl_write_memnote(cl_memnote_t *note, const cl_counter_t *value);
-bool cl_write_memnote_from_key(unsigned key, const cl_counter_t *value);
+cl_error cl_write_memnote(cl_memnote_t *note, const cl_counter_t *value);
+cl_error cl_write_memnote_from_key(unsigned key, const cl_counter_t *value);
 
 /**
  * Looks up a memory note based on its key.

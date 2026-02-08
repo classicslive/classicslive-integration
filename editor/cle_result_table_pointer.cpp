@@ -40,7 +40,10 @@ CleResultTablePointer::CleResultTablePointer(QWidget *parent, uint32_t address,
    connect(this, SIGNAL(requestPointerSearch(cl_addr_t)),
       parent, SLOT(requestPointerSearch(cl_addr_t)));
 
-   cl_pointersearch_init(&m_Search, address, size, passes, range, max_results);
+   if (cl_pointersearch_init(&m_Search, address, size, passes, range, max_results) != CL_OK)
+   {
+      cl_log("Failed to initialize pointer search for address %08X\n", address);
+   }
    rebuild();
 }
 

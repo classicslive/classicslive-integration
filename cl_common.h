@@ -65,6 +65,6 @@ const char *cl_string_error(cl_error error);
 const char *cl_string_platform(cl_platform platform);
 const char *cl_string_value_type(cl_value_type type);
 
-bool cl_strto(const char **pos, void *value, unsigned size, bool is_signed);
+cl_error cl_strto(const char **pos, void *value, unsigned size, cl_bool is_signed);
 
 #endif

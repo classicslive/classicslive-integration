@@ -28,21 +28,21 @@ static cl_error cl_init_session(const char* json)
 
   /* Get game info */
   if (cl_json_get(&session.game_title, json, CL_JSON_KEY_TITLE,
-                  CL_JSON_TYPE_STRING, sizeof(session.game_title)))
+                  CL_JSON_TYPE_STRING, sizeof(session.game_title)) == CL_OK)
     cl_message(CL_MSG_INFO, "Game title: %s", session.game_title);
   if (cl_json_get(&misc, json, CL_JSON_KEY_GAME_ID,
-                  CL_JSON_TYPE_NUMBER, sizeof(misc)))
+                  CL_JSON_TYPE_NUMBER, sizeof(misc)) == CL_OK)
     session.game_id = misc;
 
   /* Get default endianness of memory regions */
   if (cl_json_get(&misc, json, CL_JSON_KEY_ENDIANNESS,
-                  CL_JSON_TYPE_NUMBER, sizeof(misc)))
+                  CL_JSON_TYPE_NUMBER, sizeof(misc)) == CL_OK)
     for (i = 0; i < memory.region_count; i++)
       memory.regions[i].endianness = misc;
 
   /* Get default pointer length of memory regions */
   if (cl_json_get(&misc, json, CL_JSON_KEY_POINTER_SIZE,
-                  CL_JSON_TYPE_NUMBER, sizeof(misc)))
+                  CL_JSON_TYPE_NUMBER, sizeof(misc)) == CL_OK)
     for (i = 0; i < memory.region_count; i++)
       memory.regions[i].pointer_length = misc;
 
@@ -57,9 +57,9 @@ static cl_error cl_init_session(const char* json)
 
   /* Get script */
   iterator = &script_str[0];
-  if (cl_json_get(script_str, json, CL_JSON_KEY_SCRIPT, CL_JSON_TYPE_STRING, sizeof(script_str)))
+  if (cl_json_get(script_str, json, CL_JSON_KEY_SCRIPT, CL_JSON_TYPE_STRING, sizeof(script_str)) == CL_OK)
   {
-    if (!cl_script_init(&iterator))
+    if (cl_script_init(&iterator) != CL_OK)
     {
 #if !CL_HAVE_EDITOR
       cl_message(CL_MSG_ERROR, "Failed to initialize CL script.");
@@ -183,8 +183,8 @@ static CL_NETWORK_CB(cl_login_cb)
   {
     unsigned char success;
 
-    if (!cl_json_get(&success, response.data, CL_JSON_KEY_SUCCESS,
-        CL_JSON_TYPE_BOOLEAN, sizeof(success)))
+    if (cl_json_get(&success, response.data, CL_JSON_KEY_SUCCESS,
+        CL_JSON_TYPE_BOOLEAN, sizeof(success)) != CL_OK)
     {
       cl_log("Malformed JSON output on login.\n%s", response.data);
       session.state = CL_SESSION_NONE;
@@ -197,7 +197,7 @@ static CL_NETWORK_CB(cl_login_cb)
     }
 
     if (cl_json_get(session.id, response.data, CL_JSON_KEY_SESSION_ID,
-        CL_JSON_TYPE_STRING, sizeof(session.id)))
+        CL_JSON_TYPE_STRING, sizeof(session.id)) == CL_OK)
       session.state = CL_SESSION_LOGGED_IN;
     else
     {
@@ -211,7 +211,9 @@ static cl_error cl_login_internal(cl_network_cb_t callback)
 {
   cl_user_t user;
   char post_data[256];
+#if CL_HAVE_EDITOR
   unsigned remaining;
+#endif
 
   /* Retrieve user login info */
   if (cl_abi_user_data(&user, 0) != CL_OK)
@@ -319,10 +321,14 @@ cl_error cl_login_and_start(cl_game_identifier_t identifier)
 
 cl_error cl_run(void)
 {
+  cl_error error;
+
   if (session.state == CL_SESSION_STARTED)
   {
     cl_update_memory();
-    cl_script_update();
+    error = cl_script_update();
+    if (error != CL_OK)
+      return error;
 
     /* Pingback every X seconds to update rich presence */
     if (time(0) >= session.last_status_update + CL_PRESENCE_INTERVAL)

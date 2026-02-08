@@ -58,9 +58,9 @@ typedef enum
  * @param key The key of the value to extract.
  * @param type The type of the value.
  * @param size The size, in bytes, of the buffer to be written into.
- * @return true if the value was successfully extracted; false otherwise.
+ * @return CL_OK if the value was successfully extracted; error code otherwise.
  */
-bool cl_json_get(void *data, const char *json, cl_json_field key,
+cl_error cl_json_get(void *data, const char *json, cl_json_field key,
   cl_json_type type, unsigned size);
 
 /**
@@ -72,9 +72,9 @@ bool cl_json_get(void *data, const char *json, cl_json_field key,
  * @param json The JSON text to parse.
  * @param key The key of the array to extract.
  * @param type The type of elements in the array.
- * @return true if the array was successfully extracted; false otherwise.
+ * @return CL_OK if the array was successfully extracted; error code otherwise.
  */
-bool cl_json_get_array(void **data, unsigned *elements, const char *json,
+cl_error cl_json_get_array(void **data, unsigned *elements, const char *json,
   cl_json_field key, cl_json_type type);
 
 #endif

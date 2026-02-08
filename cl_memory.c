@@ -74,28 +74,28 @@ void cl_memory_free(void)
   memory.regions = NULL;
 }
 
-bool cl_get_memnote_flag(cl_memnote_t *note, uint8_t flag)
+cl_error cl_get_memnote_flag(cl_memnote_t *note, uint8_t flag)
 {
   if (!note)
-    return false;
+    return CL_ERR_PARAMETER_NULL;
   else
-    return (note->flags & (1 << flag)) != 0;
+    return ((note->flags & (1 << flag)) != 0) ? CL_OK : CL_ERR_CLIENT_RUNTIME;
 }
 
-bool cl_get_memnote_flag_from_key(unsigned key, uint8_t flag)
+cl_error cl_get_memnote_flag_from_key(unsigned key, uint8_t flag)
 {
   cl_memnote_t *note = cl_find_memnote(key);
 
   if (!note)
-    return false;
+    return CL_ERR_PARAMETER_NULL;
   else
     return cl_get_memnote_flag(note, flag);
 }
 
-bool cl_get_memnote_value(cl_counter_t *src, cl_memnote_t *note, unsigned type)
+cl_error cl_get_memnote_value(cl_counter_t *src, cl_memnote_t *note, unsigned type)
 {
   if (!src || !note)
-   return false;
+   return CL_ERR_PARAMETER_NULL;
   else
   {
    switch (type)
@@ -110,20 +110,20 @@ bool cl_get_memnote_value(cl_counter_t *src, cl_memnote_t *note, unsigned type)
     *src = note->last_unique;
     break;
    default:
-    return false;
+    return CL_ERR_PARAMETER_INVALID;
    }
 
-   return true;
+   return CL_OK;
   }
 }
 
-bool cl_get_memnote_value_from_key(cl_counter_t *src, unsigned key,
+cl_error cl_get_memnote_value_from_key(cl_counter_t *src, unsigned key,
   unsigned type)
 {
   cl_memnote_t *note = cl_find_memnote(key);
 
   if (!note)
-   return false;
+   return CL_ERR_PARAMETER_NULL;
   else
    return cl_get_memnote_value(src, note, type);
 }
@@ -144,7 +144,7 @@ void cl_sort_memory_regions(cl_memory_region_t *banks, unsigned count)
 }
 
 #if CL_LIBRETRO
-bool cl_init_membanks_libretro(const struct retro_memory_descriptor **descs,
+cl_error cl_init_membanks_libretro(const struct retro_memory_descriptor **descs,
   const unsigned num_descs)
 {
   const struct retro_memory_descriptor *desc;
@@ -199,7 +199,7 @@ bool cl_init_membanks_libretro(const struct retro_memory_descriptor **descs,
            region->size, region->title);
   }
 
-  return true;
+  return CL_OK;
 }
 #endif
 
@@ -473,9 +473,9 @@ cl_error cl_write_memory_value_external(const void *value,
  * reads it into a buffer.
  * @param address The buffer to read the address into.
  * @param note A pointer to the memory note to have its address resolved.
- * @return Whether or not the final address could be inferred from the note.
+ * @return CL_OK if the final address could be inferred from the note; error code otherwise.
  **/
-bool cl_memnote_resolve_ptrs(cl_memnote_t *note)
+static cl_error cl_memnote_resolve_ptrs(cl_memnote_t *note)
 {
   cl_addr_t final_addr = note->address_initial;
   unsigned i;
@@ -483,9 +483,9 @@ bool cl_memnote_resolve_ptrs(cl_memnote_t *note)
   for (i = 0; i < note->pointer_passes; i++)
   {
     const cl_memory_region_t *region = cl_find_memory_region(final_addr);
-    
+
     if (!region)
-      return false;
+      return CL_ERR_PARAMETER_NULL;
     else
     {
       cl_value_type ptr_type;
@@ -502,40 +502,45 @@ bool cl_memnote_resolve_ptrs(cl_memnote_t *note)
         ptr_type = CL_MEMTYPE_INT64;
         break;
       default:
-        return false;
+        return CL_ERR_PARAMETER_INVALID;
       }
       if (cl_read_memory_value(&final_addr, NULL, final_addr,
                                ptr_type) != CL_OK)
-        return false;
+        return CL_ERR_CLIENT_RUNTIME;
 
       final_addr += note->pointer_offsets[i];
     }
   }
   note->address = final_addr;
 
-  return true;
+  return CL_OK;
 }
 
-bool cl_update_memnote(cl_memnote_t *note)
+static cl_error cl_update_memnote(cl_memnote_t *note)
 {
-  if (!note || !cl_memnote_resolve_ptrs(note))
-    return false;
-  else
-  {
-    int64_t new_val = 0;
+  cl_error error;
+  int64_t new_val;
 
-    /* The "previous" value is the value from the previous frame */
-    note->previous = note->current;
+  if (!note)
+    return CL_ERR_PARAMETER_NULL;
 
-    cl_read_memory_value(&new_val, NULL, note->address, note->type);
-    cl_ctr_store(&note->current, &new_val, note->type);
+  error = cl_memnote_resolve_ptrs(note);
+  if (error != CL_OK)
+    return error;
 
-    /* Logic for "last unique" values; the previous value will persist */
-    if (!cl_ctr_equal_exact(&note->previous, &note->current))
-      note->last_unique = note->previous;
+  new_val = 0;
 
-    return true;
-  }
+  /* The "previous" value is the value from the previous frame */
+  note->previous = note->current;
+
+  cl_read_memory_value(&new_val, NULL, note->address, note->type);
+  cl_ctr_store(&note->current, &new_val, note->type);
+
+  /* Logic for "last unique" values; the previous value will persist */
+  if (cl_ctr_equal_exact(&note->previous, &note->current) != CL_OK)
+    note->last_unique = note->previous;
+
+  return CL_OK;
 }
 
 void cl_update_memory(void)
@@ -553,26 +558,28 @@ void cl_update_memory(void)
   }
 }
 
-bool cl_write_memnote(cl_memnote_t *note, const cl_counter_t *value)
+cl_error cl_write_memnote(cl_memnote_t *note, const cl_counter_t *value)
 {
-  if (!note || !value)
-   return false;
-  else
-  {
-    if (cl_memnote_resolve_ptrs(note))
-    {
-      return cl_write_memory_value(cl_ctr_is_float(value) ?
-        (const void *)&value->floatval.fp : (const void *)&value->intval.i64,
-        NULL, note->address, note->type) == CL_OK;
-    }
-  }
+  cl_error error;
 
-  return false;
+  if (!note || !value)
+   return CL_ERR_PARAMETER_NULL;
+
+  error = cl_memnote_resolve_ptrs(note);
+  if (error != CL_OK)
+    return error;
+
+  return cl_write_memory_value(cl_ctr_is_float(value) == CL_OK ?
+    (const void *)&value->floatval.fp : (const void *)&value->intval.i64,
+    NULL, note->address, note->type);
 }
 
-bool cl_write_memnote_from_key(unsigned key, const cl_counter_t *value)
+cl_error cl_write_memnote_from_key(unsigned key, const cl_counter_t *value)
 {
   cl_memnote_t *note = cl_find_memnote(key);
 
-  return note ? cl_write_memnote(note, value) : false;
+  if (!note)
+    return CL_ERR_PARAMETER_NULL;
+  else
+    return cl_write_memnote(note, value);
 }

@@ -49,13 +49,13 @@ typedef struct cl_action_t
   cl_arg_t *arguments;
   unsigned argument_count;
   unsigned executions;
-  bool breakpoint;
-  bool (*function)(struct cl_action_t *action);
-  bool if_type;
+  cl_bool breakpoint;
+  cl_error (*function)(struct cl_action_t *action);
+  cl_bool if_type;
   unsigned indentation;
   cl_action_id type;
 
-  /* TODO: Double-link actions together so the editor can easily insert new lines */ 
+  /* TODO: Double-link actions together so the editor can easily insert new lines */
   struct cl_action_t *prev_action;
   struct cl_action_t *next_action;
 } cl_action_t;
@@ -65,7 +65,7 @@ typedef struct
   cl_action_id id;
 
   /* Whether or not to evaluate the action as a conditional */
-  bool if_type;
+  cl_bool if_type;
 
   /* The minimum number of arguments allowed for this action type */
   unsigned minimum_args;
@@ -77,15 +77,15 @@ typedef struct
   unsigned modulo_after_minimum;
 
   /* The function of the action */
-  bool (*function)(cl_action_t*);
+  cl_error (*function)(cl_action_t*);
 } cl_acttype_t;
 
-bool cl_free_action(cl_action_t *action);
+cl_error cl_free_action(cl_action_t *action);
 
 /* Assign the correct function pointer for the type of action */
-bool cl_init_action(cl_action_t *action);
+cl_error cl_init_action(cl_action_t *action);
 
-/* Run the function and return whether it succeeded. */
-bool cl_process_action(cl_action_t *action);
+/* Run the function and return CL_OK if succeeded. */
+cl_error cl_process_action(cl_action_t *action);
 
 #endif
