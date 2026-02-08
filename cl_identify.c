@@ -353,7 +353,8 @@ bool cl_identify_m3u(char *path, char *extension)
     {
       str[i] = '\0';
       fill_pathname_resolve_relative(path, path, str, CL_MAX_PATH);
-      strcpy(extension, path_get_extension(path));
+      strncpy(extension, path_get_extension(path), sizeof(extension) - 1);
+      extension[sizeof(extension) - 1] = '\0';
       string_to_upper(extension);
       cl_log("First item in M3U playlist: %s (%s)\n", path, extension);
       free(str);

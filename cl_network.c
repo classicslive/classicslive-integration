@@ -53,7 +53,7 @@ static char *cl_build_generic_post_data(void)
             return NULL;
         }
 
-        strcat(buf, temp);
+        strncat(buf, temp, bufsize - strlen(buf) - 1);
       }
     }
   }

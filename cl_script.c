@@ -198,7 +198,7 @@ void cl_script_break(bool fatal, const char *format, ...)
   script.error_fatal = fatal;
 
   va_start(args, format);
-  vsprintf(script.error_msg, format, args);
+  vsnprintf(script.error_msg, sizeof(script.error_msg), format, args);
   va_end(args);
 
   /*

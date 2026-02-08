@@ -108,6 +108,7 @@ cl_error cl_start(cl_game_identifier_t identifier)
     char post_data[CL_POST_DATA_SIZE];
     const char *library_name;
     cl_error error;
+    unsigned remaining;
 
     error = cl_abi_library_name(&library_name);
     if (error)
@@ -128,8 +129,10 @@ cl_error cl_start(cl_game_identifier_t identifier)
     {
       if (strlen(identifier.checksum) == 32)
       {
-        strcat(post_data, "&md5=");
-        strcat(post_data, identifier.checksum);
+        remaining = sizeof(post_data) - strlen(post_data) - 1;
+        strncat(post_data, "&md5=", remaining);
+        remaining = sizeof(post_data) - strlen(post_data) - 1;
+        strncat(post_data, identifier.checksum, remaining);
       }
       else
       {
@@ -143,14 +146,18 @@ cl_error cl_start(cl_game_identifier_t identifier)
 
       if (strlen(identifier.product) > 0)
       {
-        strcat(post_data, "&product=");
-        strcat(post_data, identifier.product);
+        remaining = sizeof(post_data) - strlen(post_data) - 1;
+        strncat(post_data, "&product=", remaining);
+        remaining = sizeof(post_data) - strlen(post_data) - 1;
+        strncat(post_data, identifier.product, remaining);
         success = 1;
       }
       if (strlen(identifier.version) > 0)
       {
-        strcat(post_data, "&version=");
-        strcat(post_data, identifier.version);
+        remaining = sizeof(post_data) - strlen(post_data) - 1;
+        strncat(post_data, "&version=", remaining);
+        remaining = sizeof(post_data) - strlen(post_data) - 1;
+        strncat(post_data, identifier.version, remaining);
         success = 1;
       }
       if (!success)
@@ -204,6 +211,7 @@ static cl_error cl_login_internal(cl_network_cb_t callback)
 {
   cl_user_t user;
   char post_data[256];
+  unsigned remaining;
 
   /* Retrieve user login info */
   if (cl_abi_user_data(&user, 0) != CL_OK)
@@ -229,7 +237,8 @@ static cl_error cl_login_internal(cl_network_cb_t callback)
 
   /* Append editor flag if available */
 #if CL_HAVE_EDITOR
-  strcat(post_data, "&editor=true");
+  remaining = sizeof(post_data) - strlen(post_data) - 1;
+  strncat(post_data, "&editor=true", remaining);
 #endif
 
   session.state = CL_SESSION_LOGGING_IN;

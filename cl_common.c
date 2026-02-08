@@ -5,14 +5,13 @@
 #endif
 
 #include <stdarg.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
 #ifdef _MSC_VER
 #include <intrin.h>
 #endif
-
-#include <stdint.h>
 
 #ifdef __GNUC__
 __attribute__((__format__ (__printf__, 2, 0)))
