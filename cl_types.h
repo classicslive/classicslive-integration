@@ -3,7 +3,6 @@
 
 #include "cl_config.h"
 
-#include <stdint.h>
 #include <stdlib.h>
 #include <time.h>
 
@@ -13,6 +12,14 @@ typedef unsigned char cl_bool;
 
 #define CL_TRUE 1
 #define CL_FALSE 0
+
+#if CL_HOST_PLATFORM == _CL_PLATFORM_LINUX
+  typedef signed long cl_int64;
+  typedef unsigned long cl_uint64;
+#else
+  typedef signed long long cl_int64;
+  typedef unsigned long long cl_uint64;
+#endif
 
 typedef enum
 {
@@ -205,9 +212,9 @@ typedef struct
 
 typedef union
 {
-  int64_t intval;
+  cl_int64 intval;
   double floatval;
-  uint64_t uintval;
+  cl_uint64 uintval;
 } cl_arg_t;
 
 typedef enum
@@ -380,27 +387,27 @@ typedef struct
   char language[8];
 } cl_user_t;
 
-/** A virtual address for the emulated system. */
-typedef uintptr_t cl_addr_t;
 #if CL_HOST_BITNESS == _CL_BITNESS_32
   #define CL_ADDRF "%08X"
   #define CL_SIZEF "%u"
+  typedef unsigned int cl_addr_t;
 #else
   #define CL_ADDRF "%016lX"
   #define CL_SIZEF "%lu"
+  typedef unsigned long cl_addr_t;
 #endif
 
 typedef struct cl_counter_t
 {
   union
   {
-    int64_t i64;
-    uint64_t raw;
+    cl_int64 i64;
+    cl_uint64 raw;
   } intval;
   union
   {
     double fp;
-    uint64_t raw;
+    cl_uint64 raw;
   } floatval;
   cl_value_type type;
 } cl_counter_t;

@@ -3,6 +3,7 @@
 #include "cl_memory.h"
 
 #include <math.h>
+#include <stdint.h>
 #include <string.h>
 
 #define CL_CTR_EPSILON 0.005
@@ -44,7 +45,7 @@ cl_error cl_ctr_store(cl_counter_t *counter, const void *src, cl_value_type type
 }
 
 /** @todo Make sure the commented lines still work */
-cl_error cl_ctr_store_int(cl_counter_t *counter, int64_t value)
+cl_error cl_ctr_store_int(cl_counter_t *counter, cl_int64 value)
 {
   counter->intval.i64 = value;
   counter->floatval.fp = (double)value;
@@ -55,7 +56,7 @@ cl_error cl_ctr_store_int(cl_counter_t *counter, int64_t value)
 
 cl_error cl_ctr_store_float(cl_counter_t *counter, double value)
 {
-  counter->intval.i64 = (int64_t)value;
+  counter->intval.i64 = (cl_int64)value;
   counter->floatval.fp = value;
   counter->type = CL_MEMTYPE_DOUBLE;
 
@@ -111,7 +112,7 @@ cl_bool cl_ctr_greater_or_equal(const cl_counter_t *left, const cl_counter_t *ri
 
 cl_error cl_ctr_and(cl_counter_t *counter, const cl_counter_t *value)
 {
-  uint64_t temp_src;
+  cl_uint64 temp_src;
 
   if (cl_ctr_is_float(value))
     temp_src = value->floatval.raw;
@@ -120,7 +121,7 @@ cl_error cl_ctr_and(cl_counter_t *counter, const cl_counter_t *value)
 
   if (cl_ctr_is_float(counter))
   {
-    uint64_t temp = counter->floatval.raw & temp_src;
+    cl_uint64 temp = counter->floatval.raw & temp_src;
     double temp_fp;
 
     memcpy(&temp_fp, &temp, sizeof(temp_fp));
@@ -133,7 +134,7 @@ cl_error cl_ctr_and(cl_counter_t *counter, const cl_counter_t *value)
 
 cl_error cl_ctr_or(cl_counter_t *counter, const cl_counter_t *value)
 {
-  uint64_t temp_src;
+  cl_uint64 temp_src;
 
   if (cl_ctr_is_float(value))
     temp_src = value->floatval.raw;
@@ -142,7 +143,7 @@ cl_error cl_ctr_or(cl_counter_t *counter, const cl_counter_t *value)
 
   if (cl_ctr_is_float(counter))
   {
-    uint64_t temp = counter->floatval.raw | temp_src;
+    cl_uint64 temp = counter->floatval.raw | temp_src;
     double temp_fp;
 
     memcpy(&temp_fp, &temp, sizeof(temp_fp));
@@ -155,7 +156,7 @@ cl_error cl_ctr_or(cl_counter_t *counter, const cl_counter_t *value)
 
 cl_error cl_ctr_xor(cl_counter_t *counter, const cl_counter_t *value)
 {
-  uint64_t temp_src;
+  cl_uint64 temp_src;
 
   if (cl_ctr_is_float(value))
     temp_src = value->floatval.raw;
@@ -164,7 +165,7 @@ cl_error cl_ctr_xor(cl_counter_t *counter, const cl_counter_t *value)
 
   if (cl_ctr_is_float(counter))
   {
-    uint64_t temp = counter->floatval.raw ^ temp_src;
+    cl_uint64 temp = counter->floatval.raw ^ temp_src;
     double temp_fp;
 
     memcpy(&temp_fp, &temp, sizeof(temp_fp));

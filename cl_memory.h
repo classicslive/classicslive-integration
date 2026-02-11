@@ -3,9 +3,16 @@
 
 #include "cl_common.h"
 
-/* Memnotes marked with this are submitted to the server on every request,
-   as well as on timed intervals to retrieve a play status string. */
-#define CL_MEMFLAG_RICH 0
+typedef enum
+{
+  /**
+   * Memory notes marked with this are submitted to the server on every
+   * request, as well as on timed intervals to retrieve a status string.
+   */
+  CL_MEMFLAG_RICH = 0,
+
+  CL_MEMFLAG_SIZE
+} cl_memnote_flag;
 
 #include "cl_config.h"
 #include "cl_counter.h"
@@ -48,18 +55,20 @@ cl_error cl_init_membanks_libretro(const struct retro_memory_descriptor **descs,
  * @param key A memory note key to be looked up automatically.
  * @param flag The memory note flag to check. For example, CL_MEMFLAG_RICH.
  **/
-cl_error cl_get_memnote_flag(cl_memnote_t *note, uint8_t flag);
-cl_error cl_get_memnote_flag_from_key(unsigned key, uint8_t flag);
+cl_error cl_get_memnote_flag(cl_memnote_t *note, cl_memnote_flag flag);
+cl_error cl_get_memnote_flag_from_key(unsigned key, cl_memnote_flag flag);
 
 /**
  * Copies the current value of a memory note into a buffer.
  * @param value A buffer for the value to be copied into. Should not be NULL.
  * @param note A pointer to a memory note.
  * @param key A memory note key to be looked up automatically.
- * @param type The data type of the buffer. For example, CL_MEMTYPE_32BIT.
+ * @param type The source type of the buffer. For example, CL_SRC_CURRENT_RAM.
  **/
-cl_error cl_get_memnote_value(cl_counter_t *value, cl_memnote_t *note, unsigned type);
-cl_error cl_get_memnote_value_from_key(cl_counter_t *value, unsigned key, unsigned type);
+cl_error cl_get_memnote_value(cl_counter_t *value, cl_memnote_t *note,
+  cl_src_t type);
+cl_error cl_get_memnote_value_from_key(cl_counter_t *value, unsigned key,
+  cl_src_t type);
 
 /* Populate a memory holder with values returned by the web API */
 cl_error cl_init_memory(const char **pos);

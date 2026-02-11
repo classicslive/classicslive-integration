@@ -12,7 +12,7 @@ cl_error cl_ctr_store(cl_counter_t *counter, const void *src, cl_value_type type
 /**
  * Stores an integer value into a counter. Changes counter type to int.
  */
-cl_error cl_ctr_store_int(cl_counter_t *counter, int64_t value);
+cl_error cl_ctr_store_int(cl_counter_t *counter, cl_int64 value);
 
 /**
  * Stores a floating point value into a counter. Changes counter type to float.

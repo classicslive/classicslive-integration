@@ -74,7 +74,7 @@ void cl_memory_free(void)
   memory.regions = NULL;
 }
 
-cl_error cl_get_memnote_flag(cl_memnote_t *note, uint8_t flag)
+cl_error cl_get_memnote_flag(cl_memnote_t *note, cl_memnote_flag flag)
 {
   if (!note)
     return CL_ERR_PARAMETER_NULL;
@@ -82,7 +82,7 @@ cl_error cl_get_memnote_flag(cl_memnote_t *note, uint8_t flag)
     return ((note->flags & (1 << flag)) != 0) ? CL_OK : CL_ERR_CLIENT_RUNTIME;
 }
 
-cl_error cl_get_memnote_flag_from_key(unsigned key, uint8_t flag)
+cl_error cl_get_memnote_flag_from_key(unsigned key, cl_memnote_flag flag)
 {
   cl_memnote_t *note = cl_find_memnote(key);
 
@@ -92,7 +92,8 @@ cl_error cl_get_memnote_flag_from_key(unsigned key, uint8_t flag)
     return cl_get_memnote_flag(note, flag);
 }
 
-cl_error cl_get_memnote_value(cl_counter_t *src, cl_memnote_t *note, unsigned type)
+cl_error cl_get_memnote_value(cl_counter_t *src, cl_memnote_t *note,
+  cl_src_t type)
 {
   if (!src || !note)
    return CL_ERR_PARAMETER_NULL;
@@ -118,7 +119,7 @@ cl_error cl_get_memnote_value(cl_counter_t *src, cl_memnote_t *note, unsigned ty
 }
 
 cl_error cl_get_memnote_value_from_key(cl_counter_t *src, unsigned key,
-  unsigned type)
+  cl_src_t type)
 {
   cl_memnote_t *note = cl_find_memnote(key);
 
@@ -519,7 +520,7 @@ static cl_error cl_memnote_resolve_ptrs(cl_memnote_t *note)
 static cl_error cl_update_memnote(cl_memnote_t *note)
 {
   cl_error error;
-  int64_t new_val;
+  cl_int64 new_val;
 
   if (!note)
     return CL_ERR_PARAMETER_NULL;

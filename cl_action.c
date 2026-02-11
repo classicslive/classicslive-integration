@@ -71,7 +71,7 @@ static cl_error cl_print_counter_values(char *buffer, unsigned len)
  *   a memory note or counter index, or a memory address.
  * @return A mutable counter, or return CL_CTR_INVALID if unavailable.
  **/
-static cl_counter_t cl_get_compare_value(cl_src_t source, int64_t offset)
+static cl_counter_t cl_get_compare_value(cl_src_t source, cl_int64 offset)
 {
   cl_counter_t counter;
 
@@ -123,7 +123,7 @@ static cl_counter_t cl_get_compare_value(cl_src_t source, int64_t offset)
  * @param offset An address or index relevant to the source type.
  * @return A mutable counter, or NULL if unavailable.
  **/
-static cl_counter_t *cl_get_mutable_value(cl_src_t source, int64_t offset)
+static cl_counter_t *cl_get_mutable_value(cl_src_t source, cl_int64 offset)
 {
   switch (source)
   {

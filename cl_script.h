@@ -20,12 +20,12 @@ typedef enum
 typedef struct cl_page_t
 {
   cl_action_t *actions;
-  unsigned     action_count;
+  unsigned action_count;
 
   /* Temporary values (bitflags, counters) we can use for logic */
   cl_counter_t counters[CL_COUNTERS_SIZE];
 
-  uint32_t     flags;
+  unsigned flags;
 } cl_page_t;
 
 typedef struct cl_script_t
