@@ -13,8 +13,8 @@ class CleResultTablePointer : public CleResultTable
     Q_OBJECT
 
 public:
-  CleResultTablePointer(QWidget *parent, uint32_t address, uint8_t size,
-    uint8_t passes, uint32_t range, uint32_t max_results);
+  CleResultTablePointer(QWidget *parent, cl_addr_t address, cl_value_type value_type,
+    unsigned passes, cl_addr_t range, cl_addr_t max_results);
   ~CleResultTablePointer() override;
 
   cl_addr_t getClickedResultAddress() override;
@@ -47,9 +47,9 @@ signals:
   void requestRemove(uint32_t index);
 
 private:
-  uint8_t m_ColAddress;
-  uint8_t m_ColValuePrev;
-  uint8_t m_ColValueCurr;
+  unsigned m_ColAddress;
+  unsigned m_ColValuePrev;
+  unsigned m_ColValueCurr;
   cl_pointersearch_t m_Search;
 };
 

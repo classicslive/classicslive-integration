@@ -7,7 +7,7 @@
 #include <math.h>
 #include <string.h>
 
-static cl_error compare_to_nothing(uint32_t previous, uint32_t current, uint8_t type)
+static cl_error compare_to_nothing(cl_addr_t previous, cl_addr_t current, cl_compare_type type)
 {
   switch (type)
   {
@@ -26,7 +26,7 @@ static cl_error compare_to_nothing(uint32_t previous, uint32_t current, uint8_t 
   return CL_ERR_PARAMETER_INVALID;
 }
 
-static cl_error compare_to_nothing_float(uint32_t previous, uint32_t current, uint8_t type)
+static cl_error compare_to_nothing_float(cl_addr_t previous, cl_addr_t current, cl_compare_type type)
 {
   float fprevious, fcurrent;
 
@@ -51,7 +51,7 @@ static cl_error compare_to_nothing_float(uint32_t previous, uint32_t current, ui
   return CL_ERR_PARAMETER_INVALID;
 }
 
-static cl_error compare_to_value(uint32_t previous, uint32_t current, uint8_t type, uint32_t value)
+static cl_error compare_to_value(cl_addr_t previous, cl_addr_t current, cl_compare_type type, cl_addr_t value)
 {
   switch (type)
   {
@@ -72,7 +72,7 @@ static cl_error compare_to_value(uint32_t previous, uint32_t current, uint8_t ty
   return CL_ERR_PARAMETER_INVALID;
 }
 
-static cl_error compare_to_value_float(uint32_t previous, uint32_t current, uint8_t type,
+static cl_error compare_to_value_float(cl_addr_t previous, cl_addr_t current, cl_compare_type type,
   float value)
 {
   float fprevious, fcurrent;
@@ -117,8 +117,8 @@ static cl_error compare_to_value_float(uint32_t previous, uint32_t current, uint
   return CL_ERR_PARAMETER_INVALID;
 }
 
-static cl_error resolve_pointerresult(cl_addr_t *final_address, const cl_pointerresult_t *result,
-  const uint8_t passes)
+static cl_error resolve_pointerresult(cl_addr_t *final_address, const cl_pointersearch_result_t *result,
+  const unsigned passes)
 {
   cl_addr_t address = result->address_initial;
   unsigned i;
@@ -153,21 +153,21 @@ cl_error cl_pointersearch_free(cl_pointersearch_t *search)
   }
 }
 
-static cl_error add_pass(cl_pointersearch_t* search, uint32_t range, uint32_t max_results)
+static cl_error add_pass(cl_pointersearch_t* search)
 {
   cl_memory_region_t *region;
-  cl_pointerresult_t *result;
-  uint32_t matches, target, value;
-  uint32_t i, j, k, l;
+  cl_pointersearch_result_t *result;
+  cl_addr_t matches, target, value;
+  unsigned i, j, k, l;
 
-  cl_pointerresult_t* new_results = (cl_pointerresult_t*)calloc(
-    max_results, sizeof(cl_pointerresult_t));
+  cl_pointersearch_result_t* new_results = (cl_pointersearch_result_t*)calloc(
+    search->max_results, sizeof(cl_pointersearch_result_t));
   matches = 0;
   search->passes += 1;
 
   for (i = 0; i < search->result_count; i++)
   {
-    cl_pointerresult_t *next_result = &search->results[i];
+    cl_pointersearch_result_t *next_result = &search->results[i];
 
     for (j = 0; j < memory.region_count; j++)
     {
@@ -182,7 +182,7 @@ static cl_error add_pass(cl_pointersearch_t* search, uint32_t range, uint32_t ma
         cl_value_type ptr_type = cl_pointer_type(region->pointer_length);
         cl_read_memory_value_internal(&value, region, k, ptr_type);
 
-        if (value <= target && value >= target - range)
+        if (value <= target && value >= target - search->range)
         {
           result = &new_results[matches];
 
@@ -197,9 +197,9 @@ static cl_error add_pass(cl_pointersearch_t* search, uint32_t range, uint32_t ma
         }
 
         /* Back out if we have too many results */
-        if (matches == max_results)
+        if (matches == search->max_results)
         {
-          cl_log("Search reached maximum count of %u.\n", max_results);
+          cl_log("Search reached maximum count of %llu.\n", (unsigned long long)search->max_results);
           goto end;
         }
       }
@@ -214,34 +214,35 @@ static cl_error add_pass(cl_pointersearch_t* search, uint32_t range, uint32_t ma
 }
 
 cl_error cl_pointersearch_init(cl_pointersearch_t *search,
-  cl_addr_t address, uint8_t val_type, uint8_t passes, uint32_t range,
-  uint32_t max_results)
+  cl_addr_t address, cl_value_type value_type, unsigned passes, cl_addr_t range,
+  cl_addr_t max_results)
 {
   cl_memory_region_t *region;
-  cl_pointerresult_t *result;
-  uint32_t matches, prev_value, value;
-  uint32_t i, j;
+  cl_pointersearch_result_t *result;
+  cl_addr_t matches, prev_value, value;
+  unsigned i, j;
 
   if (!search || address == 0 || passes == 0)
     return CL_ERR_PARAMETER_INVALID;
 
   /* Is the address we're looking for valid? */
-  if (cl_read_memory_value(&prev_value, NULL, address, val_type) != CL_OK)
+  if (cl_read_memory_value(&prev_value, NULL, address, value_type) != CL_OK)
   {
-    cl_log("Address %08X is invalid for a pointer search.\n", address);
+    cl_log("Address %016llX is invalid for a pointer search.\n", (unsigned long long)address);
     return CL_ERR_PARAMETER_INVALID;
   }
 
     /* Initialize search parameters */
     search->passes          = 1;
     search->range          = range;
+    search->max_results    = max_results;
     search->params.compare_type = CL_COMPARE_EQUAL;
-    search->params.size      = cl_sizeof_memtype(val_type);
-    search->params.value_type  = val_type;
+    search->params.value_size   = cl_sizeof_memtype(value_type);
+    search->params.value_type   = value_type;
 
     /* We create a temporary array of max size and trim it down after */
-    search->results = (cl_pointerresult_t*)calloc(
-      max_results, sizeof(cl_pointerresult_t));
+    search->results = (cl_pointersearch_result_t*)calloc(
+      max_results, sizeof(cl_pointersearch_result_t));
     matches = 0;
 
     /* Do a quick scan to see how many results we start with */
@@ -277,7 +278,8 @@ cl_error cl_pointersearch_init(cl_pointersearch_t *search,
         if (matches == max_results)
         {
           search->result_count = max_results;
-          cl_log("Pointer search for %08X reached maximum result count of %u.\n", address, max_results);
+          cl_log("Pointer search for %016llX reached maximum result count of %llu.\n",
+            (unsigned long long)address, (unsigned long long)max_results);
 
           return CL_OK;
         }
@@ -287,30 +289,31 @@ cl_error cl_pointersearch_init(cl_pointersearch_t *search,
 
     /* We've only done one pass so far. Run any extra passes */
     for (i = passes; i > 1; i--)
-      add_pass(search, range, max_results);
+      add_pass(search);
 
     /* Clear the unneeded memory */
     search->result_count = matches;
-    search->results = (cl_pointerresult_t*)realloc(
-      search->results, matches * sizeof(cl_pointerresult_t));
+    search->results = (cl_pointersearch_result_t*)realloc(
+      search->results, matches * sizeof(cl_pointersearch_result_t));
 #if CL_EXTERNAL_MEMORY
     free(region->base_host);
     region->base_host = NULL;
 #endif
 
-    cl_log("Pointer search for %08X found %u results.\n", address, matches);
+    cl_log("Pointer search for %016llX found %llu results.\n",
+      (unsigned long long)address, (unsigned long long)matches);
 
     return CL_OK;
 }
 
-uint32_t cl_pointersearch_step(cl_pointersearch_t *search, void *value)
+cl_addr_t cl_pointersearch_step(cl_pointersearch_t *search, const void *value)
 {
-  cl_pointerresult_t *result;
+  cl_pointersearch_result_t *result;
   cl_addr_t address;
-  uint32_t matches, final_value, valid_pointers;
+  cl_addr_t matches, final_value, valid_pointers;
   cl_error compare_result;
-  uint8_t cmp_type;
-  uint32_t i;
+  cl_compare_type cmp_type;
+  unsigned i;
 
   if (!search)
     return 0;
@@ -318,7 +321,7 @@ uint32_t cl_pointersearch_step(cl_pointersearch_t *search, void *value)
   cmp_type = search->params.compare_type;
   matches = 0;
   valid_pointers = 0;
-  cl_log("Result count at start: %u\n", search->result_count);
+  cl_log("Result count at start: %llu\n", (unsigned long long)search->result_count);
   for (i = 0; i < search->result_count; i++)
   {
     result  = &search->results[i];
@@ -341,12 +344,12 @@ uint32_t cl_pointersearch_step(cl_pointersearch_t *search, void *value)
       {
         compare_result = search->params.value_type == CL_MEMTYPE_FLOAT ?
           compare_to_value_float(result->value_previous, result->value_current, cmp_type, *((float*)value)) :
-          compare_to_value(result->value_previous, result->value_current, cmp_type, *((uint32_t*)value));
+          compare_to_value(result->value_previous, result->value_current, cmp_type, *((cl_addr_t*)value));
       }
 
       if (compare_result == CL_OK)
       {
-        memcpy(&search->results[matches], result, sizeof(cl_pointerresult_t));
+        memcpy(&search->results[matches], result, sizeof(cl_pointersearch_result_t));
         matches++;
       }
       result->value_previous = result->value_current;
@@ -355,16 +358,17 @@ uint32_t cl_pointersearch_step(cl_pointersearch_t *search, void *value)
   }
   /* All of the still valid results are grouped together, the rest of memory can be cleared */
   search->result_count = matches;
-  search->results = (cl_pointerresult_t*)realloc(search->results, matches * sizeof(cl_pointerresult_t));
-  cl_log("Pointer search now has %u matches across %u valid pointers.\n", matches, valid_pointers);
+  search->results = (cl_pointersearch_result_t*)realloc(search->results, matches * sizeof(cl_pointersearch_result_t));
+  cl_log("Pointer search now has %llu matches across %llu valid pointers.\n",
+    (unsigned long long)matches, (unsigned long long)valid_pointers);
 
   return matches;
 }
 
 void cl_pointersearch_update(cl_pointersearch_t *search)
 {
-  cl_pointerresult_t *result;
-  uint32_t i;
+  cl_pointersearch_result_t *result;
+  unsigned i;
 
   if (!search)
     return;
