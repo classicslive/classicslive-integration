@@ -4,12 +4,6 @@
 #include "cl_config.h"
 #include "cl_memory.h"
 
-#if CL_HOST_PLATFORM == _CL_PLATFORM_LINUX
-  #include <sys/mman.h>
-#elif CL_HOST_PLATFORM == _CL_PLATFORM_WINDOWS
-  #include <windows.h>
-#endif
-
 #include <stdint.h>
 #include <string.h>
 
@@ -29,6 +23,12 @@ typedef union
 #define CL_TARGET(target) ((cl_search_target_impl_t *)&(target))
 
 #if CL_EXTERNAL_MEMORY
+
+#if CL_HOST_PLATFORM == _CL_PLATFORM_LINUX
+  #include <sys/mman.h>
+#elif CL_HOST_PLATFORM == _CL_PLATFORM_WINDOWS
+  #include <windows.h>
+#endif
 
 /**
  * Allocate a chunk of page-aligned memory.
@@ -733,7 +733,6 @@ static cl_search_compare_func_t cl_search_comparison_function(
 
   return NULL;
 }
-
 
 /**
  * Runs a comparison function on the values in a search page.
