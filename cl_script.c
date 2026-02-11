@@ -28,7 +28,6 @@ void cl_script_free(void)
 
   for (i = 0; i < script.page_count; i++)
     cl_page_free(&script.pages[i]);
-  cl_dma_free(script.pages);
   script.pages = NULL;
   script.page_count = 0;
 }

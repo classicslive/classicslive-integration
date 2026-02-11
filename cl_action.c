@@ -17,7 +17,7 @@ static cl_error cl_act_no_process(cl_action_t *action)
 cl_error cl_free_action(cl_action_t *action)
 {
   action->argument_count = 0;
-  cl_free(action->arguments);
+  cl_dma_free(action->arguments);
   action->arguments = NULL;
   action->type = CL_ACTTYPE_NO_PROCESS;
   action->function = cl_act_no_process;
