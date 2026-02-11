@@ -381,6 +381,23 @@ cl_error cl_test(void)
     cl_string_endianness(CL_HOST_ENDIANNESS));
   
   printf("============================================================\n");
+  printf("Performing sizeof int tests...\n");
+  if (sizeof(cl_int64) != 8)
+  {
+    printf("Unexpected sizeof(cl_int64)! Tests cannot continue.\n");
+    return CL_ERR_CLIENT_COMPILE;
+  }
+  else
+    printf("sizeof(cl_int64) test passed!\n");
+  if (sizeof(cl_uint64) != 8)
+  {
+    printf("Unexpected sizeof(cl_uint64)! Tests cannot continue.\n");
+    return CL_ERR_CLIENT_COMPILE;
+  }
+  else
+    printf("sizeof(cl_uint64) test passed!\n");
+
+  printf("============================================================\n");
   printf("Performing basic counter function tests...\n");
   error = cl_ctr_tests();
   if (!error)
