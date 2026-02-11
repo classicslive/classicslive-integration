@@ -16,6 +16,7 @@ SOURCES += \
     $$CL_DIR/cl_common.c \
     $$CL_DIR/cl_config.c \
     $$CL_DIR/cl_counter.c \
+    $$CL_DIR/cl_dma.c \
     $$CL_DIR/cl_identify.c \
     $$CL_DIR/cl_json.c \
     $$CL_DIR/cl_main.c \
@@ -33,6 +34,7 @@ HEADERS += \
     $$CL_DIR/cl_common.h \
     $$CL_DIR/cl_config.h \
     $$CL_DIR/cl_counter.h \
+    $$CL_DIR/cl_dma.h \
     $$CL_DIR/cl_identify.h \
     $$CL_DIR/cl_json.h \
     $$CL_DIR/cl_main.h \

@@ -269,6 +269,7 @@ cl_error cl_ctr_change_type(cl_counter_t *counter, cl_value_type type)
 #if CL_TESTS
 
 #include <stdio.h>
+#include <stdlib.h>
 
 static void cl_ctr_test_add(void)
 {

@@ -3,9 +3,6 @@
 
 #include "cl_config.h"
 
-#include <stdlib.h>
-#include <time.h>
-
 #define CL_SESSION_ID_LENGTH 32
 
 typedef unsigned char cl_bool;
@@ -20,6 +17,8 @@ typedef unsigned char cl_bool;
   typedef signed long long cl_int64;
   typedef unsigned long long cl_uint64;
 #endif
+
+#define CL_NULL 0
 
 typedef enum
 {
@@ -339,7 +338,7 @@ typedef struct cl_session_t
   char generic_post[2048];
   cl_session_flags_t flags;
   char id[CL_SESSION_ID_LENGTH];
-  time_t last_status_update;
+  cl_int64 last_status_update;
 
   cl_session_state state;
 

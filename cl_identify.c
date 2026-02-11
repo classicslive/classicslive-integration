@@ -1,6 +1,8 @@
+#include "cl_identify.h"
+
 #include "cl_abi.h"
 #include "cl_config.h"
-#include "cl_identify.h"
+#include "cl_dma.h"
 #include "cl_memory.h"
 
 #include <stdio.h>
@@ -64,15 +66,15 @@ static void cl_task_md5(struct cl_task_t *task)
 
     cl_log("Content MD5: %.32s\n", state->md5_final);
     if (state->free_on_finish)
-      free(state->data);
+      cl_dma_free(state->data);
   }
 }
 
 static void cl_push_md5_task(void *data, unsigned size, char *checksum,
   cl_bool free_on_finish, CL_TASK_CB_T callback)
 {
-  cl_task_t *task = (cl_task_t*)calloc(1, sizeof(cl_task_t));
-  cl_md5_ctx_t *context = (cl_md5_ctx_t*)calloc(1, sizeof(cl_md5_ctx_t));
+  cl_task_t *task = (cl_task_t*)cl_dma_alloc(sizeof(cl_task_t), CL_TRUE);
+  cl_md5_ctx_t *context = (cl_md5_ctx_t*)cl_dma_alloc(sizeof(cl_md5_ctx_t), CL_TRUE);
 
   context->data = data;
   context->size = size;
@@ -114,7 +116,7 @@ static void cl_task_gcwii(cl_task_t *task)
     {
       uint8_t *buffer;
 
-      buffer = (uint8_t*)malloc(CL_DOLPHIN_SIZE);
+      buffer = (uint8_t*)cl_dma_alloc(CL_DOLPHIN_SIZE, CL_TRUE);
       memcpy(buffer, memory.regions[0].base_host, CL_DOLPHIN_SIZE);
       cl_log("(GC/Wii) Game to be identified: %.8s\n", buffer);
 
@@ -132,8 +134,8 @@ static void cl_task_gcwii(cl_task_t *task)
  */
 static void cl_push_gcwii_task(char *checksum, CL_TASK_CB_T callback)
 {
-  cl_task_t *task = (cl_task_t*)calloc(1, sizeof(cl_task_t));
-  cl_md5_ctx_t *context = (cl_md5_ctx_t*)calloc(1, sizeof(cl_md5_ctx_t));
+  cl_task_t *task = (cl_task_t*)cl_dma_alloc(sizeof(cl_task_t), CL_TRUE);
+  cl_md5_ctx_t *context = (cl_md5_ctx_t*)cl_dma_alloc(sizeof(cl_md5_ctx_t), CL_TRUE);
 
   context->md5_final = checksum;
 
@@ -190,7 +192,7 @@ static uint8_t* cl_identify_iso9660(intfstream_t *stream)
     uint8_t  *buffer;
     unsigned  size, i;
 
-    buffer = (uint8_t*)malloc(CL_ISO9660_SIZE);
+    buffer = (uint8_t*)cl_dma_alloc(CL_ISO9660_SIZE, CL_TRUE);
     size = (unsigned)intfstream_get_size(stream);
 
     /* Seek to the identifier "CD001" */
@@ -210,7 +212,7 @@ static uint8_t* cl_identify_iso9660(intfstream_t *stream)
     }
     /* Not found */
     intfstream_close(stream);
-    free(buffer);
+    cl_dma_free(buffer);
 
     return NULL;
   }
@@ -242,12 +244,12 @@ static uint8_t* cl_identify_ncch(const char *path)
    * and seek backwards 0x0100.
    */
   intfstream_seek(stream, 0x1000, SEEK_SET);
-  data = (uint8_t*)malloc(CL_NCCH_SIZE);
+  data = (uint8_t*)cl_dma_alloc(CL_NCCH_SIZE, CL_TRUE);
   read_bytes = intfstream_read(stream, data, CL_NCCH_SIZE);
   intfstream_close(stream);
 
   if (!read_bytes)
-    free(data);
+    cl_dma_free(data);
   else if (memcmp(&data[0x100], "NCCH", 4))
     cl_message(CL_MSG_ERROR, "Invalid NCCH data.");
   else
@@ -471,7 +473,7 @@ cl_error cl_identify(const void *info_data, const unsigned info_size,
   CL_UNUSED(library);
   if (info_data && info_size > 0)
   {
-    void *data = (uint8_t*)malloc(info_size);
+    void *data = (unsigned char*)cl_dma_alloc(info_size, CL_TRUE);
 
     if (data)
     {

@@ -2,17 +2,19 @@
 
 #include "cl_common.h"
 #include "cl_abi.h"
+#include "cl_dma.h"
 #include "cl_main.h"
 #include "cl_memory.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 static char *cl_build_generic_post_data(void)
 {
   cl_counter_t value;
   unsigned bufsize = 256;
-  char *buf = malloc(bufsize);
+  char *buf = cl_dma_alloc(bufsize, CL_TRUE);
   char temp[128];
   unsigned i;
 

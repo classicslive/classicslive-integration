@@ -1,5 +1,6 @@
 #include "cl_common.h"
 #include "cl_config.h"
+#include "cl_dma.h"
 #include "cl_memory.h"
 
 #if CL_LIBRETRO
@@ -18,7 +19,7 @@ cl_memory_t memory;
 cl_memory_region_t* cl_find_memory_region(cl_addr_t address)
 {
   if (memory.region_count == 0)
-    return NULL;
+    return CL_NULL;
   else if (memory.region_count == 1)
     return &memory.regions[0];
   else
@@ -37,7 +38,7 @@ cl_memory_region_t* cl_find_memory_region(cl_addr_t address)
     }
   }
 
-  return NULL;
+  return CL_NULL;
 }
 
 cl_memnote_t* cl_find_memnote(unsigned key)
@@ -50,7 +51,7 @@ cl_memnote_t* cl_find_memnote(unsigned key)
       return &memory.notes[i];
   }
 
-  return NULL;
+  return CL_NULL;
 }
 
 void cl_free_memnote(cl_memnote_t *note)
@@ -65,13 +66,13 @@ void cl_memory_free(void)
 
   for (i = 0; i < memory.note_count; i++)
     cl_free_memnote(&memory.notes[i]);
-  free(memory.notes);
+  cl_dma_free(memory.notes);
   memory.note_count = 0;
-  memory.notes = NULL;
+  memory.notes = CL_NULL;
 
-  free(memory.regions);
+  cl_dma_free(memory.regions);
   memory.region_count = 0;
-  memory.regions = NULL;
+  memory.regions = CL_NULL;
 }
 
 cl_error cl_get_memnote_flag(cl_memnote_t *note, cl_memnote_flag flag)
@@ -249,7 +250,7 @@ static void cl_memnote_ex_populate_values(cl_memnote_ex_t *ex)
       continue;
 
     *eq = '\0';
-    unsigned val = (unsigned)strtoul(p, NULL, 0);
+    unsigned val = (unsigned)strtoul(p, CL_NULL, 0);
 
     /* Extract title text */
     const char *title = eq + 1;
@@ -337,6 +338,8 @@ cl_error cl_memory_init_notes(void)
   return CL_OK;
 }
 
+#if CL_HAVE_EDITOR
+
 cl_error cl_memory_add_note(const cl_memnote_t *note)
 {
   cl_memnote_t *new_array;
@@ -362,6 +365,8 @@ cl_error cl_memory_add_note(const cl_memnote_t *note)
 
   return CL_OK;
 }
+
+#endif
 
 cl_error cl_read_memory_buffer_internal(void *buffer,
   const cl_memory_region_t *bank, cl_addr_t address, cl_addr_t size)
@@ -440,7 +445,7 @@ cl_error cl_read_memory_buffer_external(void *value,
 {
   if (bank)
     address += bank->base_guest;
-  return cl_abi_external_read_buffer(value, address, size, NULL);
+  return cl_abi_external_read_buffer(value, address, size, CL_NULL);
 }
 
 cl_error cl_read_memory_value_external(void *value,
@@ -456,7 +461,7 @@ cl_error cl_write_memory_buffer_external(const void *value,
 {
   if (bank)
     address += bank->base_guest;
-  return cl_abi_external_write_buffer(value, address, size, NULL);
+  return cl_abi_external_write_buffer(value, address, size, CL_NULL);
 }
 
 cl_error cl_write_memory_value_external(const void *value,
@@ -505,7 +510,7 @@ static cl_error cl_memnote_resolve_ptrs(cl_memnote_t *note)
       default:
         return CL_ERR_PARAMETER_INVALID;
       }
-      if (cl_read_memory_value(&final_addr, NULL, final_addr,
+      if (cl_read_memory_value(&final_addr, CL_NULL, final_addr,
                                ptr_type) != CL_OK)
         return CL_ERR_CLIENT_RUNTIME;
 
@@ -534,7 +539,7 @@ static cl_error cl_update_memnote(cl_memnote_t *note)
   /* The "previous" value is the value from the previous frame */
   note->previous = note->current;
 
-  cl_read_memory_value(&new_val, NULL, note->address, note->type);
+  cl_read_memory_value(&new_val, CL_NULL, note->address, note->type);
   cl_ctr_store(&note->current, &new_val, note->type);
 
   /* Logic for "last unique" values; the previous value will persist */
@@ -572,7 +577,7 @@ cl_error cl_write_memnote(cl_memnote_t *note, const cl_counter_t *value)
 
   return cl_write_memory_value(cl_ctr_is_float(value) == CL_OK ?
     (const void *)&value->floatval.fp : (const void *)&value->intval.i64,
-    NULL, note->address, note->type);
+    CL_NULL, note->address, note->type);
 }
 
 cl_error cl_write_memnote_from_key(unsigned key, const cl_counter_t *value)

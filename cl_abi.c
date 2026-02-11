@@ -1,6 +1,6 @@
 #include "cl_abi.h"
 
-static const cl_abi_t *cl_g_abi = NULL;
+static const cl_abi_t *cl_g_abi = CL_NULL;
 
 cl_error cl_abi_register(const cl_abi_t *abi)
 {

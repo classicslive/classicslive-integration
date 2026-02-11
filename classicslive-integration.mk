@@ -8,6 +8,7 @@ CLASSICS_LIVE_SOURCES_CLASSICSLIVE = \
     $(CLASSICS_LIVE_DIR)/cl_common.c \
     $(CLASSICS_LIVE_DIR)/cl_config.c \
     $(CLASSICS_LIVE_DIR)/cl_counter.c \
+    $(CLASSICS_LIVE_DIR)/cl_dma.c \
     $(CLASSICS_LIVE_DIR)/cl_identify.c \
     $(CLASSICS_LIVE_DIR)/cl_json.c \
     $(CLASSICS_LIVE_DIR)/cl_main.c \

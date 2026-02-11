@@ -1,5 +1,6 @@
 #include "cl_action.h"
 #include "cl_common.h"
+#include "cl_dma.h"
 #include "cl_memory.h"
 #include "cl_network.h"
 #include "cl_script.h"
@@ -16,7 +17,7 @@ static cl_error cl_act_no_process(cl_action_t *action)
 cl_error cl_free_action(cl_action_t *action)
 {
   action->argument_count = 0;
-  free(action->arguments);
+  cl_free(action->arguments);
   action->arguments = NULL;
   action->type = CL_ACTTYPE_NO_PROCESS;
   action->function = cl_act_no_process;

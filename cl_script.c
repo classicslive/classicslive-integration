@@ -1,6 +1,7 @@
 #include "cl_script.h"
 
 #include "cl_abi.h"
+#include "cl_dma.h"
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -15,10 +16,10 @@ static void cl_page_free(cl_page_t *page)
     return;
   for (i = 0; i < page->action_count; i++)
     cl_free_action(&page->actions[i]);
-  free(page->actions);
+  cl_dma_free(page->actions);
   page->actions = NULL;
   page->action_count = 0;
-  free(page);
+  cl_dma_free(page);
 }
 
 void cl_script_free(void)
@@ -27,6 +28,7 @@ void cl_script_free(void)
 
   for (i = 0; i < script.page_count; i++)
     cl_page_free(&script.pages[i]);
+  cl_dma_free(script.pages);
   script.pages = NULL;
   script.page_count = 0;
 }
@@ -39,7 +41,7 @@ static cl_error cl_init_page(const char **pos, cl_page_t *page)
 
   if (cl_strto(pos, &page->action_count, sizeof(page->action_count), CL_FALSE) != CL_OK)
     return CL_ERR_PARAMETER_INVALID;
-  page->actions = (cl_action_t*)calloc(page->action_count, sizeof(cl_action_t));
+  page->actions = (cl_action_t*)cl_dma_alloc(page->action_count * sizeof(cl_action_t), CL_TRUE);
   if (!page->actions)
     return CL_ERR_PARAMETER_NULL;
 
@@ -58,7 +60,7 @@ static cl_error cl_init_page(const char **pos, cl_page_t *page)
       return CL_ERR_CLIENT_RUNTIME;
 
     /* Allocate and initialize action arguments */
-    action->arguments = (cl_arg_t*)calloc(action->argument_count, sizeof(cl_arg_t));
+    action->arguments = (cl_arg_t*)cl_dma_alloc(action->argument_count * sizeof(cl_arg_t), CL_TRUE);
     if (!action->arguments)
       return CL_ERR_PARAMETER_NULL;
     for (j = 0; j < action->argument_count; j++)
@@ -98,7 +100,7 @@ cl_error cl_script_init(const char **pos)
   if (cl_strto(pos, &script.page_count, sizeof(script.page_count), CL_FALSE) != CL_OK)
     return CL_ERR_PARAMETER_INVALID;
 
-  script.pages = (cl_page_t*)calloc(script.page_count, sizeof(cl_page_t));
+  script.pages = (cl_page_t*)cl_dma_alloc(script.page_count * sizeof(cl_page_t), CL_TRUE);
   if (!script.pages)
     return CL_ERR_PARAMETER_NULL;
 
