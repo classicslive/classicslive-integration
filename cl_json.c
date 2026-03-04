@@ -72,7 +72,7 @@ static const cl_json_key_map_t cl_json_key_map[] =
   { CL_JSON_KEY_ENDIANNESS,     "endianness"     },
   { CL_JSON_KEY_FLAGS,          "flags"          },
   { CL_JSON_KEY_GAME_ID,        "game_id"        },
-  { CL_JSON_KEY_ICON_URL,       "icon_url"       },
+  { CL_JSON_KEY_ICON_URL,       "icon"           },
   { CL_JSON_KEY_ID,             "id"             },
   { CL_JSON_KEY_LANGUAGE,       "language"       },
   { CL_JSON_KEY_LEADERBOARDS,   "leaderboards"   },

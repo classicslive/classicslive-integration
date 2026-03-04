@@ -17,6 +17,8 @@ void cle_run(void);
 #include <file/file_path.h>
 #include <string/stdstring.h>
 
+#include <time.h>
+
 cl_session_t session;
 
 static cl_error cl_init_session(const char* json)
@@ -27,12 +29,35 @@ static cl_error cl_init_session(const char* json)
   cl_error error;
 
   /* Get game info */
+  /* Game title */
   if (cl_json_get(&session.game_title, json, CL_JSON_KEY_TITLE,
-                  CL_JSON_TYPE_STRING, sizeof(session.game_title)) == CL_OK)
-    cl_message(CL_MSG_INFO, "Game title: %s", session.game_title);
+                  CL_JSON_TYPE_STRING, sizeof(session.game_title)) != CL_OK)
+    session.game_title[0] = '\0';
+  else
+  {
+    cl_log("Game title: %s", session.game_title);
+    session.game_title[sizeof(session.game_title) - 1] = '\0';
+  }
+
+  /* Game ID */
   if (cl_json_get(&misc, json, CL_JSON_KEY_GAME_ID,
-                  CL_JSON_TYPE_NUMBER, sizeof(misc)) == CL_OK)
+                  CL_JSON_TYPE_NUMBER, sizeof(misc)) != CL_OK)
+    session.game_id = 0;
+  else
+  {
+    cl_log("Game ID: %u", session.game_id);
     session.game_id = misc;
+  }
+
+  /* Game icon URL */
+  if (cl_json_get(&session.icon_url, json, CL_JSON_KEY_ICON_URL,
+                  CL_JSON_TYPE_STRING, sizeof(session.icon_url)) != CL_OK)
+    session.icon_url[0] = '\0';
+  else
+  {
+    cl_log("Game icon URL: %s", session.icon_url);
+    session.icon_url[sizeof(session.icon_url) - 1] = '\0';
+  }
 
   /* Get default endianness of memory regions */
   if (cl_json_get(&misc, json, CL_JSON_KEY_ENDIANNESS,
@@ -326,6 +351,11 @@ cl_error cl_run(void)
   if (session.state == CL_SESSION_STARTED)
   {
     cl_update_memory();
+
+#if CL_HAVE_EDITOR
+    cle_run();
+#endif
+
     error = cl_script_update();
     if (error != CL_OK)
       return error;
@@ -336,9 +366,6 @@ cl_error cl_run(void)
       session.last_status_update = time(0);
       cl_network_post_clint(CL_END_CLINT_PING, NULL, NULL, NULL);
     }
-#if CL_HAVE_EDITOR
-    cle_run();
-#endif
 
     return CL_OK;
   }
