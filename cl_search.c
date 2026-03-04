@@ -5,6 +5,8 @@
 #include "cl_memory.h"
 
 #include <math.h>
+#include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 
 static cl_error compare_to_nothing(cl_addr_t previous, cl_addr_t current, cl_compare_type type)

@@ -5,6 +5,7 @@
 
 #if CL_LIBRETRO
 #include <libretro.h>
+#include <stdio.h>
 #endif
 
 #if CL_HAVE_EDITOR
