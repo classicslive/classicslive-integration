@@ -13,8 +13,6 @@ void cle_init()
 {
   m_Application = new QApplication(app_argc, app_argv);
 
-  m_Application->setStyle(QStyleFactory::create("Fusion"));
-
   QPalette darkPalette;
   darkPalette.setColor(QPalette::Window, QColor(53, 53, 53));
   darkPalette.setColor(QPalette::WindowText, Qt::white);
@@ -30,17 +28,31 @@ void cle_init()
   darkPalette.setColor(QPalette::Highlight, QColor(26, 183, 234));
   darkPalette.setColor(QPalette::HighlightedText, Qt::black);
 
-  m_Application->setPalette(darkPalette);
-  m_Application->setStyleSheet("QToolTip { color: #ffffff; background-color: #2a82da; border: 1px solid white; }");
+  QStyle *fusionStyle = QStyleFactory::create("Fusion");
+  const QString editorSS = "QToolTip { color: #ffffff; background-color: #2a82da; border: 1px solid white; }";
+
+  auto applyEditorTheme = [&](QWidget *w) {
+    w->setStyle(fusionStyle);
+    w->setPalette(darkPalette);
+    w->setStyleSheet(editorSS);
+    for (QWidget *child : w->findChildren<QWidget *>())
+    {
+      child->setStyle(fusionStyle);
+      child->setPalette(darkPalette);
+    }
+  };
 
   m_MemoryInspector = new CleMemoryInspector();
   m_MemoryInspector->show();
+  applyEditorTheme(m_MemoryInspector);
 
   m_MemoryNotes = new CleMemoryNotes(nullptr);
   m_MemoryNotes->show();
+  applyEditorTheme(m_MemoryNotes);
 
   m_ScriptEditor = new CleScriptEditorBlock();
   m_ScriptEditor->show();
+  applyEditorTheme(m_ScriptEditor);
 }
 
 void cle_run()

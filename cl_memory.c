@@ -198,10 +198,6 @@ cl_error cl_init_membanks_libretro(const struct retro_memory_descriptor **descs,
       CL_ENDIAN_BIG : CL_ENDIAN_LITTLE;
     region->flags.bits.read = 1;
     region->flags.bits.write = desc->flags & RETRO_MEMDESC_CONST ? 0 : 1;
-    /**
-     * @todo Is there a commonly used libretro flag for this? Not a huge deal
-     * since this gets overwritten by the server later
-     */
     region->pointer_length = 4;
     region->size = desc->len;
 

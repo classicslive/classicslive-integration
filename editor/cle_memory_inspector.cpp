@@ -11,6 +11,17 @@ extern "C"
    #include "../cl_main.h"
 }
 
+void CleMemoryInspector::applyTheme(QWidget *w)
+{
+  w->setStyle(style());
+  w->setPalette(palette());
+  for (QWidget *child : w->findChildren<QWidget *>())
+  {
+    child->setStyle(style());
+    child->setPalette(palette());
+  }
+}
+
 void CleMemoryInspector::rebuildLayout()
 {
   if (layout())
@@ -27,8 +38,9 @@ void CleMemoryInspector::rebuildLayout()
   m_Layout->addWidget(m_TableStack,      2, 0, 2, 4);
   m_Layout->addWidget(m_HexWidget,       4, 0, 2, 3);
   m_Layout->addWidget(m_Slider,          4, 3, 2, 1);
-  m_Layout->addWidget(m_Status,          6, 0, 1, 3);
-  m_Layout->addWidget(m_NewButton,       6, 3, 1, 1);
+  m_Layout->addWidget(m_RegionTabs,      6, 0, 1, 4);
+  m_Layout->addWidget(m_Status,          7, 0, 1, 3);
+  m_Layout->addWidget(m_NewButton,       7, 3, 1, 1);
   setLayout(m_Layout);
 }
 
@@ -97,15 +109,22 @@ CleMemoryInspector::CleMemoryInspector()
    m_BufferCurrent  = (uint8_t*)malloc(256);
    connect(m_HexWidget, SIGNAL(offsetEdited(cl_addr_t)), 
       this, SLOT(onAddressChanged(cl_addr_t)));
-   connect(m_HexWidget, SIGNAL(valueEdited(cl_addr_t, uint8_t)),
-      this, SLOT(onHexWidgetValueEdited(cl_addr_t, uint8_t)));
+   connect(m_HexWidget, SIGNAL(valueEdited(cl_addr_t, uint64_t, uint8_t)),
+      this, SLOT(onHexWidgetValueEdited(cl_addr_t, uint64_t, uint8_t)));
    connect(m_HexWidget, SIGNAL(requestAddMemoryNote(cl_addr_t)),
       this, SLOT(requestAddMemoryNote(cl_addr_t)));
    connect(m_HexWidget, SIGNAL(requestPointerSearch(cl_addr_t)),
       this, SLOT(requestPointerSearch(cl_addr_t)));
-   m_HexWidget->setByteSwapEnabled(memory.regions[0].endianness == CL_ENDIAN_BIG);
-   m_HexWidget->setOffset(memory.regions[0].base_guest);
-   m_HexWidget->setRange(memory.regions[0].base_guest, memory.regions[0].base_guest + memory.regions[0].size + 1);
+   if (memory.region_count > 0)
+   {
+     /* Block signals: m_RegionTabs doesn't exist yet, so offsetEdited must
+        not fire until after the constructor finishes. */
+     m_HexWidget->blockSignals(true);
+     m_HexWidget->setByteSwapEnabled(memory.regions[0].endianness == CL_ENDIAN_BIG);
+     m_HexWidget->setOffset(memory.regions[0].base_guest);
+     m_HexWidget->setRange(memory.regions[0].base_guest, memory.regions[0].base_guest + memory.regions[0].size + 1);
+     m_HexWidget->blockSignals(false);
+   }
 
   /* Initialize status footer */
   m_Status = new QLabel(tr("Matches: 0 | Scanned: 0 MB | Scan time: 0.00 s"));
@@ -126,12 +145,18 @@ CleMemoryInspector::CleMemoryInspector()
    m_TableStack = new QStackedWidget(this);
    m_TableStack->addWidget(m_CurrentSearch->table());
 
+   m_RegionTabs = new QTabBar();
+   m_RegionTabs->setExpanding(false);
+   m_RegionTabs->hide();
+   connect(m_RegionTabs, &QTabBar::currentChanged,
+           this, &CleMemoryInspector::onChangeRegionTab);
+
    rebuildLayout();
    setWindowTitle(tr("Live Editor"));
 
    /* Initialize other variables */
    m_AddressOffset = 0;
-   m_CurrentMembank = &memory.regions[0];
+   m_CurrentMembank = (memory.region_count > 0) ? &memory.regions[0] : nullptr;
    m_TabCount = 1;
    m_MemoryNoteSubmit = nullptr;
 
@@ -158,10 +183,23 @@ void CleMemoryInspector::onAddressChanged(cl_addr_t address)
   if (m_CurrentMembank != new_bank)
   {
     m_CurrentMembank = new_bank;
+    m_CurrentRegionSize = new_bank->size;
     m_HexWidget->setRange(new_bank->base_guest,
                           new_bank->base_guest + new_bank->size + 1);
     m_Slider->setMinimum(0);
     m_Slider->setMaximum(new_bank->size - 256);
+
+    /* Sync the region tab to the newly active bank */
+    for (unsigned i = 0; i < memory.region_count; i++)
+    {
+      if (&memory.regions[i] == new_bank)
+      {
+        m_RegionTabs->blockSignals(true);
+        m_RegionTabs->setCurrentIndex(static_cast<int>(i));
+        m_RegionTabs->blockSignals(false);
+        break;
+      }
+    }
   }
 
   m_AddressOffset = address - m_CurrentMembank->base_guest;
@@ -219,6 +257,7 @@ void CleMemoryInspector::onChangeTab(void)
     m_Searches[new_tab]->setValueType(getCurrentSizeType());
     m_SizeDropdown->setDisabled(false);
     m_TableStack->addWidget(m_Searches[new_tab]->table());
+    applyTheme(m_Searches[new_tab]->table());
   }
   m_CurrentSearch = m_Searches[new_tab];
   m_CurrentSearch->rebuild();
@@ -244,6 +283,7 @@ void CleMemoryInspector::onClickNew()
 
     m_TableStack->insertWidget(m_Tabs->currentIndex(), m_CurrentSearch->table());
     m_TableStack->setCurrentWidget(m_CurrentSearch->table());
+    applyTheme(m_CurrentSearch->table());
     m_Tabs->setTabTextColor(m_Tabs->currentIndex(), Qt::white);
 
     m_CurrentSearch->setCompareType(getCurrentCompareType());
@@ -275,9 +315,9 @@ void CleMemoryInspector::onClickSearch()
   }
 }
 
-void CleMemoryInspector::onHexWidgetValueEdited(cl_addr_t address, uint8_t value)
+void CleMemoryInspector::onHexWidgetValueEdited(cl_addr_t address, uint64_t value, uint8_t size)
 {
-  cl_write_memory_value(&value, NULL, address, CL_MEMTYPE_UINT8);
+  cl_write_memory_value(&value, NULL, address, cl_pointer_type(size));
 }
 
 void CleMemoryInspector::onClickTabRename(void)
@@ -323,7 +363,7 @@ void CleMemoryInspector::onTargetChanged(const QString& target)
     m_TextEntry->setStyleSheet("color: gray;");
   }
   else
-    m_TextEntry->setStyleSheet("color: white;");
+    m_TextEntry->setStyleSheet("");
 }
 
 void CleMemoryInspector::requestAddMemoryNote(cl_memnote_t note)
@@ -373,6 +413,7 @@ void CleMemoryInspector::requestPointerSearch(cl_addr_t address)
 
   m_TabCount++;
   m_TableStack->addWidget(m_Searches[m_TabCount-1]->table());
+  applyTheme(m_Searches[m_TabCount-1]->table());
   m_Tabs->setCurrentIndex(m_TabCount - 1);
   m_Tabs->setTabText(m_Tabs->currentIndex(), tr("Pointers"));
   m_Tabs->setTabTextColor(m_Tabs->currentIndex(), QColor(200, 180, 255));
@@ -380,8 +421,63 @@ void CleMemoryInspector::requestPointerSearch(cl_addr_t address)
   m_CurrentSearch = m_Searches[m_TabCount - 1];
 }
 
+void CleMemoryInspector::onChangeRegionTab(int index)
+{
+  if (index < 0 || (unsigned)index >= memory.region_count)
+    return;
+
+  cl_memory_region_t *region = &memory.regions[index];
+  m_CurrentMembank = region;
+  m_CurrentRegionSize = region->size;
+  m_HexWidget->setByteSwapEnabled(region->endianness == CL_ENDIAN_BIG);
+  m_HexWidget->setRange(region->base_guest, region->base_guest + region->size + 1);
+  m_Slider->setMinimum(0);
+  m_Slider->setMaximum(region->size - 256);
+  m_AddressOffset = 0;
+}
+
 void CleMemoryInspector::run()
 {
+  /* Rebuild region tabs when region count changes */
+  if (memory.region_count != m_CurrentRegionCount)
+  {
+    m_CurrentRegionCount = memory.region_count;
+    m_RegionTabs->blockSignals(true);
+    while (m_RegionTabs->count())
+      m_RegionTabs->removeTab(0);
+    for (unsigned i = 0; i < memory.region_count; i++)
+    {
+      const char *title = memory.regions[i].title;
+      QString label = (title && title[0])
+        ? QString(title)
+        : QString("0x%1").arg(memory.regions[i].base_guest, 0, 16);
+      m_RegionTabs->addTab(label);
+    }
+    m_RegionTabs->blockSignals(false);
+    m_RegionTabs->setVisible(memory.region_count > 1);
+
+    /* Memory regions just became available — initialize the active bank */
+    if (!m_CurrentMembank && memory.region_count > 0)
+    {
+      m_CurrentMembank = &memory.regions[0];
+      m_HexWidget->setByteSwapEnabled(m_CurrentMembank->endianness == CL_ENDIAN_BIG);
+      m_HexWidget->setOffset(m_CurrentMembank->base_guest);
+    }
+  }
+
+  if (!m_CurrentMembank)
+    return;
+
+  /* Detect region size changes (e.g. when a game is loaded after init) */
+  if (m_CurrentMembank->size != m_CurrentRegionSize)
+  {
+    m_CurrentRegionSize = m_CurrentMembank->size;
+    m_HexWidget->setRange(m_CurrentMembank->base_guest,
+                          m_CurrentMembank->base_guest + m_CurrentMembank->size + 1);
+    m_Slider->setMinimum(0);
+    m_Slider->setMaximum(m_CurrentMembank->size - 256);
+  }
+
   m_CurrentSearch->run();
   cl_read_memory_buffer(m_BufferCurrent, nullptr, m_AddressOffset + m_CurrentMembank->base_guest, 256);
   m_HexWidget->refresh(m_BufferCurrent, m_BufferPrevious);

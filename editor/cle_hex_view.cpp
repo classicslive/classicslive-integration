@@ -1,6 +1,7 @@
 #include <string>
 
 #include <QBrush>
+#include <QEvent>
 #include <QMenu>
 #include <QPainter>
 #include <QPaintEvent>
@@ -53,19 +54,67 @@ CleHexWidget::CleHexWidget(QWidget *parent, uint8_t size) : QWidget(parent)
    repaintAll();
 }
 
+void CleHexWidget::changeEvent(QEvent *event)
+{
+   if (event->type() == QEvent::PaletteChange)
+   {
+      /* Re-draw the address sidebar with the updated background color */
+      m_Painter->setBrush(palette().color(backgroundRole()));
+      m_Painter->setPen(Qt::NoPen);
+      m_Painter->drawRect(QRect(0, 0, 64, 256));
+      m_Painter->setPen(QColor("grey"));
+      for (uint8_t i = 0; i < 16; i++)
+         m_Painter->drawText(m_AddrRects[i], Qt::AlignRight | Qt::AlignVCenter, m_AddrTexts[i]);
+      update();
+   }
+   QWidget::changeEvent(event);
+}
+
 void CleHexWidget::keyPressEvent(QKeyEvent *event)
 {
    switch (event->key())
    {
    case Qt::Key_Left:
-      if (isCursorTopLeft())
-         movePosition(-0x10);
-      setCursorOffset(m_CursorOffset - 1);
+      if (m_CursorNybble > 0)
+      {
+         /* Move back one nybble within the current cell */
+         m_CursorNybble--;
+         paintCursorCell(((m_CursorOffset - m_Position) & 0xFF) / m_Size);
+         update();
+      }
+      else
+      {
+         /* Cross to the last nybble of the previous cell */
+         if (isCursorTopLeft())
+            movePosition(-0x10);
+         setCursorOffset(m_CursorOffset - m_Size);
+         m_CursorNybble = m_Size * 2 - 1;
+         paintCursorCell(((m_CursorOffset - m_Position) & 0xFF) / m_Size);
+         update();
+      }
       break;
    case Qt::Key_Right:
+      if (m_CursorNybble < m_Size * 2 - 1)
+      {
+         /* Move forward one nybble within the current cell */
+         m_CursorNybble++;
+         paintCursorCell(((m_CursorOffset - m_Position) & 0xFF) / m_Size);
+         update();
+      }
+      else
+      {
+         /* Cross to the first nybble of the next cell */
+         if (isCursorBottomRight())
+            movePosition(0x10);
+         setCursorOffset(m_CursorOffset + m_Size);
+      }
+      break;
+   case Qt::Key_Return:
+   case Qt::Key_Enter:
+      emit valueEdited(m_CursorOffset, m_CursorValue, m_Size);
       if (isCursorBottomRight())
          movePosition(0x10);
-      setCursorOffset(m_CursorOffset + 1);
+      setCursorOffset(m_CursorOffset + m_Size);
       break;
    case Qt::Key_Up:
       if (event->modifiers() & Qt::ShiftModifier)
@@ -152,37 +201,42 @@ void CleHexWidget::keyPressEvent(QKeyEvent *event)
 
 void CleHexWidget::mousePressEvent(QMouseEvent *event)
 {
-   if (m_Size != 1)
-      return; //todo
-   else
-   {
-      QPoint pos = event->pos();
-      uint32_t i;
+   QPoint pos = event->pos();
+   uint32_t i;
+   uint32_t cell_count = 256 / m_Size;
 
-      for (i = 0; i < 256; i++)
+   for (i = 0; i < cell_count; i++)
+   {
+      if (m_Rects[i].contains(pos))
       {
-         if (m_Rects[i].contains(pos))
-         {
-            if (event->button() == Qt::LeftButton)
-               setCursorOffset(m_Position + i);
-            else if (event->button() == Qt::RightButton)
-               onRightClick(m_Position + i, pos);
-            return;
-         }
+         cl_addr_t address = m_Position + (cl_addr_t)(i * m_Size);
+         if (event->button() == Qt::LeftButton)
+            setCursorOffset(address);
+         else if (event->button() == Qt::RightButton)
+            onRightClick(address, pos);
+         return;
       }
    }
 }
 
 void CleHexWidget::movePosition(int32_t offset)
 {
-   uint32_t new_pos = m_Position + offset;
-
-   if (new_pos < m_PositionMin)
-      setOffset(m_PositionMin);
-   else if (new_pos + 0x100 >= m_PositionMax)
-      setOffset(m_PositionMax - 0x100);
+   if (offset < 0)
+   {
+      cl_addr_t delta = static_cast<cl_addr_t>(-offset);
+      if (delta > m_Position - m_PositionMin)
+         setOffset(m_PositionMin);
+      else
+         setOffset(m_Position - delta);
+   }
    else
-      setOffset(new_pos);
+   {
+      cl_addr_t new_pos = m_Position + static_cast<cl_addr_t>(offset);
+      if (new_pos + 0x100 >= m_PositionMax)
+         setOffset(m_PositionMax - 0x100);
+      else
+         setOffset(new_pos);
+   }
 }
 
 void CleHexWidget::onClickAddMemoryNote()
@@ -351,16 +405,45 @@ void CleHexWidget::setByteSwapEnabled(bool enabled)
    m_UseByteSwap = enabled;
 }
 
+void CleHexWidget::paintCursorCell(uint8_t index)
+{
+   m_Painter->setFont(m_Font);
+   m_Painter->setBrush(m_RectColors[index]);
+   m_Painter->setPen(Qt::NoPen);
+   m_Painter->drawRect(m_Rects[index]);
+   m_Painter->setPen(QColor("white"));
+   m_Painter->drawText(m_Rects[index], Qt::AlignCenter, m_Texts[index]);
+
+   /* Draw nybble-position underline on the active cursor cell */
+   if (m_RectColors[index].blue() > 0)
+   {
+      uint8_t total_nybbles = m_Size * 2;
+      uint8_t nybble = (m_CursorNybble < total_nybbles) ? m_CursorNybble : total_nybbles - 1;
+
+      QFontMetrics fm(m_Font);
+      int char_w   = fm.horizontalAdvance(QLatin1Char('F'));
+      int text_w   = char_w * total_nybbles;
+      int text_x   = m_Rects[index].x() + (m_Rects[index].width() - text_w) / 2;
+      int line_x   = text_x + nybble * char_w;
+      int line_y   = m_Rects[index].bottom() - 1;
+
+      m_Painter->setPen(QPen(QColor("white"), 2));
+      m_Painter->drawLine(line_x, line_y, line_x + char_w - 1, line_y);
+   }
+}
+
 void CleHexWidget::setCursorOffset(cl_addr_t offset)
 {
-   uint8_t cursor = (m_CursorOffset - m_Position) & 0xFF;
+   uint8_t cursor = ((m_CursorOffset - m_Position) & 0xFF) / m_Size;
 
-   /* Repaint old highlight */
+   /* Clear old highlight directly into m_Image */
    m_RectColors[cursor].setBlue(0);
-   repaintRect(NULL, cursor);
+   paintCursorCell(cursor);
 
-   m_CursorNybble = 0;
-   m_CursorValue  = 0;
+   m_CursorOffsetBase = offset; /* save before alignment for size changes */
+
+   /* Align to value size boundary */
+   offset &= ~(cl_addr_t)(m_Size - 1);
 
    /* Check bounds */
    if (offset < m_PositionMin)
@@ -370,10 +453,13 @@ void CleHexWidget::setCursorOffset(cl_addr_t offset)
    else
       m_CursorOffset = offset;
 
-   /* Repaint new highlight */
-   cursor = (m_CursorOffset - m_Position) & 0xFF;
+   /* Set new highlight directly into m_Image */
+   cursor = ((m_CursorOffset - m_Position) & 0xFF) / m_Size;
+   m_CursorNybble = 0;
+   m_CursorValue  = 0;
+   sscanf(m_Texts[cursor], "%llX", (unsigned long long*)&m_CursorValue);
    m_RectColors[cursor].setBlue(255);
-   repaintRect(NULL, cursor);
+   paintCursorCell(cursor);
 
    update();
 }
@@ -399,8 +485,8 @@ void CleHexWidget::setOffset(cl_addr_t offset)
     m_Painter->drawText(m_AddrRects[i], Qt::AlignRight | Qt::AlignVCenter, m_AddrTexts[i]);
   }
   resetColors();
-  setCursorOffset(m_CursorOffset);
   m_Position = offset;
+  setCursorOffset(m_CursorOffset);
 
   emit offsetEdited(offset);
 }
@@ -428,6 +514,19 @@ void CleHexWidget::setSize(uint8_t size)
       m_AsciiRects[i].moveTo(64 + 384 + ((i * 8) % 128), (i / 16) * 16);
    }
    resetColors();
+
+   /* Re-align cursor from the saved byte-level base to the new size boundary.
+      This preserves position when sizing down and snaps to alignment when sizing up. */
+   m_CursorOffset = m_CursorOffsetBase & ~(cl_addr_t)(size - 1);
+   if (m_PositionMin != (cl_addr_t)-1 && m_CursorOffset < m_PositionMin)
+      m_CursorOffset = m_PositionMin & ~(cl_addr_t)(size - 1);
+   else if (m_PositionMax != (cl_addr_t)-1 && m_CursorOffset >= m_PositionMax)
+      m_CursorOffset = (m_PositionMax - size) & ~(cl_addr_t)(size - 1);
+
+   uint8_t cursor = ((m_CursorOffset - m_Position) & 0xFF) / size;
+   m_RectColors[cursor].setBlue(255);
+   paintCursorCell(cursor);
+   update();
 }
 
 QSize CleHexWidget::sizeHint() const
@@ -437,15 +536,28 @@ QSize CleHexWidget::sizeHint() const
 
 void CleHexWidget::typeNybble(uint8_t value)
 {
-   /* TODO: Discern which byte of a (half)word just got edited here */
-   if (m_CursorNybble % 2 == 0)
-      value <<= 4;
-   m_CursorNybble++;
-   m_CursorValue += value;
+   uint8_t total_nybbles = m_Size * 2;
+   uint8_t shift = (total_nybbles - 1 - m_CursorNybble) * 4;
 
-   if (m_CursorNybble >= m_Size * 2)
+   m_CursorValue &= ~((uint64_t)0xF << shift);
+   m_CursorValue |= (uint64_t)value << shift;
+   m_CursorNybble++;
+
+   /* Update cell text to show the partial value being typed */
+   uint8_t cursor = ((m_CursorOffset - m_Position) & 0xFF) / m_Size;
+   switch (m_Size)
    {
-      emit valueEdited(m_CursorOffset, m_CursorValue);
+   case 1: snprintf(m_Texts[cursor], 16, "%02X",              (unsigned)m_CursorValue);              break;
+   case 2: snprintf(m_Texts[cursor], 16, "%04X",              (unsigned)m_CursorValue);              break;
+   case 4: snprintf(m_Texts[cursor], 16, "%08X",              (unsigned)m_CursorValue);              break;
+   case 8: snprintf(m_Texts[cursor], 16, "%016llX", (unsigned long long)m_CursorValue);              break;
+   }
+   paintCursorCell(cursor);
+   update();
+
+   if (m_CursorNybble >= total_nybbles)
+   {
+      emit valueEdited(m_CursorOffset, m_CursorValue, m_Size);
       setCursorOffset(m_CursorOffset + m_Size);
    }
 }

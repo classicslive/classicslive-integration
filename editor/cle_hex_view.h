@@ -29,9 +29,10 @@ signals:
    void offsetEdited(cl_addr_t offset);
    void requestAddMemoryNote(cl_addr_t address);
    void requestPointerSearch(cl_addr_t address);
-   void valueEdited(cl_addr_t address, uint8_t value);
+   void valueEdited(cl_addr_t address, uint64_t value, uint8_t size);
 
 protected:
+   void changeEvent(QEvent *event) override;
    void keyPressEvent(QKeyEvent *event) override;
    void mousePressEvent(QMouseEvent *event) override;
    void paintEvent(QPaintEvent *event) override;
@@ -56,12 +57,13 @@ private:
       return ((m_CursorOffset - m_Position) & 0xFF) >= 0xF0;
    }
    bool isCursorBottomRight()
-   { 
-      return ((m_CursorOffset - m_Position) & 0xFF) == 0xFF;
+   {
+      return (m_CursorOffset - m_Position) / m_Size >= 256 / m_Size - 1;
    }
 
    void movePosition(int32_t offset);
 
+   void paintCursorCell(uint8_t index);
    void repaintAll();
    void repaintAscii(const char new_char, uint8_t index);
    void repaintRect(const void *buffer, uint8_t index);
@@ -74,7 +76,7 @@ private:
 
    QRect   m_Rects[256];
    QColor  m_RectColors[256];
-   uint8_t m_Size;
+   uint8_t m_Size = 1;
    char    m_Texts[256][16];
 
    QRect   m_AsciiRects[256];
@@ -95,10 +97,11 @@ private:
    cl_addr_t m_PositionMax = -1;
    cl_addr_t m_PositionMin = -1;
 
-   QRect    m_Cursor;
-   uint8_t  m_CursorNybble;
-   uint32_t m_CursorOffset;
-   uint32_t m_CursorValue;
+   QRect     m_Cursor;
+   uint8_t   m_CursorNybble;
+   cl_addr_t m_CursorOffset     = 0;
+   cl_addr_t m_CursorOffsetBase = 0; /* byte-level position before size alignment */
+   uint64_t  m_CursorValue  = 0;
 };
 
 #endif

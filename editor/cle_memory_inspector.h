@@ -47,14 +47,17 @@ private:
 
    cl_memory_region_t *m_CurrentMembank = nullptr;
 
-   uint32_t  m_AddressOffset;
+   cl_addr_t m_AddressOffset;
+   cl_addr_t m_CurrentRegionSize = 0;
+   unsigned  m_CurrentRegionCount = 0;
    uint8_t  *m_BufferPrevious = nullptr;
    uint8_t  *m_BufferCurrent = nullptr;
    int8_t    m_ClickedTab;
    uint8_t   m_TabCount;
-   
+
    QComboBox      *m_CompareDropdown = nullptr;
    QGridLayout    *m_Layout = nullptr;
+   QTabBar        *m_RegionTabs = nullptr;
    QComboBox      *m_SizeDropdown = nullptr;
    QLineEdit      *m_TextEntry = nullptr;
    QPushButton    *m_NewButton = nullptr;
@@ -67,11 +70,13 @@ private:
 
    cl_compare_type getCurrentCompareType(void);
    cl_value_type getCurrentSizeType(void);
+   void    applyTheme(QWidget *w);
    void    rebuildLayout(void);
 
 private slots:
    void onAddressChanged(cl_addr_t address);
    void onChangeCompareType();
+   void onChangeRegionTab(int index);
    void onChangeScrollbar(int value);
    void onChangeSizeType();
    void onChangeTab();
@@ -79,7 +84,7 @@ private slots:
    void onClickSearch();
    void onClickTabRename();
 
-   void onHexWidgetValueEdited(cl_addr_t address, uint8_t value);
+   void onHexWidgetValueEdited(cl_addr_t address, uint64_t value, uint8_t size);
 
    void onRightClickTabs(const QPoint &pos);
 
