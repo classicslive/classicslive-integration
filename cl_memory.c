@@ -151,25 +151,46 @@ cl_error cl_init_membanks_libretro(const struct retro_memory_descriptor **descs,
   const unsigned num_descs)
 {
   const struct retro_memory_descriptor *desc;
-  unsigned i;
+  unsigned i, j;
 
   memory.regions = (cl_memory_region_t*)calloc(num_descs,
                                                sizeof(cl_memory_region_t));
-  memory.region_count = num_descs;
+  memory.region_count = 0;
 
   for (i = 0; i < num_descs; i++)
   {
+    cl_memory_region_t *region = NULL;
     desc = descs[i];
-    cl_memory_region_t *region = &memory.regions[i];
+    cl_bool ignore = CL_FALSE;
 
-    /* Is this bank's data a null pointer? Ignore it */
+    /* Is this region's data a null pointer? Ignore it */
     if (!desc->ptr)
-    {
-      memory.region_count--;
       continue;
+
+    /* Is this region a mirror or subregion of another? */
+    for (j = 0; j < memory.region_count; j++)
+    {
+      if (desc->ptr == memory.regions[j].base_host)
+      {
+        cl_log("Ignoring mirror region of %s in %u\n",
+               memory.regions[j].title, i);
+        ignore = CL_TRUE;
+        break;
+      }
+      else if ((desc->ptr < memory.regions[j].base_host + memory.regions[j].size) &&
+               (desc->ptr >= memory.regions[j].base_host))
+      {
+        cl_log("Ignoring subregion of %s in %u\n",
+               memory.regions[j].title, i);
+        ignore = CL_TRUE;
+        break;
+      }
     }
+    if (ignore)
+      continue;
 
     /* Copy the libretro mmap parameters into our format */
+    region = &memory.regions[memory.region_count];
     region->base_alloc = CL_ADDRESS_INVALID;
     region->base_guest = desc->start;
     region->base_host = desc->ptr;
@@ -184,12 +205,14 @@ cl_error cl_init_membanks_libretro(const struct retro_memory_descriptor **descs,
     region->pointer_length = 4;
     region->size = desc->len;
 
-    /* Setup the title of the memory bank */
+    /* Setup the title of the memory region */
     if (desc->addrspace)
       snprintf(region->title, sizeof(region->title), "%s", desc->addrspace);
     else
-      snprintf(region->title, sizeof(region->title), "Memory bank %u/%u",
-               i + 1, memory.region_count);
+      snprintf(region->title, sizeof(region->title), "Region %u/%u",
+               i + 1, num_descs);
+
+    memory.region_count++;
   }
 
   cl_sort_memory_regions(memory.regions, memory.region_count);
@@ -198,7 +221,7 @@ cl_error cl_init_membanks_libretro(const struct retro_memory_descriptor **descs,
   {
     cl_memory_region_t *region = &memory.regions[i];
 
-    cl_log("Bank %02X: 0x%08X | %08X bytes | %s\n", i, region->base_guest,
+    cl_log("Region %02X: 0x%08X | %08X bytes | %s\n", i, region->base_guest,
            region->size, region->title);
   }
 
