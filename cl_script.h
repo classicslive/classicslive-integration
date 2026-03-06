@@ -20,12 +20,12 @@ typedef enum
 typedef struct cl_page_t
 {
   cl_action_t *actions;
-  unsigned     action_count;
+  unsigned action_count;
 
   /* Temporary values (bitflags, counters) we can use for logic */
   cl_counter_t counters[CL_COUNTERS_SIZE];
 
-  uint32_t     flags;
+  unsigned flags;
 } cl_page_t;
 
 typedef struct cl_script_t
@@ -39,13 +39,13 @@ typedef struct cl_script_t
   /* Which page in a script is currently being processed. */
   cl_page_t *current_page;
 
-  bool evaluation;
+  cl_bool evaluation;
 
   /* The status of the script. For example, CL_SCRIPT_STATUS_ACTIVE. */
   cl_script_status status;
 
   /* Whether or not the last script break was triggered by a fatal error. */
-  bool error_fatal;
+  cl_bool error_fatal;
 
   /* A message describing the cause of the last script break. */
   char error_msg[256];
@@ -59,24 +59,24 @@ void cl_script_free(void);
 /**
  * Initializes a script from a string representation of one.
  * @param pos A string iterator positioned at the start of script data.
- * @return Whether or not the script was properly read and initialized.
+ * @return CL_OK on success, or an error code on failure.
  **/
-bool cl_script_init(const char **pos);
+cl_error cl_script_init(const char **pos);
 
 /**
  * Processes all of the actions in a script. Call once per frame, after
  *   cl_memory_update.
- * @return Whether or not all actions processed correctly.
+ * @return CL_OK on success, or an error code on failure.
  **/
-bool cl_script_update(void);
+cl_error cl_script_update(void);
 
 /**
- * Signals to halt processing of the script and core. Used when debugging 
+ * Signals to halt processing of the script and core. Used when debugging
  * scripts.
  * @param fatal Whether or not the break reason included a fatal error.
  * @param format A format string with arguments, to set a reason for breaking.
  **/
-void cl_script_break(bool fatal, const char *format, ...);
+void cl_script_break(cl_bool fatal, const char *format, ...);
 
 extern cl_script_t script;
 

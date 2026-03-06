@@ -14,19 +14,23 @@ typedef enum
   CL_JSON_KEY_GAME_ID,
   CL_JSON_KEY_ICON_URL,
   CL_JSON_KEY_ID,
+  CL_JSON_KEY_LANGUAGE,
   CL_JSON_KEY_LEADERBOARDS,
   CL_JSON_KEY_MEMORY_NOTES,
   CL_JSON_KEY_MEMORY_NOTE_ID,
   CL_JSON_KEY_OFFSETS,
   CL_JSON_KEY_ORDER,
+  CL_JSON_KEY_PASSWORD,
   CL_JSON_KEY_POINTER_SIZE,
   CL_JSON_KEY_REASON,
   CL_JSON_KEY_SCRIPT,
   CL_JSON_KEY_SESSION_ID,
   CL_JSON_KEY_SUCCESS,
   CL_JSON_KEY_TITLE,
+  CL_JSON_KEY_TOKEN_CLINT,
   CL_JSON_KEY_TYPE,
   CL_JSON_KEY_UNLOCKED,
+  CL_JSON_KEY_USERNAME,
 
   CL_JSON_KEY_SIZE
 } cl_json_field;
@@ -54,9 +58,9 @@ typedef enum
  * @param key The key of the value to extract.
  * @param type The type of the value.
  * @param size The size, in bytes, of the buffer to be written into.
- * @return true if the value was successfully extracted; false otherwise.
+ * @return CL_OK if the value was successfully extracted; error code otherwise.
  */
-bool cl_json_get(void *data, const char *json, cl_json_field key,
+cl_error cl_json_get(void *data, const char *json, cl_json_field key,
   cl_json_type type, unsigned size);
 
 /**
@@ -68,9 +72,9 @@ bool cl_json_get(void *data, const char *json, cl_json_field key,
  * @param json The JSON text to parse.
  * @param key The key of the array to extract.
  * @param type The type of elements in the array.
- * @return true if the array was successfully extracted; false otherwise.
+ * @return CL_OK if the array was successfully extracted; error code otherwise.
  */
-bool cl_json_get_array(void **data, unsigned *elements, const char *json,
+cl_error cl_json_get_array(void **data, unsigned *elements, const char *json,
   cl_json_field key, cl_json_type type);
 
 #endif

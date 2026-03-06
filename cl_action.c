@@ -1,5 +1,6 @@
 #include "cl_action.h"
 #include "cl_common.h"
+#include "cl_dma.h"
 #include "cl_memory.h"
 #include "cl_network.h"
 #include "cl_script.h"
@@ -7,16 +8,16 @@
 #include <stdio.h>
 #include <string.h>
 
-static bool cl_act_no_process(cl_action_t *action)
+static cl_error cl_act_no_process(cl_action_t *action)
 {
   CL_UNUSED(action);
-  return false;
+  return CL_ERR_CLIENT_RUNTIME;
 }
 
-bool cl_free_action(cl_action_t *action)
+cl_error cl_free_action(cl_action_t *action)
 {
   action->argument_count = 0;
-  free(action->arguments);
+  cl_dma_free(action->arguments);
   action->arguments = NULL;
   action->type = CL_ACTTYPE_NO_PROCESS;
   action->function = cl_act_no_process;
@@ -24,7 +25,7 @@ bool cl_free_action(cl_action_t *action)
   action->prev_action = NULL;
   action->next_action = NULL;
 
-  return false;
+  return CL_ERR_CLIENT_RUNTIME;
 }
 
 static cl_error cl_print_counter_values(char *buffer, unsigned len)
@@ -47,7 +48,7 @@ static cl_error cl_print_counter_values(char *buffer, unsigned len)
       snprintf(counter_buffer, sizeof(counter_buffer), "&c%u=%f",
                i, counter->floatval.fp);
     else
-      snprintf(counter_buffer, sizeof(counter_buffer), "&c%u=%lu",
+      snprintf(counter_buffer, sizeof(counter_buffer), "&c%u=" CL_FU64,
                i, counter->intval.raw);
 
     /* Check destination buffer can hold it */
@@ -71,7 +72,7 @@ static cl_error cl_print_counter_values(char *buffer, unsigned len)
  *   a memory note or counter index, or a memory address.
  * @return A mutable counter, or return CL_CTR_INVALID if unavailable.
  **/
-static cl_counter_t cl_get_compare_value(cl_src_t source, int64_t offset)
+static cl_counter_t cl_get_compare_value(cl_src_t source, cl_int64 offset)
 {
   cl_counter_t counter;
 
@@ -123,7 +124,7 @@ static cl_counter_t cl_get_compare_value(cl_src_t source, int64_t offset)
  * @param offset An address or index relevant to the source type.
  * @return A mutable counter, or NULL if unavailable.
  **/
-static cl_counter_t *cl_get_mutable_value(cl_src_t source, int64_t offset)
+static cl_counter_t *cl_get_mutable_value(cl_src_t source, cl_int64 offset)
 {
   switch (source)
   {
@@ -145,27 +146,26 @@ static cl_counter_t *cl_get_mutable_value(cl_src_t source, int64_t offset)
   return NULL;
 }
 
-static bool cl_act_post_achievement(cl_action_t *action)
+static cl_error cl_act_post_achievement(cl_action_t *action)
 {
   cl_counter_t ach_id = cl_get_compare_value(action->arguments[0].uintval,
                                              action->arguments[1].uintval);
-#if !CL_HAVE_EDITOR
+#if CL_HAVE_EDITOR
+  cl_message(CL_MSG_INFO, "Editor mode: Achievement " CL_FU64 " unlocked.",
+    ach_id.intval.raw);
+#else
   char data[CL_POST_DATA_SIZE];
 
-  snprintf(data, CL_POST_DATA_SIZE, "ach_id=%lu", ach_id.intval.raw);
+  snprintf(data, CL_POST_DATA_SIZE, "achievement_id=" CL_FU64, ach_id.intval.raw);
   cl_network_post_clint(CL_END_CLINT_ACHIEVEMENT, data, NULL, NULL);
-
+#endif
   /* Clear this action so we don't re-submit the achievement */
   cl_free_action(action);
-#else
-  cl_message(CL_MSG_INFO, "Editor mode: Achievement %lu unlocked.",
-    ach_id.intval.raw);
-#endif
 
-  return true;
+  return CL_OK;
 }
 
-static bool cl_act_post_progress(cl_action_t *action)
+static cl_error cl_act_post_progress(cl_action_t *action)
 {
   unsigned key = (unsigned)action->arguments[0].uintval;
   char data[CL_POST_DATA_SIZE];
@@ -176,26 +176,26 @@ static bool cl_act_post_progress(cl_action_t *action)
   else
     cl_message(CL_MSG_ERROR, "Unimplemented endpoint progress\n%s", data);
 
-  return true;
+  return CL_OK;
 }
 
 /** @todo Support optional values */
-static bool cl_act_post_leaderboard(cl_action_t *action)
+static cl_error cl_act_post_leaderboard(cl_action_t *action)
 {
   cl_counter_t ldb_id = cl_get_compare_value(action->arguments[0].uintval,
                                              action->arguments[1].uintval);
   char data[CL_POST_DATA_SIZE];
 
-  snprintf(data, CL_POST_DATA_SIZE, "ldb_id=%lu", ldb_id.intval.raw);
+  snprintf(data, CL_POST_DATA_SIZE, "leaderboard_id=" CL_FU64, ldb_id.intval.raw);
   if (cl_print_counter_values(data, sizeof(data)) != CL_OK)
     cl_message(CL_MSG_ERROR, "Unable to allocate leaderboard data.");
   else
     cl_message(CL_MSG_ERROR, "Unimplemented endpoint leaderboard\n%s", data);
-   
-  return true;
+
+  return CL_OK;
 }
 
-static bool cl_act_compare(cl_action_t *action)
+static cl_error cl_act_compare(cl_action_t *action)
 {
   cl_counter_t left = cl_get_compare_value(action->arguments[0].uintval, action->arguments[1].uintval);
   cl_counter_t right = cl_get_compare_value(action->arguments[2].uintval, action->arguments[3].uintval);
@@ -205,20 +205,20 @@ static bool cl_act_compare(cl_action_t *action)
 
   switch (action->arguments[4].intval)
   {
-  case CL_CMPTYPE_IFEQUAL:
+  case CL_COMPARE_EQUAL:
     return cl_ctr_equal(&left, &right);
-  case CL_CMPTYPE_IFGREATER:
+  case CL_COMPARE_GREATER:
     return cl_ctr_greater(&left, &right);
-  case CL_CMPTYPE_IFLESS:
+  case CL_COMPARE_LESS:
     return cl_ctr_lesser(&left, &right);
-  case CL_CMPTYPE_IFNEQUAL:
+  case CL_COMPARE_NOT_EQUAL:
     return cl_ctr_not_equal(&left, &right);
   default:
     return cl_free_action(action);
   }
 }
 
-static bool cl_act_changed(cl_action_t *action)
+static cl_error cl_act_changed(cl_action_t *action)
 {
   cl_counter_t left = cl_get_compare_value(CL_SRCTYPE_CURRENT_RAM, action->arguments[0].uintval);
   cl_counter_t right = cl_get_compare_value(CL_SRCTYPE_PREVIOUS_RAM, action->arguments[0].uintval);
@@ -229,7 +229,7 @@ static bool cl_act_changed(cl_action_t *action)
     return cl_ctr_not_equal(&left, &right);
 }
 
-static bool cl_act_bits(cl_action_t *action)
+static cl_error cl_act_bits(cl_action_t *action)
 {
   cl_counter_t left = cl_get_compare_value(action->arguments[0].uintval, action->arguments[1].uintval);
   cl_counter_t right = cl_get_compare_value(action->arguments[2].uintval, action->arguments[3].uintval);
@@ -238,10 +238,10 @@ static bool cl_act_bits(cl_action_t *action)
     return cl_free_action(action);
 
   /* TODO: Not exactly what we want */
-  return (left.intval.raw & right.intval.raw) == right.intval.raw;
+  return (left.intval.raw & right.intval.raw) == right.intval.raw ? CL_OK : CL_ERR_CLIENT_RUNTIME;
 }
 
-static bool cl_act_write(cl_action_t *action)
+static cl_error cl_act_write(cl_action_t *action)
 {
   cl_counter_t left = cl_get_compare_value(action->arguments[0].uintval, action->arguments[1].uintval);
   cl_counter_t right = cl_get_compare_value(action->arguments[2].uintval, action->arguments[3].uintval);
@@ -258,15 +258,15 @@ static bool cl_act_write(cl_action_t *action)
     {
       cl_counter_t *ctr = cl_get_mutable_value(CL_SRCTYPE_COUNTER, action->arguments[1].uintval);
       if (!ctr)
-        return false;
+        return CL_ERR_PARAMETER_NULL;
       else
         *ctr = right;
 
-      return true;
+      return CL_OK;
     }
     default:
-      cl_script_break(true, "Invalid srctype to write: %u", action->arguments[0].uintval);
-      return false;
+      cl_script_break(CL_TRUE, "Invalid srctype to write: %u", action->arguments[0].uintval);
+      return CL_ERR_PARAMETER_INVALID;
     }
   }
 }
@@ -280,7 +280,7 @@ static bool cl_act_write(cl_action_t *action)
                                            action->arguments[0].uintval); \
   if (!ctr || \
       ctr->type == CL_MEMTYPE_NOT_SET) \
-    return false; \
+    return CL_ERR_PARAMETER_INVALID; \
   else
 
 /**
@@ -295,10 +295,10 @@ static bool cl_act_write(cl_action_t *action)
   if (!ctr || \
       ctr->type == CL_MEMTYPE_NOT_SET || \
       src.type == CL_MEMTYPE_NOT_SET) \
-    return false; \
+    return CL_ERR_PARAMETER_INVALID; \
   else
 
-static bool cl_act_bitwise_and(cl_action_t *action)
+static cl_error cl_act_bitwise_and(cl_action_t *action)
 {
   CL_TEMPLATE_CTR_BINARY
   {
@@ -306,7 +306,7 @@ static bool cl_act_bitwise_and(cl_action_t *action)
   }
 }
 
-static bool cl_act_bitwise_complement(cl_action_t *action)
+static cl_error cl_act_bitwise_complement(cl_action_t *action)
 {
   CL_TEMPLATE_CTR_UNARY
   {
@@ -314,7 +314,7 @@ static bool cl_act_bitwise_complement(cl_action_t *action)
   }
 }
 
-static bool cl_act_bitwise_or(cl_action_t *action)
+static cl_error cl_act_bitwise_or(cl_action_t *action)
 {
   CL_TEMPLATE_CTR_BINARY
   {
@@ -322,7 +322,7 @@ static bool cl_act_bitwise_or(cl_action_t *action)
   }
 }
 
-static bool cl_act_bitwise_xor(cl_action_t *action)
+static cl_error cl_act_bitwise_xor(cl_action_t *action)
 {
   CL_TEMPLATE_CTR_BINARY
   {
@@ -330,16 +330,16 @@ static bool cl_act_bitwise_xor(cl_action_t *action)
   }
 }
 
-static bool cl_act_set(cl_action_t *action)
+static cl_error cl_act_set(cl_action_t *action)
 {
   CL_TEMPLATE_CTR_BINARY
   {
     *ctr = src;
-    return true;
+    return CL_OK;
   }
 }
 
-static bool cl_act_shift_left(cl_action_t *action)
+static cl_error cl_act_shift_left(cl_action_t *action)
 {
   CL_TEMPLATE_CTR_BINARY
   {
@@ -347,7 +347,7 @@ static bool cl_act_shift_left(cl_action_t *action)
   }
 }
 
-static bool cl_act_shift_right(cl_action_t *action)
+static cl_error cl_act_shift_right(cl_action_t *action)
 {
   CL_TEMPLATE_CTR_BINARY
   {
@@ -355,7 +355,7 @@ static bool cl_act_shift_right(cl_action_t *action)
   }
 }
 
-static bool cl_act_multiplication(cl_action_t *action)
+static cl_error cl_act_multiplication(cl_action_t *action)
 {
   CL_TEMPLATE_CTR_BINARY
   {
@@ -363,7 +363,7 @@ static bool cl_act_multiplication(cl_action_t *action)
   }
 }
 
-static bool cl_act_division(cl_action_t *action)
+static cl_error cl_act_division(cl_action_t *action)
 {
   CL_TEMPLATE_CTR_BINARY
   {
@@ -371,7 +371,7 @@ static bool cl_act_division(cl_action_t *action)
   }
 }
 
-static bool cl_act_addition(cl_action_t *action)
+static cl_error cl_act_addition(cl_action_t *action)
 {
   CL_TEMPLATE_CTR_BINARY
   {
@@ -379,7 +379,7 @@ static bool cl_act_addition(cl_action_t *action)
   }
 }
 
-static bool cl_act_modulo(cl_action_t *action)
+static cl_error cl_act_modulo(cl_action_t *action)
 {
   CL_TEMPLATE_CTR_BINARY
   {
@@ -387,7 +387,7 @@ static bool cl_act_modulo(cl_action_t *action)
   }
 }
 
-static bool cl_act_subtraction(cl_action_t *action)
+static cl_error cl_act_subtraction(cl_action_t *action)
 {
   CL_TEMPLATE_CTR_BINARY
   {
@@ -395,48 +395,48 @@ static bool cl_act_subtraction(cl_action_t *action)
   }
 }
 
-static bool cl_act_change_ctr_type(cl_action_t *action)
+static cl_error cl_act_change_ctr_type(cl_action_t *action)
 {
   cl_counter_t *ctr = cl_get_mutable_value(CL_SRCTYPE_COUNTER, action->arguments[0].uintval);
-  return ctr ? cl_ctr_change_type(ctr, action->arguments[1].uintval) : false;
+  return ctr ? cl_ctr_change_type(ctr, action->arguments[1].uintval) : CL_ERR_PARAMETER_NULL;
 }
 
 static const cl_acttype_t action_types[] =
 {
-  { CL_ACTTYPE_NO_PROCESS, false, 0, 0, 0, cl_act_no_process },
-  { CL_ACTTYPE_COMPARE,    true,  5, 5, 0, cl_act_compare },
-  { CL_ACTTYPE_CHANGED,    true,  1, 1, 0, cl_act_changed },
-  { CL_ACTTYPE_BITS,       true,  4, 4, 0, cl_act_bits },
+  { CL_ACTTYPE_NO_PROCESS, CL_FALSE, 0, 0, 0, cl_act_no_process },
+  { CL_ACTTYPE_COMPARE,    CL_TRUE,  5, 5, 0, cl_act_compare },
+  { CL_ACTTYPE_CHANGED,    CL_TRUE,  1, 1, 0, cl_act_changed },
+  { CL_ACTTYPE_BITS,       CL_TRUE,  4, 4, 0, cl_act_bits },
 
   /* Counter arithmetic */
-  { CL_ACTTYPE_ADDITION,       false, 3, 3, 0, cl_act_addition },
-  { CL_ACTTYPE_SUBTRACTION,    false, 3, 3, 0, cl_act_subtraction },
-  { CL_ACTTYPE_MULTIPLICATION, false, 3, 3, 0, cl_act_multiplication },
-  { CL_ACTTYPE_DIVISION,       false, 3, 3, 0, cl_act_division },
-  { CL_ACTTYPE_MODULO,         false, 3, 3, 0, cl_act_modulo },
-  { CL_ACTTYPE_SET,            false, 3, 3, 0, cl_act_set },
+  { CL_ACTTYPE_ADDITION,       CL_FALSE, 3, 3, 0, cl_act_addition },
+  { CL_ACTTYPE_SUBTRACTION,    CL_FALSE, 3, 3, 0, cl_act_subtraction },
+  { CL_ACTTYPE_MULTIPLICATION, CL_FALSE, 3, 3, 0, cl_act_multiplication },
+  { CL_ACTTYPE_DIVISION,       CL_FALSE, 3, 3, 0, cl_act_division },
+  { CL_ACTTYPE_MODULO,         CL_FALSE, 3, 3, 0, cl_act_modulo },
+  { CL_ACTTYPE_SET,            CL_FALSE, 3, 3, 0, cl_act_set },
 
   /* Counter bitwise arithmetic */
-  { CL_ACTTYPE_AND,         false, 3, 3, 0, cl_act_bitwise_and },
-  { CL_ACTTYPE_OR,          false, 3, 3, 0, cl_act_bitwise_or },
-  { CL_ACTTYPE_XOR,         false, 3, 3, 0, cl_act_bitwise_xor },
-  { CL_ACTTYPE_COMPLEMENT,  false, 1, 1, 0, cl_act_bitwise_complement },
-  { CL_ACTTYPE_SHIFT_LEFT,  false, 3, 3, 0, cl_act_shift_left },
-  { CL_ACTTYPE_SHIFT_RIGHT, false, 3, 3, 0, cl_act_shift_right },
+  { CL_ACTTYPE_AND,         CL_FALSE, 3, 3, 0, cl_act_bitwise_and },
+  { CL_ACTTYPE_OR,          CL_FALSE, 3, 3, 0, cl_act_bitwise_or },
+  { CL_ACTTYPE_XOR,         CL_FALSE, 3, 3, 0, cl_act_bitwise_xor },
+  { CL_ACTTYPE_COMPLEMENT,  CL_FALSE, 1, 1, 0, cl_act_bitwise_complement },
+  { CL_ACTTYPE_SHIFT_LEFT,  CL_FALSE, 3, 3, 0, cl_act_shift_left },
+  { CL_ACTTYPE_SHIFT_RIGHT, CL_FALSE, 3, 3, 0, cl_act_shift_right },
 
   /* Direct value manipulation */
-  { CL_ACTTYPE_WRITE,           false, 4, 4, 0, cl_act_write },
-  { CL_ACTTYPE_CHANGE_CTR_TYPE, false, 2, 2, 0, cl_act_change_ctr_type },
+  { CL_ACTTYPE_WRITE,           CL_FALSE, 4, 4, 0, cl_act_write },
+  { CL_ACTTYPE_CHANGE_CTR_TYPE, CL_FALSE, 2, 2, 0, cl_act_change_ctr_type },
 
   /* Website API calls */
-  { CL_ACTTYPE_POST_ACHIEVEMENT, false, 2, 2,  0, cl_act_post_achievement },
-  { CL_ACTTYPE_POST_LEADERBOARD, false, 2, 16, 2, cl_act_post_leaderboard },
-  { CL_ACTTYPE_POST_PROGRESS,    false, 2, 16, 2, cl_act_post_progress },
+  { CL_ACTTYPE_POST_ACHIEVEMENT, CL_FALSE, 2, 2,  0, cl_act_post_achievement },
+  { CL_ACTTYPE_POST_LEADERBOARD, CL_FALSE, 2, 16, 2, cl_act_post_leaderboard },
+  { CL_ACTTYPE_POST_PROGRESS,    CL_FALSE, 2, 16, 2, cl_act_post_progress },
 
-  { 0, false, 0, 0, 0, NULL }
+  { 0, CL_FALSE, 0, 0, 0, NULL }
 };
 
-bool cl_init_action(cl_action_t *action)
+cl_error cl_init_action(cl_action_t *action)
 {
   const cl_acttype_t *acttype = &action_types[0];
 
@@ -462,33 +462,40 @@ bool cl_init_action(cl_action_t *action)
         action->if_type = acttype->if_type;
         action->function = acttype->function;
 
-        return true;
+        return CL_OK;
       }
       action->function = cl_act_no_process;
 
-      return false;
+      return CL_ERR_PARAMETER_INVALID;
     }
     else
       acttype++;
   }
 
-  return false;
+  return CL_ERR_PARAMETER_INVALID;
 }
 
-bool cl_process_action(cl_action_t *action)
+cl_error cl_process_action(cl_action_t *action)
 {
+  cl_error result;
+
   if (!action)
-    cl_script_break(true, "Attempted to process a NULL action.");
+    cl_script_break(CL_TRUE, "Attempted to process a NULL action.");
   else if (!action->function)
-    cl_script_break(true, "Attempted to process an action with NULL "
+    cl_script_break(CL_TRUE, "Attempted to process an action with NULL "
       "implementation (action type %04X).", action->type);
   else if (action->breakpoint)
-    cl_script_break(false, "User-defined breakpoint.");
-  else if (action->function(action))
+    cl_script_break(CL_FALSE, "User-defined breakpoint.");
+  else
   {
-    action->executions++;
-    return true;
+    result = action->function(action);
+    if (result == CL_OK)
+    {
+      action->executions++;
+      return CL_OK;
+    }
+    return result;
   }
 
-  return false;
+  return CL_ERR_CLIENT_RUNTIME;
 }

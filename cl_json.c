@@ -30,13 +30,13 @@ typedef struct cl_json_t
   const char *key;
 
   /** Internal; whether the currently processed JSON element is what we want */
-  bool is_current;
+  cl_bool is_current;
 
   /** Internal; whether the currently processed JSON element is in an array */
   unsigned array_level;
 
   /** Internal; whether the currently processed JSON element is an object */
-  bool is_object;
+  cl_bool is_object;
 
   /** Whether or not the requested element was copied into the buffer */
   cl_json_state state;
@@ -72,21 +72,25 @@ static const cl_json_key_map_t cl_json_key_map[] =
   { CL_JSON_KEY_ENDIANNESS,     "endianness"     },
   { CL_JSON_KEY_FLAGS,          "flags"          },
   { CL_JSON_KEY_GAME_ID,        "game_id"        },
-  { CL_JSON_KEY_ICON_URL,       "icon_url"       },
+  { CL_JSON_KEY_ICON_URL,       "icon"           },
   { CL_JSON_KEY_ID,             "id"             },
+  { CL_JSON_KEY_LANGUAGE,       "language"       },
   { CL_JSON_KEY_LEADERBOARDS,   "leaderboards"   },
   { CL_JSON_KEY_MEMORY_NOTE_ID, "memory_note_id" },
   { CL_JSON_KEY_MEMORY_NOTES,   "memory_notes"   },
   { CL_JSON_KEY_OFFSETS,        "offsets"        },
   { CL_JSON_KEY_ORDER,          "order"          },
+  { CL_JSON_KEY_PASSWORD,       "password"       },
   { CL_JSON_KEY_POINTER_SIZE,   "pointer_size"   },
   { CL_JSON_KEY_REASON,         "reason"         },
   { CL_JSON_KEY_SCRIPT,         "script"         },
   { CL_JSON_KEY_SESSION_ID,     "session_id"     },
   { CL_JSON_KEY_SUCCESS,        "success"        },
   { CL_JSON_KEY_TITLE,          "title"          },
+  { CL_JSON_KEY_TOKEN_CLINT,    "token_clint"    },
   { CL_JSON_KEY_TYPE,           "type"           },
   { CL_JSON_KEY_UNLOCKED,       "unlocked"       },
+  { CL_JSON_KEY_USERNAME,       "username"       },
 
   { CL_JSON_KEY_NONE,           NULL             }
 };
@@ -155,11 +159,11 @@ static int cl_json_boolean(void *userdata, int istrue)
 
   if (ud->is_current)
   {
-    ud->is_current = false;
+    ud->is_current = CL_FALSE;
     switch (ud->type)
     {
     case CL_JSON_TYPE_BOOLEAN:
-      *((bool*)ud->data) = istrue ? true : false;
+      *((cl_bool*)ud->data) = istrue ? CL_TRUE : CL_FALSE;
       ud->state = CL_JSON_STATE_FINISHED;
       break;
     default:
@@ -185,7 +189,7 @@ static int cl_json_boolean_array(void *userdata, int istrue)
       switch (ud->field)
       {
       case CL_JSON_KEY_UNLOCKED:
-        ach->unlocked = istrue ? true : false;
+        ach->unlocked = istrue ? CL_TRUE : CL_FALSE;
         break;
       default:
         break;
@@ -208,11 +212,11 @@ static int cl_json_number(void *userdata, const char* number, size_t length)
 
   if (ud->is_current)
   {
-    ud->is_current = false;
+    ud->is_current = CL_FALSE;
     switch (ud->type)
     {
     case CL_JSON_TYPE_NUMBER:
-      ud->state = cl_strto(&number, ud->data, ud->size, false) ?
+      ud->state = (cl_strto(&number, ud->data, ud->size, CL_FALSE) == CL_OK) ?
                            CL_JSON_STATE_FINISHED : CL_JSON_STATE_ERROR;
       break;
     default:
@@ -228,10 +232,10 @@ static int cl_json_number_array(void *userdata, const char* number,
 {
   cl_json_t *ud = (cl_json_t*)userdata;
   unsigned value = 0;
-  bool success = cl_strto(&number, &value, sizeof(value), false);
+  cl_error error = cl_strto(&number, &value, sizeof(value), CL_FALSE);
   CL_UNUSED(length);
 
-  if (!success)
+  if (error != CL_OK)
     return 1;
   else if (ud->is_current && ud->field)
   {
@@ -321,7 +325,7 @@ static int cl_json_end_array(void *userdata)
   if (ud->is_current)
   {
     ud->state = CL_JSON_STATE_FINISHED;
-    ud->is_current = false;
+    ud->is_current = CL_FALSE;
   }
   ud->array_level--;
 
@@ -378,8 +382,10 @@ static void unescape(char *s)
           src++;
           for (i = 0; i < 2 && isxdigit((unsigned char)*src); i++, src++)
           {
-            val = val * 16 + (isdigit(*src) ? *src - '0' :
-                              (tolower(*src) - 'a' + 10));
+            val = val * 16 +
+                  (isdigit((unsigned char)*src)
+                    ? (unsigned char)*src - '0'
+                    : (tolower((unsigned char)*src) - 'a' + 10));
           }
           *dst++ = (char)val;
           src--;
@@ -406,17 +412,17 @@ static void cl_json_strcpy(char *dst, size_t dstlen, const char *src,
   unescape(dst);
 }
 
-static bool cl_json_parse_offsets(cl_memnote_t *note, const char *string)
+static cl_error cl_json_parse_offsets(cl_memnote_t *note, const char *string)
 {
   unsigned count = 0;
   const char *ptr = string;
   unsigned i;
 
   /* Parse number of offsets */
-  if (!cl_strto(&ptr, &count, sizeof(count), false))
-    return false;
+  if (cl_strto(&ptr, &count, sizeof(count), CL_FALSE) != CL_OK)
+    return CL_ERR_PARAMETER_INVALID;
   else if (count > CL_POINTER_MAX_PASSES)
-    return false;
+    return CL_ERR_PARAMETER_INVALID;
 
   note->pointer_passes = count;
 
@@ -429,13 +435,13 @@ static bool cl_json_parse_offsets(cl_memnote_t *note, const char *string)
     while (*ptr == ' ' || *ptr == '\t')
       ptr++;
 
-    if (!cl_strto(&ptr, &value, sizeof(value), false))
-      return false;
+    if (cl_strto(&ptr, &value, sizeof(value), CL_FALSE) != CL_OK)
+      return CL_ERR_PARAMETER_INVALID;
 
     note->pointer_offsets[i] = value;
   }
 
-  return true;
+  return CL_OK;
 }
 
 static int cl_json_string(void *userdata, const char *string, size_t length)
@@ -444,17 +450,17 @@ static int cl_json_string(void *userdata, const char *string, size_t length)
 
   if (ud->is_current || ud->field)
   {
-    ud->is_current = false;
+    ud->is_current = CL_FALSE;
     switch (ud->type)
     {
     case CL_JSON_TYPE_BOOLEAN:
       if (string_is_equal(ud->data, "true"))
-        *((bool*)ud->data) = true;
+        *((cl_bool*)ud->data) = CL_TRUE;
       else
-        *((bool*)ud->data) = false;
+        *((cl_bool*)ud->data) = CL_FALSE;
       break;
     case CL_JSON_TYPE_NUMBER:
-      cl_strto(&string, ud->data, ud->size, false);
+      cl_strto(&string, ud->data, ud->size, CL_FALSE);
       break;
     case CL_JSON_TYPE_STRING:
       cl_json_strcpy(ud->data, ud->size, string, length);
@@ -529,7 +535,7 @@ static int cl_json_string_array(void *userdata, const char *string,
       switch (ud->field)
       {
       case CL_JSON_KEY_OFFSETS:
-        if (!cl_json_parse_offsets(note, string))
+        if (cl_json_parse_offsets(note, string) != CL_OK)
           return 1;
         break;
 #if CL_HAVE_EDITOR
@@ -556,7 +562,7 @@ static int cl_json_string_array(void *userdata, const char *string,
   return 0;
 }
 
-bool cl_json_get(void *data, const char *json, cl_json_field key,
+cl_error cl_json_get(void *data, const char *json, cl_json_field key,
   cl_json_type type, unsigned size)
 {
   const jsonsax_handlers_t handlers =
@@ -580,7 +586,7 @@ bool cl_json_get(void *data, const char *json, cl_json_field key,
   value.data = data;
   value.element_count = 0;
   value.element_num = 0;
-  value.is_current = false;
+  value.is_current = CL_FALSE;
   value.field = CL_JSON_KEY_NONE;
   value.state = CL_JSON_STATE_STARTING;
   value.key = cl_json_key_name(key);
@@ -589,12 +595,12 @@ bool cl_json_get(void *data, const char *json, cl_json_field key,
 
   if (jsonsax_parse(json, &handlers, (void*)&value) == JSONSAX_OK &&
       value.state == CL_JSON_STATE_FINISHED)
-    return true;
+    return CL_OK;
   else
-    return false;
+    return CL_ERR_CLIENT_RUNTIME;
 }
 
-bool cl_json_get_array(void **data, unsigned *elements, const char *json,
+cl_error cl_json_get_array(void **data, unsigned *elements, const char *json,
   cl_json_field key, cl_json_type type)
 {
   /**
@@ -638,7 +644,7 @@ bool cl_json_get_array(void **data, unsigned *elements, const char *json,
   value.element_count = 0;
   value.element_num = 0;
   value.field = CL_JSON_KEY_NONE;
-  value.is_current = false;
+  value.is_current = CL_FALSE;
   value.key = cl_json_key_name(key);
   value.size = 0;
   value.state = CL_JSON_STATE_STARTING;
@@ -647,7 +653,7 @@ bool cl_json_get_array(void **data, unsigned *elements, const char *json,
   /* Were we able to count the number of elements in the array? */
   if (jsonsax_parse(json, &handlers_count, (void*)&value) != JSONSAX_OK ||
                     value.element_count == 0)
-    return false;
+    return CL_ERR_CLIENT_RUNTIME;
 
   /* Allocate memory for the array of given element type */
   *elements = value.element_count;
@@ -666,7 +672,7 @@ bool cl_json_get_array(void **data, unsigned *elements, const char *json,
       sizeof(cl_memnote_t));
     break;
   default:
-    return false;
+    return CL_ERR_PARAMETER_INVALID;
   }
 
   /* Now, actually extract the values */
@@ -675,7 +681,7 @@ bool cl_json_get_array(void **data, unsigned *elements, const char *json,
   value.element_count = *elements;
   value.element_num = 0;
   value.field = CL_JSON_KEY_NONE;
-  value.is_current = false;
+  value.is_current = CL_FALSE;
   value.key = cl_json_key_name(key);
   value.size = 0;
   value.state = CL_JSON_STATE_STARTING;
@@ -685,8 +691,8 @@ bool cl_json_get_array(void **data, unsigned *elements, const char *json,
                     value.state != CL_JSON_STATE_FINISHED)
   {
     free(*data);
-    return false;
+    return CL_ERR_CLIENT_RUNTIME;
   }
   else
-    return true;
+    return CL_OK;
 }

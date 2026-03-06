@@ -4,11 +4,13 @@
 #include "cle_result_table_pointer.h"
 #include "cle_common.h"
 
-CleResultTablePointer::CleResultTablePointer(QWidget *parent, uint32_t address,
-   uint8_t size, uint8_t passes, uint32_t range, uint32_t max_results)
+/** @todo everything here was dummied in anticipation of a pointersearch redo */
+
+CleResultTablePointer::CleResultTablePointer(QWidget *parent, cl_addr_t address,
+   cl_value_type value_type, unsigned passes, cl_addr_t range, cl_addr_t max_results)
 {
    char offset_str[16];
-   uint8_t i;
+   unsigned i;
 
    CleResultTable::init();
 
@@ -38,7 +40,10 @@ CleResultTablePointer::CleResultTablePointer(QWidget *parent, uint32_t address,
    connect(this, SIGNAL(requestPointerSearch(cl_addr_t)),
       parent, SLOT(requestPointerSearch(cl_addr_t)));
 
-   cl_pointersearch_init(&m_Search, address, size, passes, range, max_results);
+   if (cl_pointersearch_init(&m_Search, address, value_type, passes, range, max_results) != CL_OK)
+   {
+      cl_log("Failed to initialize pointer search for address %016llX\n", (unsigned long long)address);
+   }
    rebuild();
 }
 
@@ -52,9 +57,9 @@ cl_addr_t CleResultTablePointer::getClickedResultAddress()
    return m_Search.results[m_Table->currentRow()].address_final;
 }
 
-void* CleResultTablePointer::getSearchData()
+void *CleResultTablePointer::searchData(void)
 {
-   return (void*)(&m_Search);
+  return &m_Search;
 }
 
 void CleResultTablePointer::onClickResultAddMemoryNote()
@@ -109,7 +114,7 @@ void CleResultTablePointer::onResultDoubleClick()
 {
    if (m_Table->currentColumn() == m_ColValueCurr)
    {
-      uint32_t i;
+      unsigned i;
 
       /* We gray out the other entries because they won't update while
          we're editing. */
@@ -121,6 +126,7 @@ void CleResultTablePointer::onResultDoubleClick()
 
 void CleResultTablePointer::onResultEdited(QTableWidgetItem *item)
 {
+#if 0
    if (item->row() == m_CurrentEditedRow && item->column() == m_ColValueCurr)
    {
       if (item->isSelected())
@@ -130,13 +136,17 @@ void CleResultTablePointer::onResultEdited(QTableWidgetItem *item)
       }
       m_CurrentEditedRow = -1;
    }
+#endif
 }
 
-void CleResultTablePointer::rebuild()
+cl_error CleResultTablePointer::rebuild(void)
 {
+  return CL_OK;
+#if 0
    char     temp_string[32];
-   uint8_t  size;
-   uint32_t current_row, temp_value, i, j;
+   unsigned size;
+   unsigned current_row, i, j;
+   cl_addr_t temp_value;
 
    size = m_Search.params.value_type;
    m_Table->setColumnCount(3 + m_Search.passes);
@@ -146,12 +156,12 @@ void CleResultTablePointer::rebuild()
    {
       m_Table->insertRow(i);
 
-      snprintf(temp_string, 256, "%08X", m_Search.results[i].address_initial);
+      snprintf(temp_string, 256, "%016llX", (unsigned long long)m_Search.results[i].address_initial);
       m_Table->setItem(i, m_ColAddress, new QTableWidgetItem(QString(temp_string)));
 
       for (j = 0; j < m_Search.passes; j++)
       {
-         snprintf(temp_string, 256, "%02X", m_Search.results[i].offsets[j]);
+         snprintf(temp_string, 256, "%llX", (unsigned long long)m_Search.results[i].offsets[j]);
          m_Table->setItem(i, j + 1, new QTableWidgetItem(QString(temp_string)));
       }
 
@@ -161,19 +171,22 @@ void CleResultTablePointer::rebuild()
       valueToString(temp_string, sizeof(temp_string), m_Search.results[i].value_current, size);
       m_Table->setItem(i, m_ColValueCurr, new QTableWidgetItem(QString(temp_string)));
    }
+#endif
 }
 
-void CleResultTablePointer::reset(uint8_t value_type)
+cl_error CleResultTablePointer::reset(void)
 {
-   cl_pointersearch_free(&m_Search);
+  return CL_OK;
 }
 
-void CleResultTablePointer::run()
+cl_error CleResultTablePointer::run(void)
 {
+#if 0
    QTableWidgetItem *item;
    char     temp_string[32];
-   uint8_t  val_type;
-   uint32_t address, value_curr, value_prev, i;
+   cl_value_type val_type;
+   cl_addr_t address, value_curr, value_prev;
+   unsigned i;
 
    val_type = m_Search.params.value_type;
 
@@ -213,31 +226,13 @@ void CleResultTablePointer::run()
          item->setTextColor(value_prev != value_curr ? Qt::red : Qt::white);
       }
    }
+#endif
 }
 
-bool CleResultTablePointer::step(const QString& text)
+cl_error CleResultTablePointer::step(void)
 {
-   void *compare_value;
-   bool  no_input = text.isEmpty();
-   bool  ok = true;
+  cl_pointersearch_step(&m_Search, NULL);
+  rebuild();
 
-   if (m_Search.params.value_type == CL_MEMTYPE_FLOAT)
-      compare_value = new float(text.toFloat(&ok));
-   else
-      compare_value = new uint32_t(stringToValue(text, &ok));
-
-   /* Run the C code for doing the actual search */
-   if (ok || no_input)
-      cl_pointersearch_step
-      (
-         &m_Search,
-         no_input ? NULL : compare_value
-      );
-   else
-      return false;
-
-   free(compare_value);
-   rebuild();
-
-   return true;
+  return CL_OK;
 }

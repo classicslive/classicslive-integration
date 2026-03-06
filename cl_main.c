@@ -17,6 +17,8 @@ void cle_run(void);
 #include <file/file_path.h>
 #include <string/stdstring.h>
 
+#include <time.h>
+
 cl_session_t session;
 
 static cl_error cl_init_session(const char* json)
@@ -27,22 +29,45 @@ static cl_error cl_init_session(const char* json)
   cl_error error;
 
   /* Get game info */
+  /* Game title */
   if (cl_json_get(&session.game_title, json, CL_JSON_KEY_TITLE,
-                  CL_JSON_TYPE_STRING, sizeof(session.game_title)))
-    cl_message(CL_MSG_INFO, "Game title: %s", session.game_title);
+                  CL_JSON_TYPE_STRING, sizeof(session.game_title)) != CL_OK)
+    session.game_title[0] = '\0';
+  else
+  {
+    cl_log("Game title: %s", session.game_title);
+    session.game_title[sizeof(session.game_title) - 1] = '\0';
+  }
+
+  /* Game ID */
   if (cl_json_get(&misc, json, CL_JSON_KEY_GAME_ID,
-                  CL_JSON_TYPE_NUMBER, sizeof(misc)))
+                  CL_JSON_TYPE_NUMBER, sizeof(misc)) != CL_OK)
+    session.game_id = 0;
+  else
+  {
+    cl_log("Game ID: %u", session.game_id);
     session.game_id = misc;
+  }
+
+  /* Game icon URL */
+  if (cl_json_get(&session.icon_url, json, CL_JSON_KEY_ICON_URL,
+                  CL_JSON_TYPE_STRING, sizeof(session.icon_url)) != CL_OK)
+    session.icon_url[0] = '\0';
+  else
+  {
+    cl_log("Game icon URL: %s", session.icon_url);
+    session.icon_url[sizeof(session.icon_url) - 1] = '\0';
+  }
 
   /* Get default endianness of memory regions */
   if (cl_json_get(&misc, json, CL_JSON_KEY_ENDIANNESS,
-                  CL_JSON_TYPE_NUMBER, sizeof(misc)))
+                  CL_JSON_TYPE_NUMBER, sizeof(misc)) == CL_OK)
     for (i = 0; i < memory.region_count; i++)
       memory.regions[i].endianness = misc;
 
   /* Get default pointer length of memory regions */
   if (cl_json_get(&misc, json, CL_JSON_KEY_POINTER_SIZE,
-                  CL_JSON_TYPE_NUMBER, sizeof(misc)))
+                  CL_JSON_TYPE_NUMBER, sizeof(misc)) == CL_OK)
     for (i = 0; i < memory.region_count; i++)
       memory.regions[i].pointer_length = misc;
 
@@ -57,12 +82,12 @@ static cl_error cl_init_session(const char* json)
 
   /* Get script */
   iterator = &script_str[0];
-  if (cl_json_get(script_str, json, CL_JSON_KEY_SCRIPT, CL_JSON_TYPE_STRING, sizeof(script_str)))
+  if (cl_json_get(script_str, json, CL_JSON_KEY_SCRIPT, CL_JSON_TYPE_STRING, sizeof(script_str)) == CL_OK)
   {
-    if (!cl_script_init(&iterator))
+    if (cl_script_init(&iterator) != CL_OK)
     {
-      cl_message(CL_MSG_ERROR, "Failed to initialize CL script.");
 #if !CL_HAVE_EDITOR
+      cl_message(CL_MSG_ERROR, "Failed to initialize CL script.");
       return CL_ERR_SERVER_UNEXPECTED_RESPONSE;
 #endif
     }
@@ -108,6 +133,7 @@ cl_error cl_start(cl_game_identifier_t identifier)
     char post_data[CL_POST_DATA_SIZE];
     const char *library_name;
     cl_error error;
+    unsigned remaining;
 
     error = cl_abi_library_name(&library_name);
     if (error)
@@ -128,8 +154,10 @@ cl_error cl_start(cl_game_identifier_t identifier)
     {
       if (strlen(identifier.checksum) == 32)
       {
-        strcat(post_data, "&md5=");
-        strcat(post_data, identifier.checksum);
+        remaining = sizeof(post_data) - strlen(post_data) - 1;
+        strncat(post_data, "&md5=", remaining);
+        remaining = sizeof(post_data) - strlen(post_data) - 1;
+        strncat(post_data, identifier.checksum, remaining);
       }
       else
       {
@@ -143,14 +171,18 @@ cl_error cl_start(cl_game_identifier_t identifier)
 
       if (strlen(identifier.product) > 0)
       {
-        strcat(post_data, "&product=");
-        strcat(post_data, identifier.product);
+        remaining = sizeof(post_data) - strlen(post_data) - 1;
+        strncat(post_data, "&product=", remaining);
+        remaining = sizeof(post_data) - strlen(post_data) - 1;
+        strncat(post_data, identifier.product, remaining);
         success = 1;
       }
       if (strlen(identifier.version) > 0)
       {
-        strcat(post_data, "&version=");
-        strcat(post_data, identifier.version);
+        remaining = sizeof(post_data) - strlen(post_data) - 1;
+        strncat(post_data, "&version=", remaining);
+        remaining = sizeof(post_data) - strlen(post_data) - 1;
+        strncat(post_data, identifier.version, remaining);
         success = 1;
       }
       if (!success)
@@ -176,18 +208,27 @@ static CL_NETWORK_CB(cl_login_cb)
   {
     unsigned char success;
 
-    if (!cl_json_get(&success, response.data, CL_JSON_KEY_SUCCESS,
-        CL_JSON_TYPE_BOOLEAN, 0))
+    if (cl_json_get(&success, response.data, CL_JSON_KEY_SUCCESS,
+        CL_JSON_TYPE_BOOLEAN, sizeof(success)) != CL_OK)
     {
       cl_log("Malformed JSON output on login.\n%s", response.data);
+      session.state = CL_SESSION_NONE;
       return;
     }
     else if (!success)
+    {
+      session.state = CL_SESSION_NONE;
       return;
+    }
 
     if (cl_json_get(session.id, response.data, CL_JSON_KEY_SESSION_ID,
-        CL_JSON_TYPE_STRING, sizeof(session.id)))
+        CL_JSON_TYPE_STRING, sizeof(session.id)) == CL_OK)
       session.state = CL_SESSION_LOGGED_IN;
+    else
+    {
+      cl_log("No session ID received on login.\n%s", response.data);
+      session.state = CL_SESSION_NONE;
+    }
   }
 }
 
@@ -195,6 +236,9 @@ static cl_error cl_login_internal(cl_network_cb_t callback)
 {
   cl_user_t user;
   char post_data[256];
+#if CL_HAVE_EDITOR
+  unsigned remaining;
+#endif
 
   /* Retrieve user login info */
   if (cl_abi_user_data(&user, 0) != CL_OK)
@@ -220,7 +264,8 @@ static cl_error cl_login_internal(cl_network_cb_t callback)
 
   /* Append editor flag if available */
 #if CL_HAVE_EDITOR
-  strcat(post_data, "&editor=true");
+  remaining = sizeof(post_data) - strlen(post_data) - 1;
+  strncat(post_data, "&editor=true", remaining);
 #endif
 
   session.state = CL_SESSION_LOGGING_IN;
@@ -274,12 +319,16 @@ cl_error cl_login_and_start(cl_game_identifier_t identifier)
     error = cl_abi_library_name(&library_name);
     if (error)
       return error;
+
     session.identifier = identifier;
-    if (identifier.type == CL_GAMEIDENTIFIER_FILE_HASH)
+
+    if (identifier.type == CL_GAMEIDENTIFIER_FILE_HASH &&
+        identifier.checksum[0] == '\0')
       cl_identify(identifier.data, identifier.size, identifier.filename,
                   library_name, session.identifier.checksum,
                   cl_login_and_start_cb_1);
-    else if (identifier.type == CL_GAMEIDENTIFIER_PRODUCT_CODE)
+    else if (identifier.type == CL_GAMEIDENTIFIER_PRODUCT_CODE ||
+             identifier.type == CL_GAMEIDENTIFIER_FILE_HASH)
       cl_login_internal(cl_login_and_start_cb_2);
     else
       return CL_ERR_PARAMETER_INVALID;
@@ -297,10 +346,19 @@ cl_error cl_login_and_start(cl_game_identifier_t identifier)
 
 cl_error cl_run(void)
 {
+  cl_error error;
+
   if (session.state == CL_SESSION_STARTED)
   {
     cl_update_memory();
-    cl_script_update();
+
+#if CL_HAVE_EDITOR
+    cle_run();
+#endif
+
+    error = cl_script_update();
+    if (error != CL_OK)
+      return error;
 
     /* Pingback every X seconds to update rich presence */
     if (time(0) >= session.last_status_update + CL_PRESENCE_INTERVAL)
@@ -308,9 +366,6 @@ cl_error cl_run(void)
       session.last_status_update = time(0);
       cl_network_post_clint(CL_END_CLINT_PING, NULL, NULL, NULL);
     }
-#if CL_HAVE_EDITOR
-    cle_run();
-#endif
 
     return CL_OK;
   }

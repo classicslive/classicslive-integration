@@ -4,84 +4,102 @@
 #include "cl_memory.h"
 #include "cl_types.h"
 
-typedef struct cl_search_params_t
+/**
+ * Parameters used for pointer searches
+ */
+typedef struct
 {
-   uint8_t compare_type;
-   uint8_t size;
-   cl_value_type value_type;
-} cl_search_params_t;
+  /* The type of value being searched for */
+  cl_value_type value_type;
 
-typedef struct cl_searchbank_t
-{
-   cl_memory_region_t *region;
-   uint8_t *backup;
-   uint8_t *valid;
-   bool any_valid;
-   cl_addr_t first_valid;
-   cl_addr_t last_valid;
-} cl_searchbank_t;
+  /* The size, in bytes, of the value type */
+  unsigned value_size;
 
-typedef struct cl_search_t
-{
-   cl_searchbank_t    *searchbanks;
-   cl_search_params_t  params;
-   unsigned            searchbank_count;
-   cl_addr_t           matches;
-} cl_search_t;
+  /* The comparison method to use */
+  cl_compare_type compare_type;
+} cl_pointersearch_parameters_t;
 
-typedef struct cl_pointerresult_t
+/**
+ * A single pointer search result containing the pointer chain and values.
+ */
+typedef struct
 {
-   cl_addr_t address_initial;
-   cl_addr_t address_final;
-   uint32_t  value_current;
-   uint32_t  value_previous;
-   uint32_t  offsets[CL_POINTER_MAX_PASSES];
-} cl_pointerresult_t;
+  /* The initial address where the pointer chain starts */
+  cl_addr_t address_initial;
 
-typedef struct cl_pointersearch_t
+  /* The final address after following all pointers */
+  cl_addr_t address_final;
+
+  /* The current value at the final address */
+  cl_addr_t value_current;
+
+  /* The previous value at the final address */
+  cl_addr_t value_previous;
+
+  /* The offsets applied at each pointer level */
+  cl_addr_t offsets[CL_POINTER_MAX_PASSES];
+} cl_pointersearch_result_t;
+
+/**
+ * The main pointer search structure.
+ * Searches for pointer chains that lead to a target address.
+ */
+typedef struct
 {
-   cl_search_params_t  params;
-   uint8_t             passes;
-   uint32_t            range; 
-   cl_pointerresult_t *results;
-   uint32_t            result_count;
+  /* Search parameters */
+  cl_pointersearch_parameters_t params;
+
+  /* Number of pointer dereferences in the chain */
+  unsigned passes;
+
+  /* Maximum offset range to search for at each level */
+  cl_addr_t range;
+
+  /* Array of found pointer chains */
+  cl_pointersearch_result_t *results;
+
+  /* Number of results found */
+  cl_addr_t result_count;
+
+  /* Maximum number of results to store */
+  cl_addr_t max_results;
 } cl_pointersearch_t;
 
-bool cl_read_search (uint32_t *value, cl_search_t *search, 
-   cl_searchbank_t *bank, cl_addr_t address);
+/**
+ * Frees memory allocated for a pointer search.
+ * @param search A pointer to the pointer search to free
+ * @return CL_OK on success, or an error code on failure
+ */
+cl_error cl_pointersearch_free(cl_pointersearch_t *search);
 
-uint32_t cl_search_ascii (cl_search_t *search, const char *needle, uint8_t length);
-bool     cl_search_free  (cl_search_t *search);
-bool     cl_search_init  (cl_search_t *search);
+/**
+ * Initializes a pointer search to find chains leading to a target address.
+ * @param search A pointer to the search structure to initialize
+ * @param address The target address to find pointers to
+ * @param value_type The type of value at the target address
+ * @param passes The number of pointer dereferences to search through
+ * @param range The maximum offset range for each pointer level
+ * @param max_results The maximum number of results to store
+ * @return CL_OK on success, or an error code on failure
+ */
+cl_error cl_pointersearch_init(cl_pointersearch_t *search, cl_addr_t address,
+  cl_value_type value_type, unsigned passes, cl_addr_t range,
+  cl_addr_t max_results);
 
-/*
-   Unsets the validity of a specific address.
-   Returns TRUE if it succeeds.
-*/
-bool cl_search_remove(cl_search_t *search, cl_addr_t address);
+/**
+ * Filters pointer search results based on value comparisons.
+ * @param search A pointer to the pointer search
+ * @param value A pointer to the value to compare against, or NULL to compare
+ *   against previous values
+ * @return The number of matching results
+ */
+cl_addr_t cl_pointersearch_step(cl_pointersearch_t *search, const void *value);
 
-/*
-   Sets the validity of all addresses to true.
-   Returns TRUE if it succeeds.
-*/
-bool cl_search_reset(cl_search_t *search);
-
-/*
-   Unsets the validity of all addresses that no longer meet the given conditions.
-   Returns the number of valid addresses afterwards.
-*/
-uint32_t cl_search_step(cl_search_t *search, void *value);
-
-bool cl_pointersearch_free(cl_pointersearch_t *search);
-
-bool cl_pointersearch_init(cl_pointersearch_t *search, cl_addr_t address, 
-   uint8_t size, uint8_t passes, uint32_t range, uint32_t max_results);
-
-uint32_t cl_pointersearch_step(cl_pointersearch_t *search, void *value);
-
-/*
-   Updates the "value_current" variable in every result in a pointersearch. 
-*/
+/**
+ * Updates the current values for all pointer search results.
+ * Resolves each pointer chain and reads the current value.
+ * @param search A pointer to the pointer search to update
+ */
 void cl_pointersearch_update(cl_pointersearch_t *search);
 
 #endif

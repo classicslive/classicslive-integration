@@ -9,7 +9,7 @@ TARGET := cl_test
 
 OBJS_CLASSICSLIVE := $(CLASSICS_LIVE_SOURCES_CLASSICSLIVE:.c=.o)
 OBJS_LIBRETRO := $(CLASSICS_LIVE_SOURCES_LIBRETRO:.c=.o)
-OBJS_TEST := $(CLASSICS_LIVE_DIR)/cl_test.o
+OBJS_TEST := $(CLASSICS_LIVE_DIR)/cl_test.o $(CLASSICS_LIVE_DIR)/cl_test_main.o
 OBJS := $(OBJS_CLASSICSLIVE) $(OBJS_LIBRETRO) $(OBJS_TEST)
 
 .PHONY: all clean
@@ -23,6 +23,9 @@ $(CLASSICS_LIVE_LIBRETRO_DIR)/%.o: $(CLASSICS_LIVE_LIBRETRO_DIR)/%.c
 	$(CC) $(CFLAGS_COMMON) -c $< -o $@
 
 $(CLASSICS_LIVE_DIR)/cl_test.o: $(CLASSICS_LIVE_DIR)/cl_test.c
+	$(CC) $(CFLAGS_C89) -c $< -o $@
+
+$(CLASSICS_LIVE_DIR)/cl_test_main.o: $(CLASSICS_LIVE_DIR)/cl_test_main.c
 	$(CC) $(CFLAGS_C89) -c $< -o $@
 
 $(TARGET): $(OBJS)

@@ -2,17 +2,19 @@
 
 #include "cl_common.h"
 #include "cl_abi.h"
+#include "cl_dma.h"
 #include "cl_main.h"
 #include "cl_memory.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 static char *cl_build_generic_post_data(void)
 {
   cl_counter_t value;
   unsigned bufsize = 256;
-  char *buf = malloc(bufsize);
+  char *buf = cl_dma_alloc(bufsize, CL_TRUE);
   char temp[128];
   unsigned i;
 
@@ -30,9 +32,9 @@ static char *cl_build_generic_post_data(void)
     {
       cl_memnote_t *note = &memory.notes[i];
 
-      if (!cl_get_memnote_flag(note, CL_MEMFLAG_RICH))
+      if (cl_get_memnote_flag(note, CL_MEMFLAG_RICH) != CL_OK)
         continue;
-      if (cl_get_memnote_value(&value, note, CL_SRCTYPE_CURRENT_RAM))
+      if (cl_get_memnote_value(&value, note, CL_SRCTYPE_CURRENT_RAM) == CL_OK)
       {
         unsigned written, need;
 
@@ -40,7 +42,7 @@ static char *cl_build_generic_post_data(void)
           written = snprintf(temp, sizeof(temp), "&m%u=%f",
                              note->key, value.floatval.fp);
         else
-          written = snprintf(temp, sizeof(temp), "&m%u=%li",
+          written = snprintf(temp, sizeof(temp), "&m%u=" CL_FS64,
                              note->key, value.intval.i64);
 
         /* Grow buffer if needed */
@@ -53,7 +55,7 @@ static char *cl_build_generic_post_data(void)
             return NULL;
         }
 
-        strcat(buf, temp);
+        strncat(buf, temp, bufsize - strlen(buf) - 1);
       }
     }
   }
@@ -68,7 +70,7 @@ static CL_NETWORK_CB(cl_default_network_cb)
 }
 
 static cl_error cl_network_post_internal(const char *url, const char *endpoint,
-  const char *post_data, cl_network_cb_t callback, void *userdata, bool force)
+  const char *post_data, cl_network_cb_t callback, void *userdata, cl_bool force)
 {
   char endpoint_url[256];
   char final_data[1024];
@@ -120,7 +122,7 @@ void cl_network_post_api(const char *endpoint, const char *post_data,
   cl_network_cb_t callback, void *userdata)
 {
   cl_network_post_internal(CL_API_URL, endpoint,
-                           post_data, callback, userdata, false);
+                           post_data, callback, userdata, CL_FALSE);
 }
 #endif
 
@@ -128,12 +130,12 @@ void cl_network_post_clint(const char *endpoint, const char *post_data,
   cl_network_cb_t callback, void *userdata)
 {
   cl_network_post_internal(CL_CLINT_URL, endpoint,
-                           post_data, callback, userdata, false);
+                           post_data, callback, userdata, CL_FALSE);
 }
 
 void cl_network_post_clint_login(const char *post_data,
   cl_network_cb_t callback)
 {
   cl_network_post_internal(CL_CLINT_URL, CL_END_CLINT_LOGIN,
-                           post_data, callback, NULL, true);
+                           post_data, callback, NULL, CL_TRUE);
 }

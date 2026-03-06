@@ -1,12 +1,24 @@
 #ifndef CL_TYPES_H
 #define CL_TYPES_H
 
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <time.h>
+#include "cl_config.h"
 
 #define CL_SESSION_ID_LENGTH 32
+
+typedef unsigned char cl_bool;
+
+#define CL_TRUE 1
+#define CL_FALSE 0
+
+#if CL_HOST_PLATFORM == _CL_PLATFORM_LINUX
+  typedef signed long cl_int64;
+  typedef unsigned long cl_uint64;
+#else
+  typedef signed long long cl_int64;
+  typedef unsigned long long cl_uint64;
+#endif
+
+#define CL_NULL 0
 
 typedef enum
 {
@@ -31,6 +43,34 @@ typedef enum
   CL_ERR_SIZE
 } cl_error;
 
+typedef enum
+{
+  CL_COMPARE_INVALID = 0,
+
+  CL_COMPARE_EQUAL,
+  CL_COMPARE_GREATER,
+  CL_COMPARE_LESS,
+  CL_COMPARE_NOT_EQUAL,
+  CL_COMPARE_INCREASED,
+  CL_COMPARE_DECREASED,
+
+  CL_COMPARE_SIZE
+} cl_compare_type;
+
+/** @todo make immediate 1 */
+typedef enum
+{
+  CL_SRCTYPE_IMMEDIATE_INT = 0,
+  CL_SRCTYPE_CURRENT_RAM,
+  CL_SRCTYPE_PREVIOUS_RAM,
+  CL_SRCTYPE_LAST_UNIQUE_RAM,
+  CL_SRCTYPE_ROM,
+  CL_SRCTYPE_COUNTER,
+  CL_SRCTYPE_IMMEDIATE_FLOAT,
+
+  CL_SRCTYPE_SIZE
+} cl_src_t;
+
 /**
  * A -1 value to represent invalid addresses in memory regions, as 0 for NULL
  * may be a valid address on some emulated systems.
@@ -53,7 +93,7 @@ typedef enum
  */
 #define CL_INTEGRATION_VERSION 1
 
-#define CL_LOGGING true
+#define CL_LOGGING CL_TRUE
 
 /**
  * How often, in seconds, to ping back to the server to update current status.
@@ -65,14 +105,14 @@ typedef enum
  */
 #define CL_RADIX 10
 
-#define CL_SHOW_ERRORS true
+#define CL_SHOW_ERRORS CL_TRUE
 
 /**
  * Format string to print the contents of a buffer representing an MD5 hash.
  */
 #define CL_SNPRINTF_MD5 "%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X"
 
-#define CL_TASK_MUTE true
+#define CL_TASK_MUTE CL_TRUE
 
 /**
  * Used for unit tests to print a descriptive failure message.
@@ -98,10 +138,10 @@ typedef enum
   /* 89ABCDEF01234567 */
   CL_ENDIAN_WORD_FLIP_LB,
 
-#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-  CL_ENDIAN_NATIVE = CL_ENDIAN_BIG,
+#if CL_HOST_ENDIANNESS == _CL_ENDIANNESS_BIG
+  CL_ENDIAN_NATIVE = _CL_ENDIANNESS_BIG,
 #else
-  CL_ENDIAN_NATIVE = CL_ENDIAN_LITTLE,
+  CL_ENDIAN_NATIVE = _CL_ENDIANNESS_LITTLE,
 #endif
 
   CL_ENDIAN_SIZE
@@ -143,7 +183,7 @@ typedef struct
   char icon_url[64];
   unsigned flags;
   unsigned id;
-  bool unlocked;
+  cl_bool unlocked;
 } cl_achievement_t;
 
 typedef struct
@@ -171,9 +211,9 @@ typedef struct
 
 typedef union
 {
-  int64_t intval;
+  cl_int64 intval;
   double floatval;
-  uint64_t uintval;
+  cl_uint64 uintval;
 } cl_arg_t;
 
 typedef enum
@@ -295,10 +335,12 @@ typedef struct cl_session_t
   char checksum[64];
   unsigned game_id;
   char game_title[256];
+  char icon_url[256];
+
   char generic_post[2048];
   cl_session_flags_t flags;
   char id[CL_SESSION_ID_LENGTH];
-  time_t last_status_update;
+  cl_int64 last_status_update;
 
   cl_session_state state;
 
@@ -346,20 +388,27 @@ typedef struct
   char language[8];
 } cl_user_t;
 
-/** A virtual address for the emulated system. */
-typedef uintptr_t cl_addr_t;
+#if CL_HOST_BITNESS == _CL_BITNESS_32
+  #define CL_ADDRF "%08X"
+  #define CL_SIZEF "%u"
+  typedef unsigned int cl_addr_t;
+#else
+  #define CL_ADDRF "%016lX"
+  #define CL_SIZEF "%lu"
+  typedef unsigned long cl_addr_t;
+#endif
 
 typedef struct cl_counter_t
 {
   union
   {
-    int64_t i64;
-    uint64_t raw;
+    cl_int64 i64;
+    cl_uint64 raw;
   } intval;
   union
   {
     double fp;
-    uint64_t raw;
+    cl_uint64 raw;
   } floatval;
   cl_value_type type;
 } cl_counter_t;
@@ -489,7 +538,7 @@ typedef struct cl_memnote_t
 #if CL_HAVE_EDITOR
   /* Metadata for generated human-readable strings in Live Editor */
   cl_memnote_ex_t details;
-  bool edited;
+  cl_bool edited;
 #endif
 } cl_memnote_t;
 
@@ -509,5 +558,15 @@ typedef struct cl_memory_t
 #define CL_KB(a) ((cl_addr_t)(a) << 10)
 #define CL_MB(a) ((cl_addr_t)(a) << 20)
 #define CL_GB(a) ((cl_addr_t)(a) << 30)
+
+#if CL_HOST_PLATFORM == _CL_PLATFORM_LINUX
+  #define CL_FS64 "%li"
+  #define CL_FU64 "%lu"
+  #define CL_FX64 "%lX"
+#else
+  #define CL_FS64 "%lli"
+  #define CL_FU64 "%llu"
+  #define CL_FX64 "%llX"
+#endif
 
 #endif

@@ -40,37 +40,43 @@ public slots:
 
 private:
    CleResultTable *m_Searches[CLE_MAX_TABS];
-   CleResultTable *m_CurrentSearch;
+   CleResultTable *m_CurrentSearch = nullptr;
 
-   CleHexWidget        *m_HexWidget;
-   CleMemoryNoteSubmit *m_MemoryNoteSubmit;
+   CleHexWidget        *m_HexWidget = nullptr;
+   CleMemoryNoteSubmit *m_MemoryNoteSubmit = nullptr;
 
-   cl_memory_region_t *m_CurrentMembank;
+   cl_memory_region_t *m_CurrentMembank = nullptr;
 
-   uint32_t  m_AddressOffset;
-   uint8_t  *m_BufferPrevious;
-   uint8_t  *m_BufferCurrent;
+   cl_addr_t m_AddressOffset;
+   cl_addr_t m_CurrentRegionSize = 0;
+   unsigned  m_CurrentRegionCount = 0;
+   uint8_t  *m_BufferPrevious = nullptr;
+   uint8_t  *m_BufferCurrent = nullptr;
    int8_t    m_ClickedTab;
    uint8_t   m_TabCount;
-   
-   QComboBox      *m_CompareDropdown;
-   QGridLayout    *m_Layout;
-   QComboBox      *m_SizeDropdown;
-   QLineEdit      *m_TextEntry;
-   QPushButton    *m_NewButton;
-   QPushButton    *m_SearchButton;
-   QSlider        *m_Slider;
-   QStackedWidget *m_TableStack;
-   QTabBar        *m_Tabs;
-   QTimer         *m_UpdateTimer;
 
-   uint8_t getCurrentCompareType(void);
+   QComboBox      *m_CompareDropdown = nullptr;
+   QGridLayout    *m_Layout = nullptr;
+   QTabBar        *m_RegionTabs = nullptr;
+   QComboBox      *m_SizeDropdown = nullptr;
+   QLineEdit      *m_TextEntry = nullptr;
+   QPushButton    *m_NewButton = nullptr;
+   QPushButton    *m_SearchButton = nullptr;
+   QSlider        *m_Slider = nullptr;
+   QLabel         *m_Status = nullptr;
+   QStackedWidget *m_TableStack = nullptr;
+   QTabBar        *m_Tabs = nullptr;
+   QTimer         *m_UpdateTimer = nullptr;
+
+   cl_compare_type getCurrentCompareType(void);
    cl_value_type getCurrentSizeType(void);
+   void    applyTheme(QWidget *w);
    void    rebuildLayout(void);
 
 private slots:
    void onAddressChanged(cl_addr_t address);
    void onChangeCompareType();
+   void onChangeRegionTab(int index);
    void onChangeScrollbar(int value);
    void onChangeSizeType();
    void onChangeTab();
@@ -78,9 +84,11 @@ private slots:
    void onClickSearch();
    void onClickTabRename();
 
-   void onHexWidgetValueEdited(cl_addr_t address, uint8_t value);
+   void onHexWidgetValueEdited(cl_addr_t address, uint64_t value, uint8_t size);
 
    void onRightClickTabs(const QPoint &pos);
+
+   void onTargetChanged(const QString&);
 
    void requestAddMemoryNote(cl_memnote_t note);
    void requestAddMemoryNote(cl_addr_t address);

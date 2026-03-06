@@ -1,22 +1,38 @@
+#include "cl_identify.h"
+
 #include "cl_abi.h"
 #include "cl_config.h"
-#include "cl_identify.h"
+#include "cl_dma.h"
 #include "cl_memory.h"
 
 #include <stdio.h>
 
+#if CL_HOST_PLATFORM == _CL_PLATFORM_LINUX || \
+    CL_HOST_PLATFORM == _CL_PLATFORM_MACOS || \
+    CL_HOST_PLATFORM == _CL_PLATFORM_ANDROID
 #include <bits/types/struct_timespec.h>
+#endif
 
+#if CL_HAVE_MD5
 #include <lrc_hash.h>
-#include <retro_timers.h>
-#include <string/stdstring.h>
+#include <string.h>
+#endif
 
 #if CL_HAVE_FILESYSTEM
-#include <streams/file_stream.h>
-#include <streams/chd_stream.h>
-#include <streams/interface_stream.h>
 #include <file/file_path.h>
+#include <retro_timers.h>
+#include <streams/chd_stream.h>
+#include <streams/file_stream.h>
+#include <streams/interface_stream.h>
+#include <string/stdstring.h>
 #endif
+
+#define CL_DOLPHIN_SIZE 0x002C
+#define CL_ISO9660_SIZE 0x0800
+#define CL_NCCH_SIZE    0x0200
+#define CL_MAX_PATH     4096
+
+#if CL_HAVE_MD5
 
 typedef struct cl_md5_ctx_t
 {
@@ -24,14 +40,9 @@ typedef struct cl_md5_ctx_t
   void     *data;
   unsigned  size;
   uint8_t   md5_raw[16];
-  bool      free_on_finish;
+  cl_bool   free_on_finish;
   char     *md5_final;
 } cl_md5_ctx_t;
-
-#define CL_DOLPHIN_SIZE 0x002C
-#define CL_ISO9660_SIZE 0x0800
-#define CL_NCCH_SIZE    0x0200
-#define CL_MAX_PATH     4096
 
 static void cl_task_md5(struct cl_task_t *task)
 {
@@ -55,15 +66,15 @@ static void cl_task_md5(struct cl_task_t *task)
 
     cl_log("Content MD5: %.32s\n", state->md5_final);
     if (state->free_on_finish)
-      free(state->data);
+      cl_dma_free(state->data);
   }
 }
 
-static void cl_push_md5_task(void *data, unsigned size, char *checksum, 
-  bool free_on_finish, CL_TASK_CB_T callback)
+static void cl_push_md5_task(void *data, unsigned size, char *checksum,
+  cl_bool free_on_finish, CL_TASK_CB_T callback)
 {
-  cl_task_t *task = (cl_task_t*)calloc(1, sizeof(cl_task_t));
-  cl_md5_ctx_t *context = (cl_md5_ctx_t*)calloc(1, sizeof(cl_md5_ctx_t));
+  cl_task_t *task = (cl_task_t*)cl_dma_alloc(sizeof(cl_task_t), CL_TRUE);
+  cl_md5_ctx_t *context = (cl_md5_ctx_t*)cl_dma_alloc(sizeof(cl_md5_ctx_t), CL_TRUE);
 
   context->data = data;
   context->size = size;
@@ -76,6 +87,8 @@ static void cl_push_md5_task(void *data, unsigned size, char *checksum,
 
   cl_abi_thread(task);
 }
+
+#endif
 
 #if CL_HAVE_FILESYSTEM
 /*
@@ -103,12 +116,12 @@ static void cl_task_gcwii(cl_task_t *task)
     {
       uint8_t *buffer;
 
-      buffer = (uint8_t*)malloc(CL_DOLPHIN_SIZE);
+      buffer = (uint8_t*)cl_dma_alloc(CL_DOLPHIN_SIZE, CL_TRUE);
       memcpy(buffer, memory.regions[0].base_host, CL_DOLPHIN_SIZE);
       cl_log("(GC/Wii) Game to be identified: %.8s\n", buffer);
 
       cl_push_md5_task(buffer, CL_DOLPHIN_SIZE,
-        ((cl_md5_ctx_t*)task->state)->md5_final, true, task->callback);
+        ((cl_md5_ctx_t*)task->state)->md5_final, CL_TRUE, task->callback);
       task->callback = NULL;
     }
   }
@@ -121,8 +134,8 @@ static void cl_task_gcwii(cl_task_t *task)
  */
 static void cl_push_gcwii_task(char *checksum, CL_TASK_CB_T callback)
 {
-  cl_task_t *task = (cl_task_t*)calloc(1, sizeof(cl_task_t));
-  cl_md5_ctx_t *context = (cl_md5_ctx_t*)calloc(1, sizeof(cl_md5_ctx_t));
+  cl_task_t *task = (cl_task_t*)cl_dma_alloc(sizeof(cl_task_t), CL_TRUE);
+  cl_md5_ctx_t *context = (cl_md5_ctx_t*)cl_dma_alloc(sizeof(cl_md5_ctx_t), CL_TRUE);
 
   context->md5_final = checksum;
 
@@ -133,7 +146,7 @@ static void cl_push_gcwii_task(char *checksum, CL_TASK_CB_T callback)
   cl_abi_thread(task);
 }
 
-bool cl_read_from_file(const char *path, uint8_t **data, uint32_t *size)
+static cl_error cl_read_from_file(const char *path, uint8_t **data, uint32_t *size)
 {
   uint8_t *buffer;
   int64_t  read_bytes;
@@ -141,7 +154,7 @@ bool cl_read_from_file(const char *path, uint8_t **data, uint32_t *size)
   intfstream_t *stream = intfstream_open_file(path,
                                               RETRO_VFS_FILE_ACCESS_READ,
                                               RETRO_VFS_FILE_ACCESS_HINT_NONE);
-         
+
   *size = (unsigned)intfstream_get_size(stream);
   buffer = (uint8_t*)malloc(*size);
   read_bytes = (int64_t)intfstream_read(stream, buffer, *size);
@@ -151,11 +164,11 @@ bool cl_read_from_file(const char *path, uint8_t **data, uint32_t *size)
     free(buffer);
     *data = NULL;
 
-    return false;
+    return CL_ERR_CLIENT_RUNTIME;
   }
   *data = buffer;
 
-  return true;
+  return CL_OK;
 }
 
 /**
@@ -179,7 +192,7 @@ static uint8_t* cl_identify_iso9660(intfstream_t *stream)
     uint8_t  *buffer;
     unsigned  size, i;
 
-    buffer = (uint8_t*)malloc(CL_ISO9660_SIZE);
+    buffer = (uint8_t*)cl_dma_alloc(CL_ISO9660_SIZE, CL_TRUE);
     size = (unsigned)intfstream_get_size(stream);
 
     /* Seek to the identifier "CD001" */
@@ -199,7 +212,7 @@ static uint8_t* cl_identify_iso9660(intfstream_t *stream)
     }
     /* Not found */
     intfstream_close(stream);
-    free(buffer);
+    cl_dma_free(buffer);
 
     return NULL;
   }
@@ -231,12 +244,12 @@ static uint8_t* cl_identify_ncch(const char *path)
    * and seek backwards 0x0100.
    */
   intfstream_seek(stream, 0x1000, SEEK_SET);
-  data = (uint8_t*)malloc(CL_NCCH_SIZE);
+  data = (uint8_t*)cl_dma_alloc(CL_NCCH_SIZE, CL_TRUE);
   read_bytes = intfstream_read(stream, data, CL_NCCH_SIZE);
   intfstream_close(stream);
 
   if (!read_bytes)
-    free(data);
+    cl_dma_free(data);
   else if (memcmp(&data[0x100], "NCCH", 4))
     cl_message(CL_MSG_ERROR, "Invalid NCCH data.");
   else
@@ -271,16 +284,16 @@ static uint8_t* cl_identify_chd(const char *path)
  * Opens a CUE file and determines the path of the first data track.
  * @param path Path to the CUE, overwritten by path to the first data track.
  * @param extension The extension of the first data track, in caps.
- * @return Whether or not the track data was properly read.
+ * @return CL_OK if the track data was properly read; error code otherwise.
  **/
-static bool cl_identify_cue(char *path, char *extension)
+static cl_error cl_identify_cue(char *path, char *extension)
 {
   const char *beginning;
   unsigned    length;
   char       *str;
 
-  if (!cl_read_from_file(path, (uint8_t**)&str, &length))
-    return false;
+  if (cl_read_from_file(path, (uint8_t**)&str, &length) != CL_OK)
+    return CL_ERR_CLIENT_RUNTIME;
    
   beginning = strstr(str, "FILE ");
   if (beginning)
@@ -301,7 +314,7 @@ static bool cl_identify_cue(char *path, char *extension)
         /* Apply CUE pathname back to binary track */
         filename_length = end - beginning - 1;
         strncpy(final, beginning, filename_length);
-        strncpy(path_temp, path, CL_MAX_PATH - 1);
+        strncpy(path_temp, path, sizeof(path_temp) - 1);
         fill_pathname_resolve_relative(path, path_temp, final, sizeof(path_temp));
 
         /* Would extension lengths other than 3 ever be used? */
@@ -309,7 +322,7 @@ static bool cl_identify_cue(char *path, char *extension)
         string_to_upper(extension);
         cl_log("First data track of cue sheet: %s (%s)\n", path, extension);
 
-        return true;
+        return CL_OK;
       }
       else
         cl_log("Malformed cue sheet (no ending quote on first data track).\n");
@@ -320,22 +333,22 @@ static bool cl_identify_cue(char *path, char *extension)
   else
     cl_log("Malformed cue sheet (first data track not found).\n");
 
-  return false;
+  return CL_ERR_PARAMETER_INVALID;
 }
 
 /**
  * Opens an M3U playlist and determines the path of the first item.
  * @param path Path to the M3U, overwritten by path to the first item.
  * @param extension The extension of the first item, in caps.
- * @return Whether or not the first item was properly read.
+ * @return CL_OK if the first item was properly read; error code otherwise.
  **/
-bool cl_identify_m3u(char *path, char *extension)
+static cl_error cl_identify_m3u(char *path, char *extension)
 {
   unsigned  length, i;
   char     *str;
 
-  if (!cl_read_from_file(path, (uint8_t**)&str, &length))
-    return false;
+  if (cl_read_from_file(path, (uint8_t**)&str, &length) != CL_OK)
+    return CL_ERR_CLIENT_RUNTIME;
 
   for (i = 0; i < length; i++)
   {
@@ -343,23 +356,24 @@ bool cl_identify_m3u(char *path, char *extension)
     {
       str[i] = '\0';
       fill_pathname_resolve_relative(path, path, str, CL_MAX_PATH);
-      strcpy(extension, path_get_extension(path));
+      strncpy(extension, path_get_extension(path), sizeof(extension) - 1);
+      extension[sizeof(extension) - 1] = '\0';
       string_to_upper(extension);
       cl_log("First item in M3U playlist: %s (%s)\n", path, extension);
       free(str);
 
-      return true;
+      return CL_OK;
     }
   }
   cl_log("Malformed M3U.\n");
   free(str);
 
-  return false;
+  return CL_ERR_PARAMETER_INVALID;
 }
 #endif
 
 #if CL_HAVE_FILESYSTEM
-bool cl_identify(const void *info_data, const unsigned info_size,
+cl_error cl_identify(const void *info_data, const unsigned info_size,
                  const char *info_path, const char *library, char *checksum,
                  CL_TASK_CB_T callback)
 {
@@ -368,9 +382,9 @@ bool cl_identify(const void *info_data, const unsigned info_size,
   char      path[CL_MAX_PATH];
   unsigned  size = 0;
 
-  strncpy(path, info_path, sizeof(path));
-  strncpy(extension, path_get_extension(path), sizeof(extension));
-  strncpy(extension, string_to_upper(extension), sizeof(extension));
+  strncpy(path, info_path, sizeof(path) - 1);
+  strncpy(extension, path_get_extension(path), sizeof(extension) - 1);
+  strncpy(extension, string_to_upper(extension), sizeof(extension) - 1);
 
   /*
     Hashing GC or Wii discs uses a background task that waits until the
@@ -387,7 +401,7 @@ bool cl_identify(const void *info_data, const unsigned info_size,
     {
       cl_push_gcwii_task(checksum, callback);
 
-      return true;
+      return CL_OK;
     }
   }
 
@@ -443,15 +457,15 @@ bool cl_identify(const void *info_data, const unsigned info_size,
       Last case: File was unrecognizable and not already in memory.
       Re-open the file using the path from retro_game_info and hash it.
     */
-    else if (!cl_read_from_file(path, &data, &size))
-      return false;
+    else if (cl_read_from_file(path, &data, &size) != CL_OK)
+      return CL_ERR_CLIENT_RUNTIME;
   }
-  cl_push_md5_task(data, size, checksum, true, callback);
+  cl_push_md5_task(data, size, checksum, CL_TRUE, callback);
 
-  return true;
+  return CL_OK;
 }
-#else
-bool cl_identify(const void *info_data, const unsigned info_size,
+#elif CL_HAVE_MD5
+cl_error cl_identify(const void *info_data, const unsigned info_size,
                  const char *info_path, const char *library, char *checksum,
                  CL_TASK_CB_T callback)
 {
@@ -459,17 +473,30 @@ bool cl_identify(const void *info_data, const unsigned info_size,
   CL_UNUSED(library);
   if (info_data && info_size > 0)
   {
-    void *data = (uint8_t*)malloc(info_size);
+    void *data = (unsigned char*)cl_dma_alloc(info_size, CL_TRUE);
 
     if (data)
     {
       memcpy(data, info_data, info_size);
-      cl_push_md5_task(data, info_size, checksum, true, callback);
+      cl_push_md5_task(data, info_size, checksum, CL_TRUE, callback);
 
-      return true;
+      return CL_OK;
     }
   }
 
-  return false;
+  return CL_ERR_CLIENT_RUNTIME;
+}
+#else
+cl_error cl_identify(const void *info_data, const unsigned info_size,
+                 const char *info_path, const char *library, char *checksum,
+                 CL_TASK_CB_T callback)
+{
+  CL_UNUSED(info_data);
+  CL_UNUSED(info_size);
+  CL_UNUSED(info_path);
+  CL_UNUSED(library);
+  CL_UNUSED(checksum);
+  CL_UNUSED(callback);
+  return CL_ERR_CLIENT_RUNTIME;
 }
 #endif

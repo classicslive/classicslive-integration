@@ -28,269 +28,283 @@
 #include "jsonsax.h"
 
 #ifdef JSONSAX_ERRORS
-const char* jsonsax_errors[] =
-{
-  "Ok",
-  "Interrupted",
-  "Missing key",
-  "Unterminated key",
-  "Missing value",
-  "Unterminated object",
-  "Unterminated array",
-  "Unterminated string",
-  "Invalid value"
-};
+const char *jsonsax_errors[] =
+    {
+        "Ok",
+        "Interrupted",
+        "Missing key",
+        "Unterminated key",
+        "Missing value",
+        "Unterminated object",
+        "Unterminated array",
+        "Unterminated string",
+        "Invalid value"};
 #endif
 
 typedef struct
 {
-  const jsonsax_handlers_t* handlers;
+  const jsonsax_handlers_t *handlers;
 
-  const char* json;
-  void*       ud;
-  jmp_buf     env;
-}
-state_t;
+  const char *json;
+  void *ud;
+  jmp_buf env;
+} state_t;
 
-static INLINE void skip_spaces( state_t* state )
+static INLINE void skip_spaces(state_t *state)
 {
-  while ( isspace( (unsigned char)*state->json ) )
+  while (isspace((unsigned char)*state->json))
     state->json++;
 }
 
-static INLINE void skip_digits( state_t* state )
+static INLINE void skip_digits(state_t *state)
 {
-  while ( isdigit( (unsigned char)*state->json ) )
+  while (isdigit((unsigned char)*state->json))
     state->json++;
 }
 
-#define HANDLE_0( event ) \
-  do { \
-    if ( state->handlers->event && state->handlers->event( state->ud ) ) \
-      longjmp( state->env, JSONSAX_INTERRUPTED ); \
-  } while ( 0 )
+#define HANDLE_0(event)                                              \
+  do                                                                 \
+  {                                                                  \
+    if (state->handlers->event && state->handlers->event(state->ud)) \
+      longjmp(state->env, JSONSAX_INTERRUPTED);                      \
+  } while (0)
 
-#define HANDLE_1( event, arg1 ) \
-  do { \
-    if ( state->handlers->event && state->handlers->event( state->ud, arg1 ) ) \
-      longjmp( state->env, JSONSAX_INTERRUPTED ); \
-  } while ( 0 )
+#define HANDLE_1(event, arg1)                                              \
+  do                                                                       \
+  {                                                                        \
+    if (state->handlers->event && state->handlers->event(state->ud, arg1)) \
+      longjmp(state->env, JSONSAX_INTERRUPTED);                            \
+  } while (0)
 
-#define HANDLE_2( event, arg1, arg2 ) \
-  do { \
-    if ( state->handlers->event && state->handlers->event( state->ud, arg1, arg2 ) ) \
-      longjmp( state->env, JSONSAX_INTERRUPTED ); \
-  } while ( 0 )
+#define HANDLE_2(event, arg1, arg2)                                              \
+  do                                                                             \
+  {                                                                              \
+    if (state->handlers->event && state->handlers->event(state->ud, arg1, arg2)) \
+      longjmp(state->env, JSONSAX_INTERRUPTED);                                  \
+  } while (0)
 
-static void jsonx_parse_value(state_t* state);
+static void jsonx_parse_value(state_t *state);
 
-static void jsonx_parse_object( state_t* state )
+static void jsonx_parse_object(state_t *state)
 {
-   state->json++; /* we're sure the current character is a '{' */
-   skip_spaces( state );
-   HANDLE_0( start_object );
+  state->json++; /* we're sure the current character is a '{' */
+  skip_spaces(state);
+  HANDLE_0(start_object);
 
-   while ( *state->json != '}' )
-   {
-      const char *name = NULL;
-      if ( *state->json != '"' )
-         longjmp( state->env, JSONSAX_MISSING_KEY );
-
-      name = ++state->json;
-
-      for ( ;; )
-      {
-         const char* quote = strchr( state->json, '"' );
-
-         if ( !quote )
-            longjmp( state->env, JSONSAX_UNTERMINATED_KEY );
-
-         state->json = quote + 1;
-
-         if ( quote[ -1 ] != '\\' )
-            break;
-      }
-
-      HANDLE_2( key, name, state->json - name - 1 );
-      skip_spaces( state );
-
-      if ( *state->json != ':' )
-         longjmp( state->env, JSONSAX_MISSING_VALUE );
-
-      state->json++;
-      skip_spaces( state );
-      jsonx_parse_value( state );
-      skip_spaces( state );
-
-      if ( *state->json != ',' )
-         break;
-
-      state->json++;
-      skip_spaces( state );
-   }
-
-   if ( *state->json != '}' )
-      longjmp( state->env, JSONSAX_UNTERMINATED_OBJECT );
-
-   state->json++;
-   HANDLE_0( end_object );
-}
-
-static void jsonx_parse_array(state_t* state)
-{
-   unsigned int ndx = 0;
-
-   state->json++; /* we're sure the current character is a '[' */
-   skip_spaces( state );
-   HANDLE_0( start_array );
-
-   while ( *state->json != ']' )
-   {
-      HANDLE_1( array_index, ndx++ );
-      jsonx_parse_value( state );
-      skip_spaces( state );
-
-      if ( *state->json != ',' )
-         break;
-
-      state->json++;
-      skip_spaces( state );
-   }
-
-   if ( *state->json != ']' )
-      longjmp( state->env, JSONSAX_UNTERMINATED_ARRAY );
-
-   state->json++;
-   HANDLE_0( end_array );
-}
-
-static void jsonx_parse_string(state_t* state)
-{
-  const char* string = ++state->json;
-
-  for ( ;; )
+  while (*state->json != '}')
   {
-    const char* quote = strchr( state->json, '"' );
+    const char *name = NULL;
+    ptrdiff_t diff;
+    if (*state->json != '"')
+      longjmp(state->env, JSONSAX_MISSING_KEY);
 
-    if ( !quote )
-      longjmp( state->env, JSONSAX_UNTERMINATED_STRING );
+    name = ++state->json;
+
+    for (;;)
+    {
+      const char *quote = strchr(state->json, '"');
+
+      if (!quote)
+        longjmp(state->env, JSONSAX_UNTERMINATED_KEY);
+
+      state->json = quote + 1;
+
+      if (quote[-1] != '\\')
+        break;
+    }
+
+    diff = state->json - name - 1;
+    if (diff < 0)
+      longjmp(state->env, JSONSAX_UNTERMINATED_KEY);
+
+    HANDLE_2(key, name, (size_t)diff);
+    skip_spaces(state);
+
+    if (*state->json != ':')
+      longjmp(state->env, JSONSAX_MISSING_VALUE);
+
+    state->json++;
+    skip_spaces(state);
+    jsonx_parse_value(state);
+    skip_spaces(state);
+
+    if (*state->json != ',')
+      break;
+
+    state->json++;
+    skip_spaces(state);
+  }
+
+  if (*state->json != '}')
+    longjmp(state->env, JSONSAX_UNTERMINATED_OBJECT);
+
+  state->json++;
+  HANDLE_0(end_object);
+}
+
+static void jsonx_parse_array(state_t *state)
+{
+  unsigned int ndx = 0;
+
+  state->json++; /* we're sure the current character is a '[' */
+  skip_spaces(state);
+  HANDLE_0(start_array);
+
+  while (*state->json != ']')
+  {
+    HANDLE_1(array_index, ndx++);
+    jsonx_parse_value(state);
+    skip_spaces(state);
+
+    if (*state->json != ',')
+      break;
+
+    state->json++;
+    skip_spaces(state);
+  }
+
+  if (*state->json != ']')
+    longjmp(state->env, JSONSAX_UNTERMINATED_ARRAY);
+
+  state->json++;
+  HANDLE_0(end_array);
+}
+
+static void jsonx_parse_string(state_t *state)
+{
+  ptrdiff_t diff;
+  const char *string = ++state->json;
+
+  for (;;)
+  {
+    const char *quote = strchr(state->json, '"');
+
+    if (!quote)
+      longjmp(state->env, JSONSAX_UNTERMINATED_STRING);
 
     state->json = quote + 1;
 
-    if ( quote[ -1 ] != '\\' )
+    if (quote[-1] != '\\')
       break;
   }
 
-  HANDLE_2( string, string, state->json - string - 1 );
+  diff = state->json - string - 1;
+  if (diff < 0)
+    longjmp(state->env, JSONSAX_UNTERMINATED_STRING);
+  HANDLE_2(string, string, (size_t)diff);
 }
 
-static void jsonx_parse_boolean(state_t* state)
+static void jsonx_parse_boolean(state_t *state)
 {
-   if ( !strncmp( state->json, "true", 4 ) )
-   {
-      state->json += 4;
-      HANDLE_1( boolean, 1 );
-   }
-   else if ( !strncmp( state->json, "false", 5 ) )
-   {
-      state->json += 5;
-      HANDLE_1( boolean, 0 );
-   }
-   else
-      longjmp( state->env, JSONSAX_INVALID_VALUE );
+  if (!strncmp(state->json, "true", 4))
+  {
+    state->json += 4;
+    HANDLE_1(boolean, 1);
+  }
+  else if (!strncmp(state->json, "false", 5))
+  {
+    state->json += 5;
+    HANDLE_1(boolean, 0);
+  }
+  else
+    longjmp(state->env, JSONSAX_INVALID_VALUE);
 }
 
-static void jsonx_parse_null(state_t* state)
+static void jsonx_parse_null(state_t *state)
 {
-   if ( !strncmp( state->json + 1, "ull", 3 ) ) /* we're sure the current character is a 'n' */
-   {
-      state->json += 4;
-      HANDLE_0( null );
-   }
-   else
-      longjmp( state->env, JSONSAX_INVALID_VALUE );
+  if (!strncmp(state->json + 1, "ull", 3)) /* we're sure the current character is a 'n' */
+  {
+    state->json += 4;
+    HANDLE_0(null);
+  }
+  else
+    longjmp(state->env, JSONSAX_INVALID_VALUE);
 }
 
-static void jsonx_parse_number(state_t* state)
+static void jsonx_parse_number(state_t *state)
 {
-   const char* number = state->json;
+  ptrdiff_t diff;
+  const char *number = state->json;
 
-   if ( *state->json == '-' )
+  if (*state->json == '-')
+    state->json++;
+
+  if (!isdigit((unsigned char)*state->json))
+    longjmp(state->env, JSONSAX_INVALID_VALUE);
+
+  skip_digits(state);
+
+  if (*state->json == '.')
+  {
+    state->json++;
+
+    if (!isdigit((unsigned char)*state->json))
+      longjmp(state->env, JSONSAX_INVALID_VALUE);
+
+    skip_digits(state);
+  }
+
+  if (*state->json == 'e' || *state->json == 'E')
+  {
+    state->json++;
+
+    if (*state->json == '-' || *state->json == '+')
       state->json++;
 
-   if ( !isdigit( (unsigned char)*state->json ) )
-      longjmp( state->env, JSONSAX_INVALID_VALUE );
+    if (!isdigit((unsigned char)*state->json))
+      longjmp(state->env, JSONSAX_INVALID_VALUE);
 
-   skip_digits( state );
+    skip_digits(state);
+  }
 
-   if ( *state->json == '.' )
-   {
-      state->json++;
-
-      if ( !isdigit( (unsigned char)*state->json ) )
-         longjmp( state->env, JSONSAX_INVALID_VALUE );
-
-      skip_digits( state );
-   }
-
-   if ( *state->json == 'e' || *state->json == 'E' )
-   {
-      state->json++;
-
-      if ( *state->json == '-' || *state->json == '+' )
-         state->json++;
-
-      if ( !isdigit( (unsigned char)*state->json ) )
-         longjmp( state->env, JSONSAX_INVALID_VALUE );
-
-      skip_digits( state );
-   }
-
-   HANDLE_2( number, number, state->json - number );
+  diff = state->json - number;
+  if (diff < 0)
+    longjmp(state->env, JSONSAX_INVALID_VALUE);
+  HANDLE_2(number, number, (size_t)diff);
 }
 
-static void jsonx_parse_value(state_t* state)
+static void jsonx_parse_value(state_t *state)
 {
-   skip_spaces( state );
+  skip_spaces(state);
 
-   switch ( *state->json )
-   {
-      case '{':
-         jsonx_parse_object(state);
-         break;
-      case '[':
-         jsonx_parse_array( state );
-         break;
-      case '"':
-         jsonx_parse_string( state );
-         break;
-      case 't':
-      case 'f':
-         jsonx_parse_boolean( state );
-         break;
-      case 'n':
-         jsonx_parse_null( state );
-         break;
-      case '0':
-      case '1':
-      case '2':
-      case '3':
-      case '4':
-      case '5':
-      case '6':
-      case '7':
-      case '8':
-      case '9':
-      case '-':
-         jsonx_parse_number( state );
-         break;
+  switch (*state->json)
+  {
+  case '{':
+    jsonx_parse_object(state);
+    break;
+  case '[':
+    jsonx_parse_array(state);
+    break;
+  case '"':
+    jsonx_parse_string(state);
+    break;
+  case 't':
+  case 'f':
+    jsonx_parse_boolean(state);
+    break;
+  case 'n':
+    jsonx_parse_null(state);
+    break;
+  case '0':
+  case '1':
+  case '2':
+  case '3':
+  case '4':
+  case '5':
+  case '6':
+  case '7':
+  case '8':
+  case '9':
+  case '-':
+    jsonx_parse_number(state);
+    break;
 
-      default:
-         longjmp( state->env, JSONSAX_INVALID_VALUE );
-   }
+  default:
+    longjmp(state->env, JSONSAX_INVALID_VALUE);
+  }
 }
 
-int jsonsax_parse( const char* json, const jsonsax_handlers_t* handlers, void* userdata )
+int jsonsax_parse(const char *json, const jsonsax_handlers_t *handlers, void *userdata)
 {
   state_t state;
   int res;
@@ -299,15 +313,15 @@ int jsonsax_parse( const char* json, const jsonsax_handlers_t* handlers, void* u
   state.handlers = handlers;
   state.ud = userdata;
 
-  if ( ( res = setjmp( state.env ) ) == 0 )
+  if ((res = setjmp(state.env)) == 0)
   {
-    if ( handlers->start_document )
-      handlers->start_document( userdata );
+    if (handlers->start_document)
+      handlers->start_document(userdata);
 
     jsonx_parse_value(&state);
 
-    if ( handlers->end_document )
-      handlers->end_document( userdata );
+    if (handlers->end_document)
+      handlers->end_document(userdata);
 
     res = JSONSAX_OK;
   }

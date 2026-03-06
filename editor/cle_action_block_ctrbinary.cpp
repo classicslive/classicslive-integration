@@ -1,9 +1,9 @@
+#include "cle_action_block_ctrbinary.h"
+
 extern "C"
 {
-  #include "../cl_script.h"
+  #include "../cl_memory.h"
 }
-
-#include "cle_action_block_ctrbinary.h"
 
 CleActionBlockCtrBinary::CleActionBlockCtrBinary(cl_action_t *action,
   QWidget* parent = nullptr) : CleActionBlock(action, parent)

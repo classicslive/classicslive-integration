@@ -1,5 +1,10 @@
 #include "cle_action_block_bookend.h"
 
+extern "C"
+{
+  #include "../cl_common.h"
+}
+
 #include <QPainter>
 
 CleActionBlockBookend::CleActionBlockBookend(bool is_end,

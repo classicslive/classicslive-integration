@@ -7,6 +7,11 @@
 
 #include "cle_action_block.h"
 
+extern "C"
+{
+  #include "../cl_common.h"
+}
+
 CleActionBlock::CleActionBlock(cl_action_t *action, QWidget *parent = nullptr)
   : QWidget(parent)
 {
