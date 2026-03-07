@@ -154,7 +154,7 @@ cl_error cl_pointersearch_init(cl_pointersearch_t *search, cl_addr_t address,
  * @param search A pointer to the pointer search
  * @return The number of matching results
  */
-cl_addr_t cl_pointersearch_step(cl_pointersearch_t *search);
+cl_error cl_pointersearch_step(cl_pointersearch_t *search);
 
 /**
  * Updates the current values for all pointer search results.
