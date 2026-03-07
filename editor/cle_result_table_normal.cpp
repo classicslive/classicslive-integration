@@ -77,7 +77,7 @@ void CleResultTableNormal::onResultEdited(QTableWidgetItem *result)
   if (result->row() == m_CurrentEditedRow && result->column() == COL_CURRENT_VALUE)
   {
     if (result->isSelected())
-      writeMemory(getClickedResultAddress(), m_Search.params, result->text());
+      writeMemory(getClickedResultAddress(), m_Search.params.value_type, result->text());
     m_CurrentEditedRow = -1;
   }
 }

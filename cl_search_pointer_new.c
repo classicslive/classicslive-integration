@@ -20,15 +20,15 @@ typedef union
   int64_t  s64;
   float    fp;
   double   dfp;
-} cl_search_target_impl_t;
+} cl_pointersearch_target_impl_t;
 
-#define CL_TARGET(target) ((cl_search_target_impl_t *)&(target))
+#define CL_POINTERSEARCH_TARGET(target) ((cl_pointersearch_target_impl_t *)&(target))
 
 #define PTRSEARCH_CMP(T, field, cur_p, prv_p, tgt_p, params) \
 { \
-  const cl_search_target_impl_t *cur = (const cl_search_target_impl_t *)(cur_p); \
-  const cl_search_target_impl_t *prv = (const cl_search_target_impl_t *)(prv_p); \
-  const cl_search_target_impl_t *tgt = (const cl_search_target_impl_t *)(tgt_p); \
+  const cl_pointersearch_target_impl_t *cur = (const cl_pointersearch_target_impl_t *)(cur_p); \
+  const cl_pointersearch_target_impl_t *prv = (const cl_pointersearch_target_impl_t *)(prv_p); \
+  const cl_pointersearch_target_impl_t *tgt = (const cl_pointersearch_target_impl_t *)(tgt_p); \
   switch ((params)->compare_type) \
   { \
   case CL_COMPARE_EQUAL:     return (params)->target_none ? cur->field == prv->field : cur->field == tgt->field; \
@@ -41,7 +41,7 @@ typedef union
   } \
 }
 
-static cl_bool pointersearch_passes(const cl_search_parameters_t *params,
+static cl_bool pointersearch_passes(const cl_pointersearch_params_t *params,
   const void *current, const void *previous)
 {
   switch (params->value_type)
@@ -159,8 +159,8 @@ cl_error cl_pointersearch_init(cl_pointersearch_t *search, cl_addr_t address,
   search->params.compare_type = CL_COMPARE_EQUAL;
   search->params.target_none = 0;
 
-  CL_TARGET(search->params.target)->s64 = (int64_t)address;
-  search->params.target_ptr = CL_TARGET(search->params.target);
+  CL_POINTERSEARCH_TARGET(search->params.target)->s64 = (int64_t)address;
+  search->params.target_ptr = CL_POINTERSEARCH_TARGET(search->params.target);
 
   return CL_OK;
 }
@@ -427,7 +427,7 @@ cl_error cl_pointersearch_change_target(cl_pointersearch_t *search, const void *
     search->params.target_none = 1;
   else
   {
-    cl_search_target_impl_t *target_impl = CL_TARGET(search->params.target);
+    cl_pointersearch_target_impl_t *target_impl = CL_POINTERSEARCH_TARGET(search->params.target);
 
     target_impl->s64 = 0;
     switch (search->params.value_size)
@@ -451,7 +451,7 @@ cl_error cl_pointersearch_change_target_int(cl_pointersearch_t *search, cl_addr_
     return CL_ERR_PARAMETER_NULL;
   else
   {
-    cl_search_target_impl_t *target_impl = CL_TARGET(search->params.target);
+    cl_pointersearch_target_impl_t *target_impl = CL_POINTERSEARCH_TARGET(search->params.target);
 
     target_impl->s64 = 0;
     switch (search->params.value_size)
@@ -475,7 +475,7 @@ cl_error cl_pointersearch_change_target_float(cl_pointersearch_t *search, double
     return CL_ERR_PARAMETER_NULL;
   else
   {
-    cl_search_target_impl_t *target_impl = CL_TARGET(search->params.target);
+    cl_pointersearch_target_impl_t *target_impl = CL_POINTERSEARCH_TARGET(search->params.target);
 
     target_impl->s64 = 0;
     switch (search->params.value_size)

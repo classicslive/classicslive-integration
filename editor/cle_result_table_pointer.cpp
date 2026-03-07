@@ -127,7 +127,7 @@ void CleResultTablePointer::onResultEdited(QTableWidgetItem *item)
    if (item->row() == m_CurrentEditedRow && item->column() == (int)m_ColValueCurr)
    {
       if (item->isSelected())
-         writeMemory(m_Search.results[item->row()].address_final, m_Search.params, item->text());
+         writeMemory(m_Search.results[item->row()].address_final, m_Search.params.value_type, item->text());
       m_CurrentEditedRow = -1;
    }
 }

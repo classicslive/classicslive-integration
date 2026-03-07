@@ -10,7 +10,7 @@ typedef union
 {
   unsigned char raw[8];
   double _align;
-} cl_search_target_t;
+} cl_pointersearch_target_t;
 
 typedef struct
 {
@@ -27,7 +27,7 @@ typedef struct
   cl_compare_type compare_type;
 
   /* The target value to compare against */
-  cl_search_target_t target;
+  cl_pointersearch_target_t target;
 
   /**
    * A pointer to the target value to compare against. This offsets to the
@@ -37,7 +37,7 @@ typedef struct
 
   /** Whether to use the target value as a value in comparisons */
   unsigned target_none;
-} cl_search_parameters_t;
+} cl_pointersearch_params_t;
 
 /**
  * A single pointer search result containing the pointer chain and values.
@@ -51,10 +51,10 @@ typedef struct
   cl_addr_t address_final;
 
   /* The current value at the final address */
-  cl_search_target_t value_current;
+  cl_pointersearch_target_t value_current;
 
   /* The previous value at the final address */
-  cl_search_target_t value_previous;
+  cl_pointersearch_target_t value_previous;
 
   /* The offsets applied at each pointer level */
   cl_addr_t offsets[CL_POINTER_MAX_PASSES];
@@ -85,7 +85,7 @@ typedef struct
 typedef struct
 {
   /* Search parameters */
-  cl_search_parameters_t params;
+  cl_pointersearch_params_t params;
 
   /* Number of pointer dereferences in the chain */
   unsigned passes;
