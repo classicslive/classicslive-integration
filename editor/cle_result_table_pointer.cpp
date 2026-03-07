@@ -47,7 +47,7 @@ CleResultTablePointer::CleResultTablePointer(QWidget *parent, cl_addr_t address,
    {
       cl_log("Failed to initialize pointer search for address %016llX\n", (unsigned long long)address);
    }
-   rebuild();
+   step();
 }
 
 CleResultTablePointer::~CleResultTablePointer()
