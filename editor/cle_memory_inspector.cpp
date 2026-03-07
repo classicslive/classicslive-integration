@@ -333,6 +333,21 @@ void CleMemoryInspector::onClickTabRename(void)
     m_Tabs->setTabText(m_ClickedTab, text);
 }
 
+void CleMemoryInspector::onClickTabDelete()
+{
+  if (m_ClickedTab < 0 || m_ClickedTab >= m_TabCount || m_TabCount <= 1)
+    return;
+
+  m_TableStack->removeWidget(m_Searches[m_ClickedTab]->table());
+  delete m_Searches[m_ClickedTab];
+
+  for (int i = m_ClickedTab; i < m_TabCount - 1; i++)
+    m_Searches[i] = m_Searches[i + 1];
+  m_Searches[--m_TabCount] = nullptr;
+
+  m_Tabs->removeTab(m_ClickedTab);
+}
+
 void CleMemoryInspector::onRightClickTabs(const QPoint &pos)
 {
   if (pos.isNull())
@@ -346,9 +361,13 @@ void CleMemoryInspector::onRightClickTabs(const QPoint &pos)
     {
       QMenu menu;
       QAction *action_rename = menu.addAction(tr("Rename"));
+      QAction *action_delete = menu.addAction(tr("Delete"));
+      action_delete->setEnabled(m_TabCount > 1);
 
       connect(action_rename, SIGNAL(triggered()), this,
         SLOT(onClickTabRename()));
+      connect(action_delete, SIGNAL(triggered()), this,
+        SLOT(onClickTabDelete()));
 
       menu.exec(m_Tabs->mapToGlobal(pos));
     }
@@ -408,8 +427,11 @@ void CleMemoryInspector::requestPointerSearch(cl_addr_t address)
     getCurrentSizeType(),
     dlg.pointerFollows(),
     dlg.offsetRange(),
-    dlg.maxMatches()
+    dlg.maxMatches(),
+    dlg.maxMatchesPerPass()
   );
+  m_Searches[m_TabCount]->setCompareType(getCurrentCompareType());
+  m_Searches[m_TabCount]->setTarget(m_TextEntry->text());
 
   m_TabCount++;
   m_TableStack->addWidget(m_Searches[m_TabCount-1]->table());
@@ -419,6 +441,7 @@ void CleMemoryInspector::requestPointerSearch(cl_addr_t address)
   m_Tabs->setTabTextColor(m_Tabs->currentIndex(), QColor(200, 180, 255));
   m_Tabs->addTab("+");
   m_CurrentSearch = m_Searches[m_TabCount - 1];
+  m_Status->setText(m_CurrentSearch->statusString());
 }
 
 void CleMemoryInspector::onChangeRegionTab(int index)

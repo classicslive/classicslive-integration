@@ -10,7 +10,8 @@ extern "C"
 }
 
 CleResultTablePointer::CleResultTablePointer(QWidget *parent, cl_addr_t address,
-   cl_value_type value_type, unsigned passes, cl_addr_t range, cl_addr_t max_results)
+   cl_value_type value_type, unsigned passes, cl_addr_t range, cl_addr_t max_results,
+   cl_addr_t max_results_per_pass)
 {
    char offset_str[16];
    unsigned i;
@@ -40,10 +41,9 @@ CleResultTablePointer::CleResultTablePointer(QWidget *parent, cl_addr_t address,
       parent, SLOT(onAddressChanged(cl_addr_t)));
    connect(this, SIGNAL(requestAddMemoryNote(cl_memnote_t)),
       parent, SLOT(requestAddMemoryNote(cl_memnote_t)));
-   connect(this, SIGNAL(requestPointerSearch(cl_addr_t)),
-      parent, SLOT(requestPointerSearch(cl_addr_t)));
 
-   if (cl_pointersearch_init(&m_Search, address, value_type, passes, range, max_results) != CL_OK)
+   memset(&m_Search, 0, sizeof(m_Search));
+   if (cl_pointersearch_init(&m_Search, address, value_type, passes, range, max_results, max_results_per_pass) != CL_OK)
    {
       cl_log("Failed to initialize pointer search for address %016llX\n", (unsigned long long)address);
    }
@@ -71,8 +71,9 @@ void CleResultTablePointer::onClickResultAddMemoryNote()
 
    note.address_initial = m_Search.results[m_ClickedResult].address_initial;
    note.type = m_Search.params.value_type;
-   memcpy(note.pointer_offsets, m_Search.results[m_ClickedResult].offsets, sizeof(note.pointer_offsets));
    note.pointer_passes = m_Search.passes;
+   for (unsigned i = 0; i < m_Search.passes; i++)
+      note.pointer_offsets[i] = (unsigned)m_Search.results[m_ClickedResult].offsets[i];
 
    emit requestAddMemoryNote(note);
 }
@@ -188,8 +189,6 @@ cl_error CleResultTablePointer::run(void)
    unsigned      val_size  = m_Search.params.value_size;
    unsigned      i;
 
-   cl_pointersearch_update(&m_Search);
-
    for (i = 0; i < m_Search.result_count; i++)
    {
       item = m_Table->item(i, 0);
@@ -202,14 +201,7 @@ cl_error CleResultTablePointer::run(void)
       else if ((int)i > m_Table->verticalScrollBar()->value() + m_Table->height() / 16)
          break;
 
-      /* Update previous value column */
-      item = m_Table->item(i, m_ColValuePrev);
-      if (item)
-      {
-         valueToString(temp_string, sizeof(temp_string),
-            m_Search.results[i].value_previous.raw, val_type);
-         item->setText(temp_string);
-      }
+      cl_pointersearch_update_result(&m_Search, &m_Search.results[i]);
 
       /* Current value column */
       if (m_CurrentEditedRow < 0)
@@ -229,6 +221,15 @@ cl_error CleResultTablePointer::run(void)
    }
 
    return CL_OK;
+}
+
+QString CleResultTablePointer::statusString(void)
+{
+  return QString("Matches: %1 | Scanned: %2 | Usage: %3 | Scan time: %4 s")
+    .arg(m_Search.result_count)
+    .arg(formatBytes(m_Search.memory_scanned))
+    .arg(formatBytes(m_Search.memory_usage))
+    .arg(m_Search.time_taken, 0, 'f', 6);
 }
 
 cl_error CleResultTablePointer::step(void)

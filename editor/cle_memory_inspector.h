@@ -82,6 +82,7 @@ private slots:
    void onChangeTab();
    void onClickNew();
    void onClickSearch();
+   void onClickTabDelete();
    void onClickTabRename();
 
    void onHexWidgetValueEdited(cl_addr_t address, uint64_t value, uint8_t size);

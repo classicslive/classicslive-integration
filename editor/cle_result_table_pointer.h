@@ -14,7 +14,7 @@ class CleResultTablePointer : public CleResultTable
 
 public:
   CleResultTablePointer(QWidget *parent, cl_addr_t address, cl_value_type value_type,
-    unsigned passes, cl_addr_t range, cl_addr_t max_results);
+    unsigned passes, cl_addr_t range, cl_addr_t max_results, cl_addr_t max_results_per_pass);
   ~CleResultTablePointer() override;
 
   cl_addr_t getClickedResultAddress() override;
@@ -23,7 +23,7 @@ public:
   cl_error rebuild() override;
   cl_error reset(void) override;
   cl_error run(void) override;
-  QString statusString(void) override { return ""; }
+  QString statusString(void) override;
   cl_error step(void) override;
 
   cl_compare_type compareType(void) override { return m_Search.params.compare_type; }

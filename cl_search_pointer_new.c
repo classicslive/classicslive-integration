@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #define CL_POINTERSEARCH_CHUNK_SIZE CL_MB(16)
 
@@ -140,7 +141,8 @@ cl_error cl_pointersearch_free(cl_pointersearch_t *search)
 }
 
 cl_error cl_pointersearch_init(cl_pointersearch_t *search, cl_addr_t address,
-  cl_value_type value_type, unsigned passes, cl_addr_t range, cl_addr_t max_results)
+  cl_value_type value_type, unsigned passes, cl_addr_t range,
+  cl_addr_t max_results, cl_addr_t max_results_per_pass)
 {
   if (!search || !address || !passes)
     return CL_ERR_PARAMETER_INVALID;
@@ -149,18 +151,100 @@ cl_error cl_pointersearch_init(cl_pointersearch_t *search, cl_addr_t address,
     return CL_ERR_PARAMETER_INVALID;
 
   free(search->results);
-  search->results            = NULL;
-  search->result_count       = 0;
-  search->passes             = passes;
-  search->range              = range;
-  search->max_results        = max_results;
-  search->target_address     = address;
+  search->results              = NULL;
+  search->result_count         = 0;
+  search->passes               = passes;
+  search->range                = range;
+  search->max_results          = max_results;
+  search->max_results_per_pass = max_results_per_pass;
+  search->target_address       = address;
   search->params.value_type  = value_type;
   search->params.value_size  = cl_sizeof_memtype(value_type);
   search->params.compare_type = CL_COMPARE_EQUAL;
-  search->params.target_none = 0;
+  search->params.target_none = 1;
 
   search->params.target_ptr = CL_POINTERSEARCH_TARGET(search->params.target);
+
+  return CL_OK;
+}
+
+static cl_error add_pass(cl_pointersearch_t *search, unsigned pass, uint8_t *chunk)
+{
+  cl_pointersearch_result_t *new_results;
+  cl_addr_t matches;
+  unsigned  i, j, l;
+
+  new_results = calloc(search->max_results, sizeof(cl_pointersearch_result_t));
+  if (!new_results)
+    return CL_ERR_PARAMETER_NULL;
+
+  matches = 0;
+
+  for (i = 0; i < search->result_count; i++)
+  {
+    cl_pointersearch_result_t *prev              = &search->results[i];
+    cl_addr_t                  target            = prev->address_initial;
+    cl_addr_t                  per_result_matches = 0;
+
+    for (j = 0; j < memory.region_count; j++)
+    {
+      cl_memory_region_t *region   = &memory.regions[j];
+      cl_value_type       ptr_type = cl_pointer_type(region->pointer_length);
+      cl_addr_t           ptr_size = region->pointer_length;
+      cl_addr_t           off;
+
+      if (!ptr_size || region->size < ptr_size)
+        continue;
+
+      for (off = 0; off < region->size; off += CL_POINTERSEARCH_CHUNK_SIZE)
+      {
+        cl_addr_t chunk_size = region->size - off;
+        cl_addr_t k;
+
+        if (chunk_size > CL_POINTERSEARCH_CHUNK_SIZE)
+          chunk_size = CL_POINTERSEARCH_CHUNK_SIZE;
+
+        if (cl_read_memory_buffer(chunk, region, off, chunk_size) != CL_OK)
+          continue;
+
+        search->memory_scanned += chunk_size;
+
+        for (k = 0; k + ptr_size <= chunk_size; k += ptr_size)
+        {
+          cl_addr_t value = 0;
+          cl_read_value(&value, chunk, k, ptr_type, region->endianness);
+
+          if (value <= target && value >= target - search->range)
+          {
+            cl_pointersearch_result_t *result = &new_results[matches];
+
+            /* Shift all offsets over by one */
+            for (l = pass; l > 0; l--)
+              result->offsets[l] = prev->offsets[l - 1];
+
+            /* Make this the new initial offset */
+            result->offsets[0]      = target - value;
+            result->address_initial = region->base_guest + off + k;
+            result->address_final   = search->target_address;
+            matches++;
+            per_result_matches++;
+
+            if (matches >= search->max_results)
+              goto end;
+
+            if (search->max_results_per_pass &&
+                per_result_matches >= search->max_results_per_pass)
+              goto next_result;
+          }
+        }
+      }
+    }
+    next_result:;
+  }
+  end:
+  free(search->results);
+  search->results      = new_results;
+  search->result_count = matches;
 
   return CL_OK;
 }
@@ -168,35 +252,72 @@ cl_error cl_pointersearch_init(cl_pointersearch_t *search, cl_addr_t address,
 cl_error cl_pointersearch_step(cl_pointersearch_t *search)
 {
   cl_addr_t matches;
-  unsigned  i, pass;
+  unsigned  i;
 
   if (!search)
     return CL_ERR_PARAMETER_NULL;
 
-  /* Subsequent steps: update values and filter by comparison */
+  /* Subsequent steps: resolve, update values, filter by comparison and validity */
   if (search->results)
   {
+    clock_t start = clock();
     matches = 0;
-    cl_pointersearch_update(search);
 
     for (i = 0; i < search->result_count; i++)
     {
       cl_pointersearch_result_t *result = &search->results[i];
+      cl_addr_t address = result->address_initial;
+      unsigned pass;
+      cl_bool failed = CL_FALSE;
+
+      result->value_previous = result->value_current;
+
+      for (pass = 0; pass < search->passes; pass++)
+      {
+        const cl_memory_region_t *region = cl_find_memory_region(address);
+
+        if (!region)
+        {
+          failed = CL_TRUE;
+          break;
+        }
+        else if (cl_read_memory_value(&address, NULL, address,
+          cl_pointer_type(region->pointer_length)) != CL_OK)
+        {
+          failed = CL_TRUE;
+          break;
+        }
+
+        address += result->offsets[pass];
+      }
+
+      if (failed)
+        continue;
+
+      result->address_final = address;
+      cl_read_memory_value(result->value_current.raw, NULL, address,
+        search->params.value_type);
+
       if (pointersearch_passes(&search->params,
         result->value_current.raw, result->value_previous.raw))
         memcpy(&search->results[matches++], result, sizeof(*result));
     }
 
-    search->result_count = matches;
+    search->result_count  = matches;
+    search->memory_scanned = 0;
+    search->memory_usage  = matches * sizeof(cl_pointersearch_result_t);
+    search->time_taken    = (double)(clock() - start) / CLOCKS_PER_SEC;
     search->results = realloc(search->results,
       matches * sizeof(cl_pointersearch_result_t));
     return CL_OK;
   }
 
-  /* First step: scan all memory in chunks for pointer chains leading to target_address */
+  /* First step: scan all memory for pointer chains leading to target_address */
   {
-    cl_addr_t  target_addr = search->target_address;
-    uint8_t   *chunk       = malloc(CL_POINTERSEARCH_CHUNK_SIZE);
+    cl_addr_t  target_addr  = search->target_address;
+    uint8_t   *chunk        = malloc(CL_POINTERSEARCH_CHUNK_SIZE);
+    clock_t    start        = clock();
+    unsigned   pass;
 
     if (!chunk)
       return CL_ERR_PARAMETER_NULL;
@@ -207,6 +328,8 @@ cl_error cl_pointersearch_step(cl_pointersearch_t *search)
       free(chunk);
       return CL_ERR_PARAMETER_NULL;
     }
+
+    search->memory_scanned = 0;
 
     /* Pass 0: find all pointers within range of target_address */
     matches = 0;
@@ -231,6 +354,8 @@ cl_error cl_pointersearch_step(cl_pointersearch_t *search)
         if (cl_read_memory_buffer(chunk, region, off, chunk_size) != CL_OK)
           continue;
 
+        search->memory_scanned += chunk_size;
+
         for (k = 0; k + ptr_size <= chunk_size; k += ptr_size)
         {
           cl_addr_t value = 0;
@@ -253,79 +378,47 @@ cl_error cl_pointersearch_step(cl_pointersearch_t *search)
 
     /* Subsequent passes: find pointers to each result's initial address */
     for (pass = 1; pass < search->passes; pass++)
-    {
-      cl_pointersearch_result_t *new_results;
-      unsigned r;
+      add_pass(search, pass, chunk);
 
-      new_results = calloc(search->max_results, sizeof(cl_pointersearch_result_t));
-      if (!new_results)
-        break;
-
-      matches = 0;
-      for (r = 0; r < search->result_count; r++)
-      {
-        cl_pointersearch_result_t *prev      = &search->results[r];
-        cl_addr_t                  prev_addr = prev->address_initial;
-        unsigned                   j, l;
-
-        for (j = 0; j < memory.region_count; j++)
-        {
-          cl_memory_region_t *region   = &memory.regions[j];
-          cl_value_type       ptr_type = cl_pointer_type(region->pointer_length);
-          cl_addr_t           ptr_size = region->pointer_length;
-          cl_addr_t           off;
-
-          if (!ptr_size || region->size < ptr_size)
-            continue;
-
-          for (off = 0; off < region->size; off += CL_POINTERSEARCH_CHUNK_SIZE)
-          {
-            cl_addr_t chunk_size = region->size - off;
-            cl_addr_t k;
-
-            if (chunk_size > CL_POINTERSEARCH_CHUNK_SIZE)
-              chunk_size = CL_POINTERSEARCH_CHUNK_SIZE;
-
-            if (cl_read_memory_buffer(chunk, region, off, chunk_size) != CL_OK)
-              continue;
-
-            for (k = 0; k + ptr_size <= chunk_size; k += ptr_size)
-            {
-              cl_addr_t value = 0;
-              cl_read_value(&value, chunk, k, ptr_type, region->endianness);
-
-              if (value <= prev_addr && value >= prev_addr - search->range)
-              {
-                cl_pointersearch_result_t *result = &new_results[matches];
-                for (l = pass; l > 0; l--)
-                  result->offsets[l] = prev->offsets[l - 1];
-                result->offsets[0]      = prev_addr - value;
-                result->address_initial = region->base_guest + off + k;
-                result->address_final   = target_addr;
-                if (++matches >= search->max_results)
-                {
-                  free(search->results);
-                  search->results      = new_results;
-                  search->result_count = matches;
-                  free(chunk);
-                  return CL_OK;
-                }
-              }
-            }
-          }
-        }
-      }
-
-      free(search->results);
-      search->results      = new_results;
-      search->result_count = matches;
-    }
-
+    search->memory_usage = search->result_count * sizeof(cl_pointersearch_result_t);
+    search->time_taken   = (double)(clock() - start) / CLOCKS_PER_SEC;
     search->results = realloc(search->results,
       search->result_count * sizeof(cl_pointersearch_result_t));
+
+    /* Populate initial values so previous/current start in a valid state */
+    cl_pointersearch_update(search);
+    for (i = 0; i < search->result_count; i++)
+      search->results[i].value_previous = search->results[i].value_current;
+
     free(chunk);
     return CL_OK;
   }
+}
+
+cl_error cl_pointersearch_update_result(cl_pointersearch_t *search,
+  cl_pointersearch_result_t *result)
+{
+  cl_addr_t address = result->address_initial;
+  unsigned  pass;
+
+  for (pass = 0; pass < search->passes; pass++)
+  {
+    const cl_memory_region_t *region = cl_find_memory_region(address);
+
+    if (!region)
+      return CL_ERR_CLIENT_RUNTIME;
+    else if (cl_read_memory_value(&address, NULL, address,
+      cl_pointer_type(region->pointer_length)) != CL_OK)
+      return CL_ERR_CLIENT_RUNTIME;
+
+    address += result->offsets[pass];
+  }
+
+  result->address_final = address;
+  cl_read_memory_value(result->value_current.raw, NULL, address,
+    search->params.value_type);
+
+  return CL_OK;
 }
 
 cl_error cl_pointersearch_update(cl_pointersearch_t *search)
@@ -334,41 +427,9 @@ cl_error cl_pointersearch_update(cl_pointersearch_t *search)
 
   if (!search)
     return CL_ERR_PARAMETER_NULL;
-  else for (i = 0; i < search->result_count; i++)
-  {
-    cl_pointersearch_result_t *result = &search->results[i];
-    cl_addr_t address = result->address_initial;
-    unsigned pass;
-    cl_bool failed = CL_FALSE;
 
-    result->value_previous = result->value_current;
-
-    for (pass = 0; pass < search->passes; pass++)
-    {
-      const cl_memory_region_t *region = cl_find_memory_region(address);
-
-      if (!region)
-      {
-        failed = CL_TRUE;
-        break;
-      }
-      else if (cl_read_memory_value(&address, NULL, address,
-        cl_pointer_type(region->pointer_length)) != CL_OK)
-      {
-        failed = CL_TRUE;
-        break;
-      }
-
-      address += result->offsets[pass];
-    }
-
-    if (failed)
-      continue;
-
-    result->address_final = address;
-    cl_read_memory_value(result->value_current.raw, NULL, address,
-      search->params.value_type);
-  }
+  for (i = 0; i < search->result_count; i++)
+    cl_pointersearch_update_result(search, &search->results[i]);
 
   return CL_OK;
 }

@@ -318,7 +318,7 @@ static cl_error cl_memory_init_note(cl_memnote_t *note)
     unsigned j;
 
     for (j = 0; j < note->pointer_passes; j++)
-      cl_log(" + %u", note->pointer_offsets[j]);
+      cl_log(" + %X", note->pointer_offsets[j]);
   }
 
 #if CL_HAVE_EDITOR

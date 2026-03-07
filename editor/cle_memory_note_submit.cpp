@@ -44,8 +44,21 @@ CleMemoryNoteSubmit::CleMemoryNoteSubmit(cl_memnote_t note)
   m_Description->setPlaceholderText(tr("Description (optional)"));
 
   m_Footer = new QLabel(this);
-  snprintf(footer_text, sizeof(footer_text), "0x%016llX - %u pointer passes",
-    note.address_initial, note.pointer_passes);
+  if (note.pointer_passes)
+  {
+    QString offsets_str;
+    for (unsigned i = 0; i < note.pointer_passes; i++)
+    {
+      if (i > 0)
+        offsets_str += ", ";
+      offsets_str += QString("+0x%1").arg(note.pointer_offsets[i], 0, 16);
+    }
+    snprintf(footer_text, sizeof(footer_text), "0x%016llX - %u passes [%s]",
+      note.address_initial, note.pointer_passes,
+      offsets_str.toStdString().c_str());
+  }
+  else
+    snprintf(footer_text, sizeof(footer_text), "0x%016llX", note.address_initial);
   m_Footer->setText(footer_text);
 
   Layout->addWidget(m_Title,        0, 0, 1, 2);

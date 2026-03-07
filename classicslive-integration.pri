@@ -23,7 +23,6 @@ SOURCES += \
     $$CL_DIR/cl_memory.c \
     $$CL_DIR/cl_network.c \
     $$CL_DIR/cl_script.c \
-    $$CL_DIR/cl_search.c \
     $$CL_DIR/cl_search_new.c \
     $$CL_DIR/cl_search_pointer_new.c \
     $$CL_DIR/3rdparty/jsonsax/jsonsax.c \

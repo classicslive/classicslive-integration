@@ -18,11 +18,13 @@ public:
   int pointerFollows(void) const { return pointerFollowsSpin->value(); }
   int offsetRange(void) const { return offsetRangeSpin->value(); }
   int maxMatches(void) const { return maxMatchesSpin->value(); }
+  int maxMatchesPerPass(void) const { return maxMatchesPerPassSpin->value(); }
 
 private:
   QSpinBox *pointerFollowsSpin = nullptr;
   QSpinBox *offsetRangeSpin = nullptr;
   QSpinBox *maxMatchesSpin = nullptr;
+  QSpinBox *maxMatchesPerPassSpin = nullptr;
 };
 
 #endif

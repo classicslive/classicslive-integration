@@ -102,8 +102,20 @@ typedef struct
   /* Maximum number of results to store */
   cl_addr_t max_results;
 
+  /* Maximum number of results per pass (0 = use max_results) */
+  cl_addr_t max_results_per_pass;
+
   /* The target address to find pointers to */
   cl_addr_t target_address;
+
+  /* Total bytes read across all passes in the last step */
+  cl_addr_t memory_scanned;
+
+  /* Memory used by the result array, in bytes */
+  cl_addr_t memory_usage;
+
+  /* Time taken by the last step, in seconds */
+  double time_taken;
 } cl_pointersearch_t;
 
 /**
@@ -150,7 +162,7 @@ cl_error cl_pointersearch_change_target_float(cl_pointersearch_t *search, double
  */
 cl_error cl_pointersearch_init(cl_pointersearch_t *search, cl_addr_t address,
   cl_value_type value_type, unsigned passes, cl_addr_t range,
-  cl_addr_t max_results);
+  cl_addr_t max_results, cl_addr_t max_results_per_pass);
 
 /**
  * Filters pointer search results based on value comparisons.
@@ -158,6 +170,16 @@ cl_error cl_pointersearch_init(cl_pointersearch_t *search, cl_addr_t address,
  * @return The number of matching results
  */
 cl_error cl_pointersearch_step(cl_pointersearch_t *search);
+
+/**
+ * Updates the current value for a single pointer search result.
+ * Resolves the pointer chain and reads the current value at the final address.
+ * @param search A pointer to the pointer search
+ * @param result A pointer to the result to update
+ * @return CL_OK on success, or CL_ERR_CLIENT_RUNTIME if the chain is broken
+ */
+cl_error cl_pointersearch_update_result(cl_pointersearch_t *search,
+  cl_pointersearch_result_t *result);
 
 /**
  * Updates the current values for all pointer search results.
