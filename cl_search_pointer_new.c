@@ -167,56 +167,21 @@ cl_error cl_pointersearch_init(cl_pointersearch_t *search, cl_addr_t address,
 
 cl_error cl_pointersearch_step(cl_pointersearch_t *search)
 {
-  cl_pointersearch_deepcopy_t deepcopy;
-  cl_addr_t                   matches;
-  cl_addr_t                   target;
-  unsigned                    i, pass;
+  cl_addr_t matches;
+  unsigned  i, pass;
 
-  if (!search || !search->params.target_ptr)
+  if (!search)
     return CL_ERR_PARAMETER_NULL;
 
-  target = *(const cl_addr_t *)search->params.target_ptr;
-
-  /* Subsequent steps: filter the existing results list */
+  /* Subsequent steps: update values and filter by comparison */
   if (search->results)
   {
-    deepcopy.chunks      = NULL;
-    deepcopy.chunk_count = 0;
     matches = 0;
+    cl_pointersearch_update(search);
 
     for (i = 0; i < search->result_count; i++)
     {
       cl_pointersearch_result_t *result = &search->results[i];
-      cl_addr_t address = result->address_initial;
-      cl_bool failed = CL_FALSE;
-
-      for (pass = 0; pass < search->passes; pass++)
-      {
-        const cl_memory_region_t *region = cl_find_memory_region(address);
-        cl_addr_t next = 0;
-
-        if (!region)
-        {
-          failed = CL_TRUE;
-          break;
-        }
-        else if (deepcopy_read(&deepcopy, &next, address,
-          cl_pointer_type(region->pointer_length)) != CL_OK)
-        {
-          failed = CL_TRUE;
-          break;
-        }
-
-        address = next + result->offsets[pass];
-      }
-
-      if (failed)
-        continue;
-
-      result->address_final  = address;
-      result->value_previous = result->value_current;
-      cl_read_memory_value(result->value_current.raw, NULL, address, search->params.value_type);
-
       if (pointersearch_passes(&search->params,
         result->value_current.raw, result->value_previous.raw))
         memcpy(&search->results[matches++], result, sizeof(*result));
@@ -225,7 +190,6 @@ cl_error cl_pointersearch_step(cl_pointersearch_t *search)
     search->result_count = matches;
     search->results = realloc(search->results,
       matches * sizeof(cl_pointersearch_result_t));
-    deepcopy_free(&deepcopy);
     return CL_OK;
   }
 
