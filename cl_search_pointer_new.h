@@ -4,26 +4,7 @@
 #include "cl_types.h"
 
 /**
- * Typed view of a search target value, used for typed comparisons.
- */
-typedef union
-{
-  uint8_t  u8;
-  int8_t   s8;
-  uint16_t u16;
-  int16_t  s16;
-  uint32_t u32;
-  int32_t  s32;
-  int64_t  s64;
-  float    fp;
-  double   dfp;
-} cl_search_target_impl_t;
-
-#define CL_TARGET(target) ((cl_search_target_impl_t *)&(target))
-
-/**
  * An opaque handle representing a target value for searches.
- * Use CL_TARGET() to access typed fields.
  */
 typedef union
 {
@@ -133,7 +114,7 @@ cl_error cl_pointersearch_free(cl_pointersearch_t *search);
  * @param search A pointer to the search to modify
  * @param compare_type The new comparison type to use
  */
-cl_error cl_search_change_compare_type(cl_pointersearch_t *search,
+cl_error cl_pointersearch_change_compare_type(cl_pointersearch_t *search,
   cl_compare_type compare_type);
 
 /**
@@ -142,7 +123,7 @@ cl_error cl_search_change_compare_type(cl_pointersearch_t *search,
  * @param search A pointer to the search to modify
  * @param type The new value type to use
  */
-cl_error cl_search_change_value_type(cl_pointersearch_t *search, cl_value_type type);
+cl_error cl_pointersearch_change_value_type(cl_pointersearch_t *search, cl_value_type type);
 
 /**
  * Changes the target value used in the search.
@@ -150,7 +131,7 @@ cl_error cl_search_change_value_type(cl_pointersearch_t *search, cl_value_type t
  * @param value A pointer to the new target value to use, or NULL to compare
  *   against the previous value instead
  */
-cl_error cl_search_change_target(cl_pointersearch_t *search, const void *value);
+cl_error cl_pointersearch_change_target(cl_pointersearch_t *search, const void *value);
 
 /**
  * Initializes a pointer search to find chains leading to a target address.

@@ -9,6 +9,21 @@
 
 #define CL_POINTERSEARCH_CHUNK_SIZE CL_MB(16)
 
+typedef union
+{
+  uint8_t  u8;
+  int8_t   s8;
+  uint16_t u16;
+  int16_t  s16;
+  uint32_t u32;
+  int32_t  s32;
+  int64_t  s64;
+  float    fp;
+  double   dfp;
+} cl_search_target_impl_t;
+
+#define CL_TARGET(target) ((cl_search_target_impl_t *)&(target))
+
 #define PTRSEARCH_CMP(T, field, cur_p, prv_p, tgt_p, params) \
 { \
   const cl_search_target_impl_t *cur = (const cl_search_target_impl_t *)(cur_p); \
@@ -373,7 +388,7 @@ cl_error cl_pointersearch_update(cl_pointersearch_t *search)
   return CL_OK;
 }
 
-cl_error cl_search_change_compare_type(cl_pointersearch_t *search,
+cl_error cl_pointersearch_change_compare_type(cl_pointersearch_t *search,
   cl_compare_type compare_type)
 {
   if (!search)
@@ -389,7 +404,7 @@ cl_error cl_search_change_compare_type(cl_pointersearch_t *search,
   }
 }
 
-cl_error cl_search_change_value_type(cl_pointersearch_t *search, cl_value_type type)
+cl_error cl_pointersearch_change_value_type(cl_pointersearch_t *search, cl_value_type type)
 {
   if (!search)
     return CL_ERR_PARAMETER_NULL;
@@ -404,7 +419,7 @@ cl_error cl_search_change_value_type(cl_pointersearch_t *search, cl_value_type t
   }
 }
 
-cl_error cl_search_change_target(cl_pointersearch_t *search, const void *value)
+cl_error cl_pointersearch_change_target(cl_pointersearch_t *search, const void *value)
 {
   if (!search)
     return CL_ERR_PARAMETER_NULL;
