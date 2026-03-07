@@ -112,6 +112,7 @@ void CleHexWidget::keyPressEvent(QKeyEvent *event)
    case Qt::Key_Return:
    case Qt::Key_Enter:
       emit valueEdited(m_CursorOffset, m_CursorValue, m_Size);
+      m_CursorNybble = 0;
       if (isCursorBottomRight())
          movePosition(0x10);
       setCursorOffset(m_CursorOffset + m_Size);
@@ -276,17 +277,17 @@ void CleHexWidget::onRightClick(cl_addr_t address, QPoint& pos)
 
     /* Allow following a pointer if it is valid */
     region = cl_find_memory_region(address);
-    if (!region)
-      return;
-
-    ptr_type = cl_pointer_type(region->pointer_length);
-    if (cl_read_memory_value(&goto_address, nullptr, address, ptr_type) &&
-      cl_find_memory_region(goto_address))
+    if (region)
     {
-      m_CursorOffset = goto_address;
-      action_goto = menu.addAction(tr("&Goto this address"));
-      connect(action_goto, SIGNAL(triggered()), this,
-        SLOT(onClickGoto()));
+      ptr_type = cl_pointer_type(region->pointer_length);
+      if (cl_read_memory_value(&goto_address, nullptr, address, ptr_type) &&
+        cl_find_memory_region(goto_address))
+      {
+        m_CursorOffset = goto_address;
+        action_goto = menu.addAction(tr("&Goto this address"));
+        connect(action_goto, SIGNAL(triggered()), this,
+          SLOT(onClickGoto()));
+      }
     }
 
     menu.exec(mapToGlobal(pos));
@@ -436,6 +437,13 @@ void CleHexWidget::setCursorOffset(cl_addr_t offset)
 {
    uint8_t cursor = ((m_CursorOffset - m_Position) & 0xFF) / m_Size;
 
+   /* Commit any partial edit when moving to a different cell */
+   if (m_CursorNybble > 0 && (offset & ~(cl_addr_t)(m_Size - 1)) != m_CursorOffset)
+   {
+      emit valueEdited(m_CursorOffset, m_CursorValue, m_Size);
+      m_CursorNybble = 0;
+   }
+
    /* Clear old highlight directly into m_Image */
    m_RectColors[cursor].setBlue(0);
    paintCursorCell(cursor);
@@ -558,6 +566,7 @@ void CleHexWidget::typeNybble(uint8_t value)
    if (m_CursorNybble >= total_nybbles)
    {
       emit valueEdited(m_CursorOffset, m_CursorValue, m_Size);
+      m_CursorNybble = 0;
       setCursorOffset(m_CursorOffset + m_Size);
    }
 }
