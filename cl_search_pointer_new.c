@@ -154,12 +154,12 @@ cl_error cl_pointersearch_init(cl_pointersearch_t *search, cl_addr_t address,
   search->passes             = passes;
   search->range              = range;
   search->max_results        = max_results;
+  search->target_address     = address;
   search->params.value_type  = value_type;
   search->params.value_size  = cl_sizeof_memtype(value_type);
   search->params.compare_type = CL_COMPARE_EQUAL;
   search->params.target_none = 0;
 
-  CL_POINTERSEARCH_TARGET(search->params.target)->s64 = (int64_t)address;
   search->params.target_ptr = CL_POINTERSEARCH_TARGET(search->params.target);
 
   return CL_OK;
@@ -168,10 +168,9 @@ cl_error cl_pointersearch_init(cl_pointersearch_t *search, cl_addr_t address,
 cl_error cl_pointersearch_step(cl_pointersearch_t *search)
 {
   cl_pointersearch_deepcopy_t deepcopy;
-  cl_pointersearch_result_t  *new_results;
   cl_addr_t                   matches;
   cl_addr_t                   target;
-  unsigned                    i, pass, r;
+  unsigned                    i, pass;
 
   if (!search || !search->params.target_ptr)
     return CL_ERR_PARAMETER_NULL;
@@ -230,117 +229,139 @@ cl_error cl_pointersearch_step(cl_pointersearch_t *search)
     return CL_OK;
   }
 
-  /* First step: build the initial list by scanning all memory */
-  deepcopy.chunks      = NULL;
-  deepcopy.chunk_count = 0;
-
-  search->results = calloc(search->max_results, sizeof(cl_pointersearch_result_t));
-  if (!search->results)
-    return CL_ERR_PARAMETER_NULL;
-
-  /* First pass: scan all memory for pointers within range of target */
-  matches = 0;
-  for (i = 0; i < memory.region_count; i++)
+  /* First step: scan all memory in chunks for pointer chains leading to target_address */
   {
-    cl_memory_region_t *region   = &memory.regions[i];
-    cl_value_type       ptr_type = cl_pointer_type(region->pointer_length);
-    cl_addr_t           ptr_size = region->pointer_length;
-    cl_addr_t           k;
+    cl_addr_t  target_addr = search->target_address;
+    uint8_t   *chunk       = malloc(CL_POINTERSEARCH_CHUNK_SIZE);
 
-    if (!ptr_size || region->size < ptr_size)
-      continue;
+    if (!chunk)
+      return CL_ERR_PARAMETER_NULL;
 
-    for (k = 0; k + ptr_size <= region->size; k += ptr_size)
+    search->results = calloc(search->max_results, sizeof(cl_pointersearch_result_t));
+    if (!search->results)
     {
-      cl_addr_t value = 0;
+      free(chunk);
+      return CL_ERR_PARAMETER_NULL;
+    }
 
-      if (deepcopy_read(&deepcopy, &value, region->base_guest + k, ptr_type) != CL_OK)
+    /* Pass 0: find all pointers within range of target_address */
+    matches = 0;
+    for (i = 0; i < memory.region_count; i++)
+    {
+      cl_memory_region_t *region   = &memory.regions[i];
+      cl_value_type       ptr_type = cl_pointer_type(region->pointer_length);
+      cl_addr_t           ptr_size = region->pointer_length;
+      cl_addr_t           off;
+
+      if (!ptr_size || region->size < ptr_size)
         continue;
 
-      if (value <= target && value >= target - search->range)
+      for (off = 0; off < region->size; off += CL_POINTERSEARCH_CHUNK_SIZE)
       {
-        cl_pointersearch_result_t *result = &search->results[matches];
-        result->address_initial = region->base_guest + k;
-        result->address_final   = target;
-        result->offsets[0]      = target - value;
-        /* TODO: compare value at target against search params */
-        matches++;
+        cl_addr_t chunk_size = region->size - off;
+        cl_addr_t k;
 
-        /* We've found the maximum number of pointers */
-        if (matches >= search->max_results)
-          goto first_pass_done;
-      }
-    }
-  }
-  first_pass_done:
-  search->result_count = matches;
+        if (chunk_size > CL_POINTERSEARCH_CHUNK_SIZE)
+          chunk_size = CL_POINTERSEARCH_CHUNK_SIZE;
 
-  /* Subsequent passes: find pointers to each result's initial address */
-  for (pass = 1; pass < search->passes; pass++)
-  {
-    new_results = calloc(search->max_results, sizeof(cl_pointersearch_result_t));
-    if (!new_results)
-      break;
-
-    matches = 0;
-
-    for (r = 0; r < search->result_count; r++)
-    {
-      cl_pointersearch_result_t *prev       = &search->results[r];
-      cl_addr_t                  prev_addr  = prev->address_initial;
-      unsigned                   j, l;
-
-      for (j = 0; j < memory.region_count; j++)
-      {
-        cl_memory_region_t *region   = &memory.regions[j];
-        cl_value_type       ptr_type = cl_pointer_type(region->pointer_length);
-        cl_addr_t           ptr_size = region->pointer_length;
-        cl_addr_t           k;
-
-        if (!ptr_size || region->size < ptr_size)
+        if (cl_read_memory_buffer(chunk, region, off, chunk_size) != CL_OK)
           continue;
 
-        for (k = 0; k + ptr_size <= region->size; k += ptr_size)
+        for (k = 0; k + ptr_size <= chunk_size; k += ptr_size)
         {
           cl_addr_t value = 0;
+          cl_read_value(&value, chunk, k, ptr_type, region->endianness);
 
-          if (deepcopy_read(&deepcopy, &value, region->base_guest + k, ptr_type) != CL_OK)
-            continue;
-
-          if (value <= prev_addr && value >= prev_addr - search->range)
+          if (value <= target_addr && value >= target_addr - search->range)
           {
-            cl_pointersearch_result_t *result = &new_results[matches];
-
-            for (l = pass; l > 0; l--)
-              result->offsets[l] = prev->offsets[l - 1];
-            result->offsets[0]      = prev_addr - value;
-            result->address_initial = region->base_guest + k;
-            result->address_final   = target;
-            matches++;
-
-            if (matches == search->max_results)
-            {
-              free(search->results);
-              search->results      = new_results;
-              search->result_count = matches;
-              deepcopy_free(&deepcopy);
-              return CL_OK;
-            }
+            cl_pointersearch_result_t *result = &search->results[matches];
+            result->address_initial = region->base_guest + off + k;
+            result->address_final   = target_addr;
+            result->offsets[0]      = target_addr - value;
+            if (++matches >= search->max_results)
+              goto first_pass_done;
           }
         }
       }
     }
-
-    free(search->results);
-    search->results      = new_results;
+    first_pass_done:
     search->result_count = matches;
+
+    /* Subsequent passes: find pointers to each result's initial address */
+    for (pass = 1; pass < search->passes; pass++)
+    {
+      cl_pointersearch_result_t *new_results;
+      unsigned r;
+
+      new_results = calloc(search->max_results, sizeof(cl_pointersearch_result_t));
+      if (!new_results)
+        break;
+
+      matches = 0;
+      for (r = 0; r < search->result_count; r++)
+      {
+        cl_pointersearch_result_t *prev      = &search->results[r];
+        cl_addr_t                  prev_addr = prev->address_initial;
+        unsigned                   j, l;
+
+        for (j = 0; j < memory.region_count; j++)
+        {
+          cl_memory_region_t *region   = &memory.regions[j];
+          cl_value_type       ptr_type = cl_pointer_type(region->pointer_length);
+          cl_addr_t           ptr_size = region->pointer_length;
+          cl_addr_t           off;
+
+          if (!ptr_size || region->size < ptr_size)
+            continue;
+
+          for (off = 0; off < region->size; off += CL_POINTERSEARCH_CHUNK_SIZE)
+          {
+            cl_addr_t chunk_size = region->size - off;
+            cl_addr_t k;
+
+            if (chunk_size > CL_POINTERSEARCH_CHUNK_SIZE)
+              chunk_size = CL_POINTERSEARCH_CHUNK_SIZE;
+
+            if (cl_read_memory_buffer(chunk, region, off, chunk_size) != CL_OK)
+              continue;
+
+            for (k = 0; k + ptr_size <= chunk_size; k += ptr_size)
+            {
+              cl_addr_t value = 0;
+              cl_read_value(&value, chunk, k, ptr_type, region->endianness);
+
+              if (value <= prev_addr && value >= prev_addr - search->range)
+              {
+                cl_pointersearch_result_t *result = &new_results[matches];
+                for (l = pass; l > 0; l--)
+                  result->offsets[l] = prev->offsets[l - 1];
+                result->offsets[0]      = prev_addr - value;
+                result->address_initial = region->base_guest + off + k;
+                result->address_final   = target_addr;
+                if (++matches >= search->max_results)
+                {
+                  free(search->results);
+                  search->results      = new_results;
+                  search->result_count = matches;
+                  free(chunk);
+                  return CL_OK;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      free(search->results);
+      search->results      = new_results;
+      search->result_count = matches;
+    }
+
+    search->results = realloc(search->results,
+      search->result_count * sizeof(cl_pointersearch_result_t));
+    free(chunk);
+    return CL_OK;
   }
-
-  search->results = realloc(search->results,
-    search->result_count * sizeof(cl_pointersearch_result_t));
-
-  deepcopy_free(&deepcopy);
-  return CL_OK;
 }
 
 cl_error cl_pointersearch_update(cl_pointersearch_t *search)

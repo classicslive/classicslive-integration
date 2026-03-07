@@ -101,6 +101,9 @@ typedef struct
 
   /* Maximum number of results to store */
   cl_addr_t max_results;
+
+  /* The target address to find pointers to */
+  cl_addr_t target_address;
 } cl_pointersearch_t;
 
 /**
