@@ -27,11 +27,31 @@ public:
   cl_error step(void) override;
 
   cl_compare_type compareType(void) override { return m_Search.params.compare_type; }
-  cl_value_type valueType(void) override { return CL_MEMTYPE_NOT_SET; }
+  cl_value_type valueType(void) override { return m_Search.params.value_type; }
 
-  cl_error setCompareType(const cl_compare_type type) override {}
-  cl_error setTarget(const QString& target) override {}
-  cl_error setValueType(const cl_value_type type) override {}
+  cl_error setCompareType(const cl_compare_type type) override
+  {
+    return cl_pointersearch_change_compare_type(&m_Search, type);
+  }
+
+  cl_error setTarget(const QString& target) override
+  {
+    if (target.isEmpty())
+      return cl_pointersearch_change_target(&m_Search, NULL);
+    switch (m_Search.params.value_type)
+    {
+    case CL_MEMTYPE_FLOAT:
+    case CL_MEMTYPE_DOUBLE:
+      return cl_pointersearch_change_target_float(&m_Search, target.toDouble());
+    default:
+      return cl_pointersearch_change_target_int(&m_Search, (cl_addr_t)target.toLongLong());
+    }
+  }
+
+  cl_error setValueType(const cl_value_type type) override
+  {
+    return cl_pointersearch_change_value_type(&m_Search, type);
+  }
 
 public slots:
   void onClickResultAddMemoryNote();

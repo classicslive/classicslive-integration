@@ -132,6 +132,8 @@ cl_error cl_pointersearch_change_value_type(cl_pointersearch_t *search, cl_value
  *   against the previous value instead
  */
 cl_error cl_pointersearch_change_target(cl_pointersearch_t *search, const void *value);
+cl_error cl_pointersearch_change_target_int(cl_pointersearch_t *search, cl_addr_t value);
+cl_error cl_pointersearch_change_target_float(cl_pointersearch_t *search, double value);
 
 /**
  * Initializes a pointer search to find chains leading to a target address.

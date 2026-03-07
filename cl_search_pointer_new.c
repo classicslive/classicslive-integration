@@ -444,3 +444,49 @@ cl_error cl_pointersearch_change_target(cl_pointersearch_t *search, const void *
 
   return CL_OK;
 }
+
+cl_error cl_pointersearch_change_target_int(cl_pointersearch_t *search, cl_addr_t value)
+{
+  if (!search)
+    return CL_ERR_PARAMETER_NULL;
+  else
+  {
+    cl_search_target_impl_t *target_impl = CL_TARGET(search->params.target);
+
+    target_impl->s64 = 0;
+    switch (search->params.value_size)
+    {
+    case 1: target_impl->s8  = (int8_t)value;  break;
+    case 2: target_impl->s16 = (int16_t)value; break;
+    case 4: target_impl->s32 = (int32_t)value; break;
+    case 8: target_impl->s64 = (int64_t)value; break;
+    default: return CL_ERR_PARAMETER_INVALID;
+    }
+    search->params.target_ptr  = target_impl;
+    search->params.target_none = 0;
+
+    return CL_OK;
+  }
+}
+
+cl_error cl_pointersearch_change_target_float(cl_pointersearch_t *search, double value)
+{
+  if (!search)
+    return CL_ERR_PARAMETER_NULL;
+  else
+  {
+    cl_search_target_impl_t *target_impl = CL_TARGET(search->params.target);
+
+    target_impl->s64 = 0;
+    switch (search->params.value_size)
+    {
+    case 4: target_impl->fp  = (float)value; break;
+    case 8: target_impl->dfp = value;        break;
+    default: return CL_ERR_PARAMETER_INVALID;
+    }
+    search->params.target_ptr  = target_impl;
+    search->params.target_none = 0;
+
+    return CL_OK;
+  }
+}
