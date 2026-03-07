@@ -4,8 +4,6 @@
 #include "cle_result_table_pointer.h"
 #include "cle_common.h"
 
-/** @todo everything here was dummied in anticipation of a pointersearch redo */
-
 CleResultTablePointer::CleResultTablePointer(QWidget *parent, cl_addr_t address,
    cl_value_type value_type, unsigned passes, cl_addr_t range, cl_addr_t max_results)
 {
@@ -86,9 +84,9 @@ void CleResultTablePointer::onResultRightClick(const QPoint& pos)
       else
       {
          QMenu menu;
-         QAction *action_add    = menu.addAction(tr("&Add memory note..."));
+         QAction *action_add = menu.addAction(tr("&Add memory note..."));
 
-         connect(action_add, SIGNAL(triggered()), this, 
+         connect(action_add, SIGNAL(triggered()), this,
             SLOT(onClickResultAddMemoryNote()));
 
          menu.exec(m_Table->mapToGlobal(pos));
@@ -112,121 +110,120 @@ void CleResultTablePointer::onResultClick(QTableWidgetItem *item)
 
 void CleResultTablePointer::onResultDoubleClick()
 {
-   if (m_Table->currentColumn() == m_ColValueCurr)
+   if (m_Table->currentColumn() == (int)m_ColValueCurr)
    {
       unsigned i;
 
       /* We gray out the other entries because they won't update while
          we're editing. */
-      for (i = 0; i < m_Table->rowCount(); i++)
-         m_Table->item(i, m_ColValueCurr)->setTextColor(Qt::gray);
+      for (i = 0; i < (unsigned)m_Table->rowCount(); i++)
+         m_Table->item(i, m_ColValueCurr)->setForeground(Qt::gray);
       m_CurrentEditedRow = m_Table->currentRow();
    }
 }
 
 void CleResultTablePointer::onResultEdited(QTableWidgetItem *item)
 {
-#if 0
-   if (item->row() == m_CurrentEditedRow && item->column() == m_ColValueCurr)
+   if (item->row() == m_CurrentEditedRow && item->column() == (int)m_ColValueCurr)
    {
       if (item->isSelected())
-      {
-         writeMemory(m_Search.results[item->row()].address_final, 
-            m_Search.params, item->text());
-      }
+         writeMemory(m_Search.results[item->row()].address_final, m_Search.params, item->text());
       m_CurrentEditedRow = -1;
    }
-#endif
 }
 
 cl_error CleResultTablePointer::rebuild(void)
 {
-  return CL_OK;
-#if 0
-   char     temp_string[32];
-   unsigned size;
-   unsigned current_row, i, j;
-   cl_addr_t temp_value;
+   char          temp_string[32];
+   cl_value_type val_type = m_Search.params.value_type;
+   unsigned      i, j;
 
-   size = m_Search.params.value_type;
-   m_Table->setColumnCount(3 + m_Search.passes);
    m_Table->setRowCount(0);
 
    for (i = 0; i < m_Search.result_count; i++)
    {
       m_Table->insertRow(i);
 
-      snprintf(temp_string, 256, "%016llX", (unsigned long long)m_Search.results[i].address_initial);
+      snprintf(temp_string, sizeof(temp_string), "%016llX",
+         (unsigned long long)m_Search.results[i].address_initial);
       m_Table->setItem(i, m_ColAddress, new QTableWidgetItem(QString(temp_string)));
 
       for (j = 0; j < m_Search.passes; j++)
       {
-         snprintf(temp_string, 256, "%llX", (unsigned long long)m_Search.results[i].offsets[j]);
+         snprintf(temp_string, sizeof(temp_string), "%llX",
+            (unsigned long long)m_Search.results[i].offsets[j]);
          m_Table->setItem(i, j + 1, new QTableWidgetItem(QString(temp_string)));
       }
 
-      valueToString(temp_string, sizeof(temp_string), m_Search.results[i].value_previous, size);
+      valueToString(temp_string, sizeof(temp_string),
+         m_Search.results[i].value_previous.raw, val_type);
       m_Table->setItem(i, m_ColValuePrev, new QTableWidgetItem(QString(temp_string)));
 
-      valueToString(temp_string, sizeof(temp_string), m_Search.results[i].value_current, size);
+      valueToString(temp_string, sizeof(temp_string),
+         m_Search.results[i].value_current.raw, val_type);
       m_Table->setItem(i, m_ColValueCurr, new QTableWidgetItem(QString(temp_string)));
    }
-#endif
+
+   return CL_OK;
 }
 
 cl_error CleResultTablePointer::reset(void)
 {
-  return CL_OK;
+   cl_pointersearch_free(&m_Search);
+   m_Table->setRowCount(0);
+
+   return CL_OK;
 }
 
 cl_error CleResultTablePointer::run(void)
 {
-#if 0
    QTableWidgetItem *item;
-   char     temp_string[32];
-   cl_value_type val_type;
-   cl_addr_t address, value_curr, value_prev;
-   unsigned i;
+   char          temp_string[32];
+   cl_value_type val_type  = m_Search.params.value_type;
+   unsigned      val_size  = m_Search.params.value_size;
+   unsigned      i;
 
-   val_type = m_Search.params.value_type;
-
-   /* The C code updates all of the pointer results */
    cl_pointersearch_update(&m_Search);
 
    for (i = 0; i < m_Search.result_count; i++)
    {
       item = m_Table->item(i, 0);
       if (!item)
-         return;
+         return CL_OK;
 
       /* Don't visually update search results that are out of view */
-      if (i < m_Table->verticalScrollBar()->value())
+      if ((int)i < m_Table->verticalScrollBar()->value())
          continue;
-      else if (i > m_Table->verticalScrollBar()->value() 
-          + m_Table->size().height() / 16)
+      else if ((int)i > m_Table->verticalScrollBar()->value() + m_Table->height() / 16)
          break;
-
-      value_curr = m_Search.results[i].value_current;
-      value_prev = m_Search.results[i].value_previous;
 
       /* Update previous value column */
       item = m_Table->item(i, m_ColValuePrev);
-      valueToString(temp_string, sizeof(temp_string), value_prev, val_type);
-      item->setText(temp_string);
+      if (item)
+      {
+         valueToString(temp_string, sizeof(temp_string),
+            m_Search.results[i].value_previous.raw, val_type);
+         item->setText(temp_string);
+      }
 
       /* Current value column */
       if (m_CurrentEditedRow < 0)
       {
          item = m_Table->item(i, m_ColValueCurr);
+         if (item)
+         {
+            valueToString(temp_string, sizeof(temp_string),
+               m_Search.results[i].value_current.raw, val_type);
+            item->setText(temp_string);
 
-         valueToString(temp_string, sizeof(temp_string), value_curr, val_type);
-         item->setText(temp_string);
-
-         /* Display changed values in red */
-         item->setTextColor(value_prev != value_curr ? Qt::red : Qt::white);
+            bool changed = memcmp(m_Search.results[i].value_current.raw,
+               m_Search.results[i].value_previous.raw, val_size) != 0;
+            item->setForeground(changed ? Qt::red : Qt::white);
+         }
       }
    }
-#endif
+
+   return CL_OK;
 }
 
 cl_error CleResultTablePointer::step(void)
