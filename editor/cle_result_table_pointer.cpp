@@ -231,7 +231,7 @@ cl_error CleResultTablePointer::run(void)
 
 cl_error CleResultTablePointer::step(void)
 {
-  cl_pointersearch_step(&m_Search, NULL);
+  cl_pointersearch_step(&m_Search);
   rebuild();
 
   return CL_OK;

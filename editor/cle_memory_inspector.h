@@ -20,7 +20,7 @@ extern "C"
    #include "../cl_main.h"
    #include "../cl_memory.h"
    #include "../cl_network.h"
-   #include "../cl_search.h"
+   #include "../cl_search_pointer_new.h"
 }
 #include "cle_hex_view.h"
 #include "cle_memory_note_submit.h"

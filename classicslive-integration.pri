@@ -25,6 +25,7 @@ SOURCES += \
     $$CL_DIR/cl_script.c \
     $$CL_DIR/cl_search.c \
     $$CL_DIR/cl_search_new.c \
+    $$CL_DIR/cl_search_pointer_new.c \
     $$CL_DIR/3rdparty/jsonsax/jsonsax.c \
     $$CL_DIR/3rdparty/jsonsax/jsonsax_full.c
 

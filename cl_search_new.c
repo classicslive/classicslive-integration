@@ -95,7 +95,8 @@ static void cl_munmap(void *p, size_t size)
 #define CL_SEARCH_SWAP_u32(a) __builtin_bswap32(*(uint32_t*)&(a))
 #define CL_SEARCH_SWAP_s64(a) __builtin_bswap64(*(uint64_t*)&(a))
 #else
-#error "Endianness helpers are not supported on this compiler. You should try compiling with CL_HAVE_SEARCH=0."
+#error "Endianness helpers are not supported on this compiler." \
+       "You should try compiling with CL_HAVE_SEARCH=0."
 #endif
 
 static float cl_bswap_float(float f)

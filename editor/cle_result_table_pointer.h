@@ -5,7 +5,7 @@
 
 extern "C"
 {
-  #include "../cl_search.h"
+  #include "../cl_search_pointer_new.h"
 }
 
 class CleResultTablePointer : public CleResultTable
