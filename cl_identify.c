@@ -344,18 +344,24 @@ static cl_error cl_identify_cue(char *path, char *extension)
  **/
 static cl_error cl_identify_m3u(char *path, char *extension)
 {
-  unsigned  length, i;
+  unsigned  length;
   char     *str;
+  char     *line;
+  char     *saveptr = NULL;
 
   if (cl_read_from_file(path, (uint8_t**)&str, &length) != CL_OK)
     return CL_ERR_CLIENT_RUNTIME;
 
-  for (i = 0; i < length; i++)
+  /* Ensure null termination */
+  str[length - 1] = '\0';
+
+  line = strtok_r(str, "\r\n", &saveptr);
+  while (line)
   {
-    if (str[i] == '\r' || str[i] == '\n')
+    /* Skip comment lines and empty lines */
+    if (*line != '#' && *line != '\0')
     {
-      str[i] = '\0';
-      fill_pathname_resolve_relative(path, path, str, CL_MAX_PATH);
+      fill_pathname_resolve_relative(path, path, line, CL_MAX_PATH);
       strncpy(extension, path_get_extension(path), sizeof(extension) - 1);
       extension[sizeof(extension) - 1] = '\0';
       string_to_upper(extension);
@@ -364,7 +370,9 @@ static cl_error cl_identify_m3u(char *path, char *extension)
 
       return CL_OK;
     }
+    line = strtok_r(NULL, "\r\n", &saveptr);
   }
+
   cl_log("Malformed M3U.\n");
   free(str);
 
