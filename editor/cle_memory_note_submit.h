@@ -27,6 +27,7 @@ private:
   cl_memnote_t m_MemoryNote;
  
   QLabel      *m_Footer;
+  QLabel      *m_Value;
   QLineEdit   *m_Title;
   QTextEdit   *m_Description;
   QPushButton *m_SubmitButton;

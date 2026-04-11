@@ -8,6 +8,33 @@
 #include "cl_network.h"
 #include "cl_script.h"
 
+/* Percent-encode a string for use as a form field value in a POST body.
+   Writes to dst (size dst_size), returns number of chars written (excl. NUL). */
+static unsigned cl_urlencode(char *dst, unsigned dst_size, const char *src)
+{
+  static const char hex[] = "0123456789ABCDEF";
+  unsigned out = 0;
+  unsigned char c;
+
+  while ((c = (unsigned char)*src++) && out + 4 < dst_size)
+  {
+    if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ||
+        (c >= '0' && c <= '9') ||
+        c == '-' || c == '_' || c == '.' || c == '~')
+    {
+      dst[out++] = (char)c;
+    }
+    else
+    {
+      dst[out++] = '%';
+      dst[out++] = hex[c >> 4];
+      dst[out++] = hex[c & 0xF];
+    }
+  }
+  dst[out] = '\0';
+  return out;
+}
+
 /* Call C++ code only if the editor is built in */
 #if CL_HAVE_EDITOR
 void cle_init(void);
@@ -133,7 +160,7 @@ cl_error cl_start(cl_game_identifier_t identifier)
     char post_data[CL_POST_DATA_SIZE];
     const char *library_name;
     cl_error error;
-    unsigned remaining;
+    unsigned written;
 
     error = cl_abi_library_name(&library_name);
     if (error)
@@ -145,19 +172,25 @@ cl_error cl_start(cl_game_identifier_t identifier)
             sizeof(identifier.filename) - 1);
 #endif
 
-    post_data[0] = '\0';
-    snprintf(post_data, sizeof(post_data),
-             "library=%s&filename=%s",
-             library_name, identifier.filename);
+    /* library name is an internal identifier — no special chars expected,
+       but encode defensively. filename is user-supplied and may contain '&'. */
+    written = 0;
+    written += snprintf(post_data + written, sizeof(post_data) - written,
+                        "library=");
+    written += cl_urlencode(post_data + written, sizeof(post_data) - written,
+                            library_name);
+    written += snprintf(post_data + written, sizeof(post_data) - written,
+                        "&filename=");
+    written += cl_urlencode(post_data + written, sizeof(post_data) - written,
+                            identifier.filename);
 
     if (identifier.type == CL_GAMEIDENTIFIER_FILE_HASH)
     {
       if (strlen(identifier.checksum) == 32)
       {
-        remaining = sizeof(post_data) - strlen(post_data) - 1;
-        strncat(post_data, "&md5=", remaining);
-        remaining = sizeof(post_data) - strlen(post_data) - 1;
-        strncat(post_data, identifier.checksum, remaining);
+        /* MD5 is hex-only, no encoding needed */
+        snprintf(post_data + written, sizeof(post_data) - written,
+                 "&md5=%s", identifier.checksum);
       }
       else
       {
@@ -171,18 +204,18 @@ cl_error cl_start(cl_game_identifier_t identifier)
 
       if (strlen(identifier.product) > 0)
       {
-        remaining = sizeof(post_data) - strlen(post_data) - 1;
-        strncat(post_data, "&product=", remaining);
-        remaining = sizeof(post_data) - strlen(post_data) - 1;
-        strncat(post_data, identifier.product, remaining);
+        written += snprintf(post_data + written, sizeof(post_data) - written,
+                            "&product=");
+        written += cl_urlencode(post_data + written, sizeof(post_data) - written,
+                                identifier.product);
         success = 1;
       }
       if (strlen(identifier.version) > 0)
       {
-        remaining = sizeof(post_data) - strlen(post_data) - 1;
-        strncat(post_data, "&version=", remaining);
-        remaining = sizeof(post_data) - strlen(post_data) - 1;
-        strncat(post_data, identifier.version, remaining);
+        written += snprintf(post_data + written, sizeof(post_data) - written,
+                            "&version=");
+        cl_urlencode(post_data + written, sizeof(post_data) - written,
+                     identifier.version);
         success = 1;
       }
       if (!success)

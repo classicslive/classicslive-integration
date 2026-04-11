@@ -86,24 +86,23 @@ void CleActionBlock::attachTo(CleActionBlock *target, int indentation)
   auto x = target->pos().x() + (indentation - target->indentation()) * CLE_BLOCK_HEIGHT;
   auto y = target->pos().y() + target->height();
 
+  setIndentation(indentation);
   setPosition(QPoint(x, y));
 
   auto next = target->next();
+  m_Next = (next != this) ? next : nullptr;
   if (next && next != this)
   {
     next->setPrev(this);
-    m_Next = next;
-    m_Prev = target;
 
     while (next && next != this)
     {
-      next->setPosition(QPoint(next->x(), next->y() + next->height()));
+      next->setPosition(QPoint(next->x(), next->y() + height()));
       next = next->next();
     }
   }
 
   target->setNext(this);
-  setIndentation(indentation);
   m_Prev = target;
 }
 

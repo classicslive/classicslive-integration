@@ -28,7 +28,7 @@ CleResultTableNormal::CleResultTableNormal(QWidget *parent)
 
   /* Qt connections to parent */
   connect(this, SIGNAL(addressChanged(cl_addr_t)),
-    parent, SLOT(onAddressChanged(cl_addr_t)));
+    parent, SLOT(addressChanged(cl_addr_t)));
   connect(this, SIGNAL(requestAddMemoryNote(cl_memnote_t)),
     parent, SLOT(requestAddMemoryNote(cl_memnote_t)));
   connect(this, SIGNAL(requestPointerSearch(cl_addr_t)),

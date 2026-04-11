@@ -61,11 +61,34 @@ CleMemoryNoteSubmit::CleMemoryNoteSubmit(cl_memnote_t note)
     snprintf(footer_text, sizeof(footer_text), "0x%016llX", note.address_initial);
   m_Footer->setText(footer_text);
 
+  /* Read and display the current value at the target address */
+  char value_text[64] = "?";
+  if (note.type == CL_MEMTYPE_FLOAT)
+  {
+    float val = 0;
+    if (cl_read_memory_value(&val, nullptr, note.address_initial, note.type) == CL_OK)
+      snprintf(value_text, sizeof(value_text), "%.6g", (double)val);
+  }
+  else if (note.type == CL_MEMTYPE_DOUBLE)
+  {
+    double val = 0;
+    if (cl_read_memory_value(&val, nullptr, note.address_initial, note.type) == CL_OK)
+      snprintf(value_text, sizeof(value_text), "%.10g", val);
+  }
+  else
+  {
+    int64_t val = 0;
+    if (cl_read_memory_value(&val, nullptr, note.address_initial, note.type) == CL_OK)
+      snprintf(value_text, sizeof(value_text), "0x%llX (%lld)", (long long)val, (long long)val);
+  }
+  m_Value = new QLabel(value_text, this);
+
   Layout->addWidget(m_Title,        0, 0, 1, 2);
   Layout->addWidget(m_Description,  1, 0, 1, 2);
   Layout->addWidget(m_Footer,       2, 0, 1, 2);
-  Layout->addWidget(m_CancelButton, 3, 0, 1, 1);
-  Layout->addWidget(m_SubmitButton, 3, 1, 1, 1);
+  Layout->addWidget(m_Value,        3, 0, 1, 2);
+  Layout->addWidget(m_CancelButton, 4, 0, 1, 1);
+  Layout->addWidget(m_SubmitButton, 4, 1, 1, 1);
 
   setLayout(Layout);
   setWindowFlags(Qt::WindowTitleHint);

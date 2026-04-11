@@ -29,6 +29,11 @@ int64_t stringToValue(QString string, bool *ok)
     {
       negative = true;
       string.remove(0, 1);
+      if (string.isEmpty())
+      {
+        if (ok) *ok = false;
+        return 0;
+      }
       prefix = string.at(0).toLatin1();
     }
 
@@ -58,8 +63,8 @@ int64_t stringToValue(QString string, bool *ok)
     else
       base = 10; // TODO: Config option for default base?
 
-    return negative ? 0 - (int64_t)string.toInt(ok, base) :
-      string.toUInt(ok, base);
+    return negative ? 0 - (int64_t)string.toLongLong(ok, base) :
+      (int64_t)string.toULongLong(ok, base);
   }
 }
 

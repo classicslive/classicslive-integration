@@ -39,35 +39,38 @@ static QString formatNoteValue(const cl_memnote_t *note)
       .arg((qlonglong)note->current.intval.raw);
 }
 
-static QString formatOffsets(const cl_memnote_t *note)
+static QString formatAddress(const cl_memnote_t *note)
 {
-  QString offsets;
+  QString text = QString::number((qulonglong)note->address_initial, 16).toUpper();
+
+  if (note->pointer_passes == 0)
+    return text;
+
   for (unsigned j = 0; j < note->pointer_passes; j++)
-  {
-    if (j > 0)
-      offsets += ", ";
-    offsets += QString("+0x%1").arg(note->pointer_offsets[j], 0, 16);
-  }
-  return offsets;
+    text += QString(" + %1").arg((qulonglong)note->pointer_offsets[j], 0, 16).toUpper();
+
+  text += QString(" = %1").arg(QString::number((qulonglong)note->address, 16).toUpper());
+  return text;
 }
 
 CleMemoryNotes::CleMemoryNotes(QWidget* parent) : QWidget(parent)
 {
   m_Table = new QTableWidget(this);
-  m_Table->setColumnCount(6);
+  m_Table->setColumnCount(5);
   m_Table->setHorizontalHeaderLabels({
-    "Key", "Address", "Type", "Value", "Offsets", "Title"
+    "Key", "Title", "Address", "Type", "Value"
   });
 
   m_Table->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
-  m_Table->horizontalHeader()->setSectionResizeMode(4, QHeaderView::Stretch);
-  m_Table->horizontalHeader()->setSectionResizeMode(5, QHeaderView::Stretch);
+  m_Table->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
   m_Table->verticalHeader()->setVisible(false);
   m_Table->setSelectionBehavior(QAbstractItemView::SelectRows);
   m_Table->setEditTriggers(QAbstractItemView::NoEditTriggers);
   m_Table->setAlternatingRowColors(true);
   m_Table->setShowGrid(false);
   m_Table->verticalHeader()->setDefaultSectionSize(22);
+    connect(m_Table, SIGNAL(itemClicked(QTableWidgetItem*)),
+      this, SLOT(onItemDoubleClicked(QTableWidgetItem*)));
 
   QGridLayout* layout = new QGridLayout(this);
   layout->setContentsMargins(0, 0, 0, 0);
@@ -92,15 +95,14 @@ void CleMemoryNotes::rebuild(void)
     int row = m_Table->rowCount();
     m_Table->insertRow(row);
 
-    QString addr  = QString("0x%1").arg((qulonglong)note->address, 8, 16, QChar('0')).toUpper();
+    QString addr  = formatAddress(note);
     QString title = note->details.title[0] ? note->details.title : "(No title)";
 
     m_Table->setItem(row, 0, new QTableWidgetItem(QString::number(note->key)));
-    m_Table->setItem(row, 1, new QTableWidgetItem(addr));
-    m_Table->setItem(row, 2, new QTableWidgetItem(memtypeName(note->type)));
-    m_Table->setItem(row, 3, new QTableWidgetItem(formatNoteValue(note)));
-    m_Table->setItem(row, 4, new QTableWidgetItem(formatOffsets(note)));
-    m_Table->setItem(row, 5, new QTableWidgetItem(title));
+    m_Table->setItem(row, 1, new QTableWidgetItem(title));
+    m_Table->setItem(row, 2, new QTableWidgetItem(addr));
+    m_Table->setItem(row, 3, new QTableWidgetItem(memtypeName(note->type)));
+    m_Table->setItem(row, 4, new QTableWidgetItem(formatNoteValue(note)));
   }
 }
 
@@ -116,10 +118,13 @@ void CleMemoryNotes::update(void)
   {
     const cl_memnote_t* note = &memory.notes[i];
     const cl_memnote_ex_value_t *value = &note->details.values[0];
-    QTableWidgetItem* valueItem = m_Table->item(i, 3);
+    QTableWidgetItem* addressItem = m_Table->item(i, 2);
+    QTableWidgetItem* valueItem = m_Table->item(i, 4);
 
-    if (!valueItem)
+    if (!addressItem || !valueItem)
       continue;
+
+    addressItem->setText(formatAddress(note));
 
     QString text = formatNoteValue(note);
 
@@ -135,5 +140,28 @@ void CleMemoryNotes::update(void)
     }
 
     valueItem->setText(text);
+  }
+}
+
+void CleMemoryNotes::onItemDoubleClicked(QTableWidgetItem *item)
+{
+  if (!item)
+    return;
+
+  const int address_column = 2;
+  int row = item->row();
+  int col = item->column();
+
+  if (col != address_column)
+    return;
+  else if (row < 0 || (unsigned)row >= memory.note_count)
+    return;
+  else
+  {
+    const cl_memnote_t *note = &memory.notes[row];
+    cl_addr_t address = note->address ? note->address : note->address_initial;
+
+    emit noteActivated(*note);
+    emit addressActivated(address);
   }
 }

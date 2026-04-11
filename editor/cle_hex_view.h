@@ -8,6 +8,7 @@
 extern "C"
 {
    #include "../cl_common.h"
+   #include "../cl_types.h"
 }
 
 class CleHexWidget : public QWidget
@@ -19,15 +20,17 @@ public:
 
    void refresh(const void *newbuffer, const void *oldbuffer);
    void setByteSwapEnabled(bool enabled);
+   void setFocusedNote(const cl_memnote_t *note);
    void setOffset(cl_addr_t offset);
    void setRange(cl_addr_t min, cl_addr_t max);
    void setSize(uint8_t size);
+   void setValueType(cl_value_type type);
 
    QSize sizeHint() const override;
 
 signals:
    void offsetEdited(cl_addr_t offset);
-   void requestAddMemoryNote(cl_addr_t address);
+   void requestAddMemoryNote(cl_memnote_t note);
    void requestPointerSearch(cl_addr_t address);
    void valueEdited(cl_addr_t address, uint64_t value, uint8_t size);
 
@@ -40,6 +43,7 @@ protected:
 
 private slots:
    void onClickAddMemoryNote();
+   void onClickAddMemoryNoteInStruct();
    void onClickGoto();
    void onClickPointerSearch();
 
@@ -89,8 +93,12 @@ private:
    QPainter *m_Painter;
    QImage   m_Image;
 
-   bool     m_AllDirty;
-   bool     m_UseByteSwap;
+   bool          m_AllDirty;
+   bool          m_UseByteSwap;
+   cl_value_type m_ValueType = CL_MEMTYPE_UINT8;
+
+   cl_memnote_t  m_FocusedNote;
+   bool          m_HasFocusedNote = false;
 
    /* Values that define the area being viewed. */
    cl_addr_t m_Position = -1;
@@ -102,6 +110,9 @@ private:
    cl_addr_t m_CursorOffset     = 0;
    cl_addr_t m_CursorOffsetBase = 0; /* byte-level position before size alignment */
    uint64_t  m_CursorValue  = 0;
+
+   cl_memnote_t m_PendingStructuredNote;
+   bool m_HasPendingStructuredNote = false;
 };
 
 #endif

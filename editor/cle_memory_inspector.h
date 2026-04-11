@@ -15,7 +15,7 @@
 #include <QTimer>
 #include <QWidget>
 
-extern "C" 
+extern "C"
 {
    #include "../cl_main.h"
    #include "../cl_memory.h"
@@ -37,6 +37,8 @@ public:
 
 public slots:
    void run();
+   void bringToFront();
+   void addressChanged(cl_addr_t address);
 
 private:
    CleResultTable *m_Searches[CLE_MAX_TABS];
@@ -74,25 +76,24 @@ private:
    void    rebuildLayout(void);
 
 private slots:
-   void onAddressChanged(cl_addr_t address);
-   void onChangeCompareType();
-   void onChangeRegionTab(int index);
-   void onChangeScrollbar(int value);
-   void onChangeSizeType();
-   void onChangeTab();
-   void onClickNew();
-   void onClickSearch();
-   void onClickTabDelete();
-   void onClickTabRename();
+   void changeCompareType();
+   void changeRegionTab(int index);
+   void changeScrollbar(int value);
+   void changeSizeType();
+   void changeTab();
+   void clickNew();
+   void clickSearch();
+   void clickTabDelete();
+   void clickTabRename();
 
-   void onHexWidgetValueEdited(cl_addr_t address, uint64_t value, uint8_t size);
+   void focusedNoteChanged(cl_memnote_t note);
+   void hexWidgetValueEdited(cl_addr_t address, uint64_t value, uint8_t size);
 
-   void onRightClickTabs(const QPoint &pos);
+   void rightClickTabs(const QPoint &pos);
 
-   void onTargetChanged(const QString&);
+   void targetChanged(const QString&);
 
    void requestAddMemoryNote(cl_memnote_t note);
-   void requestAddMemoryNote(cl_addr_t address);
    void requestPointerSearch(cl_addr_t address);
 };
 

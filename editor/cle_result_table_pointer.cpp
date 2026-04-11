@@ -38,7 +38,7 @@ CleResultTablePointer::CleResultTablePointer(QWidget *parent, cl_addr_t address,
 
    /* Qt connections to parent */
    connect(this, SIGNAL(addressChanged(cl_addr_t)),
-      parent, SLOT(onAddressChanged(cl_addr_t)));
+      parent, SLOT(addressChanged(cl_addr_t)));
    connect(this, SIGNAL(requestAddMemoryNote(cl_memnote_t)),
       parent, SLOT(requestAddMemoryNote(cl_memnote_t)));
 

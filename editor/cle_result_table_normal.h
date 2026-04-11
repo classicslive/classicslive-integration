@@ -9,6 +9,7 @@ extern "C"
   #include "../cl_search_new.h"
 }
 
+#include "cle_common.h"
 #include "cle_result_table.h"
 
 /* TODO: Move this to a config option? */
@@ -54,38 +55,45 @@ public:
     {
     case CL_MEMTYPE_INT8:
     {
-      int8_t val = (int8_t)target.toInt();
-      return cl_search_change_target(&m_Search, &val);
+      bool ok;
+      int8_t val = (int8_t)stringToValue(target, &ok);
+      return ok ? cl_search_change_target(&m_Search, &val) : CL_ERR_PARAMETER_INVALID;
     }
     case CL_MEMTYPE_UINT8:
     {
-      uint8_t val = (uint8_t)target.toUInt();
-      return cl_search_change_target(&m_Search, &val);
+      bool ok;
+      uint8_t val = (uint8_t)stringToValue(target, &ok);
+      return ok ? cl_search_change_target(&m_Search, &val) : CL_ERR_PARAMETER_INVALID;
     }
     case CL_MEMTYPE_INT16:
     {
-      int16_t val = (int16_t)target.toInt();
-      return cl_search_change_target(&m_Search, &val);
+      bool ok;
+      int16_t val = (int16_t)stringToValue(target, &ok);
+      return ok ? cl_search_change_target(&m_Search, &val) : CL_ERR_PARAMETER_INVALID;
     }
     case CL_MEMTYPE_UINT16:
     {
-      uint16_t val = (uint16_t)target.toUInt();
-      return cl_search_change_target(&m_Search, &val);
+      bool ok;
+      uint16_t val = (uint16_t)stringToValue(target, &ok);
+      return ok ? cl_search_change_target(&m_Search, &val) : CL_ERR_PARAMETER_INVALID;
     }
     case CL_MEMTYPE_INT32:
     {
-      int32_t val = (int32_t)target.toInt();
-      return cl_search_change_target(&m_Search, &val);
+      bool ok;
+      int32_t val = (int32_t)stringToValue(target, &ok);
+      return ok ? cl_search_change_target(&m_Search, &val) : CL_ERR_PARAMETER_INVALID;
     }
     case CL_MEMTYPE_UINT32:
     {
-      uint32_t val = (uint32_t)target.toUInt();
-      return cl_search_change_target(&m_Search, &val);
+      bool ok;
+      uint32_t val = (uint32_t)stringToValue(target, &ok);
+      return ok ? cl_search_change_target(&m_Search, &val) : CL_ERR_PARAMETER_INVALID;
     }
     case CL_MEMTYPE_INT64:
     {
-      int64_t val = (int64_t)target.toLongLong();
-      return cl_search_change_target(&m_Search, &val);
+      bool ok;
+      int64_t val = stringToValue(target, &ok);
+      return ok ? cl_search_change_target(&m_Search, &val) : CL_ERR_PARAMETER_INVALID;
     }
     case CL_MEMTYPE_DOUBLE:
     {

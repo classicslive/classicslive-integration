@@ -1,6 +1,7 @@
 #ifndef CLE_RESULT_TABLE_POINTER_H
 #define CLE_RESULT_TABLE_POINTER_H
 
+#include "cle_common.h"
 #include "cle_result_table.h"
 
 extern "C"
@@ -44,7 +45,11 @@ public:
     case CL_MEMTYPE_DOUBLE:
       return cl_pointersearch_change_target_float(&m_Search, target.toDouble());
     default:
-      return cl_pointersearch_change_target_int(&m_Search, (cl_addr_t)target.toLongLong());
+    {
+      bool ok;
+      int64_t val = stringToValue(target, &ok);
+      return ok ? cl_pointersearch_change_target_int(&m_Search, (cl_addr_t)val) : CL_ERR_PARAMETER_INVALID;
+    }
     }
   }
 
