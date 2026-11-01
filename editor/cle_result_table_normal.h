@@ -49,61 +49,75 @@ public:
 
   cl_error setTarget(const QString& target) override
   {
-    if (target.isEmpty())
+    int64_t raw;
+    bool parsed;
+
+    if (target.trimmed().isEmpty())
       return cl_search_change_target(&m_Search, NULL);
-    else switch (m_Search.params.value_type)
+
+    raw = stringToValue(target, &parsed);
+
+    switch (m_Search.params.value_type)
     {
     case CL_MEMTYPE_INT8:
     {
-      bool ok;
-      int8_t val = (int8_t)stringToValue(target, &ok);
-      return ok ? cl_search_change_target(&m_Search, &val) : CL_ERR_PARAMETER_INVALID;
+      int8_t val = (int8_t)raw;
+      return parsed ? cl_search_change_target(&m_Search, &val)
+                    : CL_ERR_PARAMETER_INVALID;
     }
     case CL_MEMTYPE_UINT8:
     {
-      bool ok;
-      uint8_t val = (uint8_t)stringToValue(target, &ok);
-      return ok ? cl_search_change_target(&m_Search, &val) : CL_ERR_PARAMETER_INVALID;
+      uint8_t val = (uint8_t)raw;
+      return parsed ? cl_search_change_target(&m_Search, &val)
+                    : CL_ERR_PARAMETER_INVALID;
     }
     case CL_MEMTYPE_INT16:
     {
-      bool ok;
-      int16_t val = (int16_t)stringToValue(target, &ok);
-      return ok ? cl_search_change_target(&m_Search, &val) : CL_ERR_PARAMETER_INVALID;
+      int16_t val = (int16_t)raw;
+      return parsed ? cl_search_change_target(&m_Search, &val)
+                    : CL_ERR_PARAMETER_INVALID;
     }
     case CL_MEMTYPE_UINT16:
     {
-      bool ok;
-      uint16_t val = (uint16_t)stringToValue(target, &ok);
-      return ok ? cl_search_change_target(&m_Search, &val) : CL_ERR_PARAMETER_INVALID;
+      uint16_t val = (uint16_t)raw;
+      return parsed ? cl_search_change_target(&m_Search, &val)
+                    : CL_ERR_PARAMETER_INVALID;
     }
     case CL_MEMTYPE_INT32:
     {
-      bool ok;
-      int32_t val = (int32_t)stringToValue(target, &ok);
-      return ok ? cl_search_change_target(&m_Search, &val) : CL_ERR_PARAMETER_INVALID;
+      int32_t val = (int32_t)raw;
+      return parsed ? cl_search_change_target(&m_Search, &val)
+                    : CL_ERR_PARAMETER_INVALID;
     }
     case CL_MEMTYPE_UINT32:
     {
-      bool ok;
-      uint32_t val = (uint32_t)stringToValue(target, &ok);
-      return ok ? cl_search_change_target(&m_Search, &val) : CL_ERR_PARAMETER_INVALID;
+      uint32_t val = (uint32_t)raw;
+      return parsed ? cl_search_change_target(&m_Search, &val)
+                    : CL_ERR_PARAMETER_INVALID;
     }
     case CL_MEMTYPE_INT64:
     {
-      bool ok;
-      int64_t val = stringToValue(target, &ok);
-      return ok ? cl_search_change_target(&m_Search, &val) : CL_ERR_PARAMETER_INVALID;
+      int64_t val = (int64_t)raw;
+      return parsed ? cl_search_change_target(&m_Search, &val)
+                    : CL_ERR_PARAMETER_INVALID;
     }
     case CL_MEMTYPE_DOUBLE:
     {
-      double val = target.toDouble();
-      return cl_search_change_target(&m_Search, &val);
+      unsigned decimals;
+      bool ok;
+      double val = stringToFloat(target, &decimals, &ok);
+
+      return ok ? cl_search_change_target_precision(&m_Search, &val, decimals)
+                : CL_ERR_PARAMETER_INVALID;
     }
     case CL_MEMTYPE_FLOAT:
     {
-      float val = target.toFloat();
-      return cl_search_change_target(&m_Search, &val);
+      unsigned decimals;
+      bool ok;
+      float val = (float)stringToFloat(target, &decimals, &ok);
+
+      return ok ? cl_search_change_target_precision(&m_Search, &val, decimals)
+                : CL_ERR_PARAMETER_INVALID;
     }
     case CL_MEMTYPE_NOT_SET:
     case CL_MEMTYPE_SIZE:

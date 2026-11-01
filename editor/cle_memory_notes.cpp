@@ -2,30 +2,32 @@
 
 extern "C"
 {
+  #include "../cl_common.h"
   #include "../cl_memory.h"
+  #include "../cl_network.h"
+}
+
+static CL_NETWORK_CB(cle_memory_note_delete_cb)
+{
+  if (!userdata)
+    return;
+
+  /* On success, remove the note from local memory */
+  if (response.data)
+  {
+    cl_memnote_t *note = (cl_memnote_t*)userdata;
+    cl_memory_remove_note(note->key);
+  }
+  free(userdata);
 }
 
 #include <QGridLayout>
 #include <QHeaderView>
+#include <QMenu>
+#include <QMessageBox>
 #include <QTableWidget>
 #include <QString>
 
-static const char *memtypeName(cl_value_type type)
-{
-  switch (type)
-  {
-  case CL_MEMTYPE_INT8:   return "int8";
-  case CL_MEMTYPE_UINT8:  return "uint8";
-  case CL_MEMTYPE_INT16:  return "int16";
-  case CL_MEMTYPE_UINT16: return "uint16";
-  case CL_MEMTYPE_INT32:  return "int32";
-  case CL_MEMTYPE_UINT32: return "uint32";
-  case CL_MEMTYPE_INT64:  return "int64";
-  case CL_MEMTYPE_FLOAT:  return "float";
-  case CL_MEMTYPE_DOUBLE: return "double";
-  default:                return "?";
-  }
-}
 
 static QString formatNoteValue(const cl_memnote_t *note)
 {
@@ -69,8 +71,11 @@ CleMemoryNotes::CleMemoryNotes(QWidget* parent) : QWidget(parent)
   m_Table->setAlternatingRowColors(true);
   m_Table->setShowGrid(false);
   m_Table->verticalHeader()->setDefaultSectionSize(22);
-    connect(m_Table, SIGNAL(itemClicked(QTableWidgetItem*)),
-      this, SLOT(onItemDoubleClicked(QTableWidgetItem*)));
+  m_Table->setContextMenuPolicy(Qt::CustomContextMenu);
+  connect(m_Table, SIGNAL(itemClicked(QTableWidgetItem*)),
+    this, SLOT(onItemDoubleClicked(QTableWidgetItem*)));
+  connect(m_Table, &QTableWidget::customContextMenuRequested,
+    this, &CleMemoryNotes::onContextMenu);
 
   QGridLayout* layout = new QGridLayout(this);
   layout->setContentsMargins(0, 0, 0, 0);
@@ -101,7 +106,7 @@ void CleMemoryNotes::rebuild(void)
     m_Table->setItem(row, 0, new QTableWidgetItem(QString::number(note->key)));
     m_Table->setItem(row, 1, new QTableWidgetItem(title));
     m_Table->setItem(row, 2, new QTableWidgetItem(addr));
-    m_Table->setItem(row, 3, new QTableWidgetItem(memtypeName(note->type)));
+    m_Table->setItem(row, 3, new QTableWidgetItem(cl_string_value_type(note->type)));
     m_Table->setItem(row, 4, new QTableWidgetItem(formatNoteValue(note)));
   }
 }
@@ -141,6 +146,36 @@ void CleMemoryNotes::update(void)
 
     valueItem->setText(text);
   }
+}
+
+void CleMemoryNotes::onContextMenu(const QPoint &pos)
+{
+  QTableWidgetItem *item = m_Table->itemAt(pos);
+  if (!item)
+    return;
+
+  int row = item->row();
+  if (row < 0 || (unsigned)row >= memory.note_count)
+    return;
+
+  QMenu menu(this);
+  QAction *deleteAction = menu.addAction(tr("Delete"));
+  if (menu.exec(m_Table->viewport()->mapToGlobal(pos)) != deleteAction)
+    return;
+
+  if (QMessageBox::question(this, tr("Delete memory note"),
+        tr("Are you sure you want to delete \"%1\"?")
+          .arg(memory.notes[row].details.title),
+        QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes)
+    return;
+
+  cl_memnote_t *note = new cl_memnote_t;
+  *note = memory.notes[row];
+
+  QByteArray post;
+  post.append("key=" + QByteArray::number(note->key));
+  cl_network_post_api(CL_END_MEMORYNOTE_DELETE, post.data(),
+                      cle_memory_note_delete_cb, note);
 }
 
 void CleMemoryNotes::onItemDoubleClicked(QTableWidgetItem *item)

@@ -1,5 +1,6 @@
 #include <QMessageBox>
 
+#include "cle_active_regions_dialog.h"
 #include "cle_memory_inspector.h"
 #include "cle_pointer_search_dialog.h"
 #include "cle_result_table_normal.h"
@@ -30,6 +31,7 @@ void CleMemoryInspector::rebuildLayout()
   m_Layout = new QGridLayout(this);
 
   /* Initialize window layout */
+  m_Layout->setMenuBar(m_MenuBar);
   m_Layout->addWidget(m_Tabs,            0, 0, 1, 4);
   m_Layout->addWidget(m_SizeDropdown,    1, 0, 1, 1);
   m_Layout->addWidget(m_CompareDropdown, 1, 1, 1, 1);
@@ -121,6 +123,7 @@ CleMemoryInspector::CleMemoryInspector()
         not fire until after the constructor finishes. */
      m_HexWidget->blockSignals(true);
      m_HexWidget->setByteSwapEnabled(memory.regions[0].endianness == CL_ENDIAN_BIG);
+     m_HexWidget->setWordFlipEnabled(memory.regions[0].endianness == CL_ENDIAN_WORD_FLIP_BL);
      m_HexWidget->setOffset(memory.regions[0].base_guest);
      m_HexWidget->setRange(memory.regions[0].base_guest, memory.regions[0].base_guest + memory.regions[0].size + 1);
      m_HexWidget->blockSignals(false);
@@ -136,6 +139,7 @@ CleMemoryInspector::CleMemoryInspector()
    m_UpdateTimer->start(100);
 
    memset(m_Searches, 0, sizeof(m_Searches));
+   memset(m_TabPositions, 0, sizeof(m_TabPositions));
    m_Searches[0] = new CleResultTableNormal(this);
    m_Searches[0]->setCompareType(getCurrentCompareType());
    m_Searches[0]->setTarget(m_TextEntry->text());
@@ -151,6 +155,13 @@ CleMemoryInspector::CleMemoryInspector()
    connect(m_RegionTabs, &QTabBar::currentChanged,
            this, &CleMemoryInspector::changeRegionTab);
 
+   /* Build menu bar */
+   m_MenuBar = new QMenuBar(this);
+   QMenu *memoryMenu = m_MenuBar->addMenu(tr("Memory"));
+   QAction *activeRegionsAction = memoryMenu->addAction(tr("Active regions..."));
+   connect(activeRegionsAction, &QAction::triggered,
+           this, &CleMemoryInspector::showActiveRegions);
+
    rebuildLayout();
    setWindowTitle(tr("Live Editor"));
 
@@ -158,6 +169,7 @@ CleMemoryInspector::CleMemoryInspector()
    m_AddressOffset = 0;
    m_CurrentMembank = (memory.region_count > 0) ? &memory.regions[0] : nullptr;
    m_TabCount = 1;
+   m_ActiveTab = 0;
    m_MemoryNoteSubmit = nullptr;
 
    changeCompareType();
@@ -182,6 +194,55 @@ void CleMemoryInspector::bringToFront()
   setFocus(Qt::OtherFocusReason);
 }
 
+int CleMemoryInspector::regionIndex(const cl_memory_region_t *region) const
+{
+  unsigned i;
+
+  for (i = 0; i < memory.region_count; i++)
+    if (&memory.regions[i] == region)
+      return static_cast<int>(i);
+
+  return -1;
+}
+
+/**
+ * Shows the "new search" tab only while there is room for another search.
+ * It always sits last, just past the searches themselves.
+ */
+void CleMemoryInspector::updateNewTabButton(void)
+{
+  const bool room  = m_TabCount < CLE_MAX_TABS;
+  const bool shown = m_Tabs->count() > (int)m_TabCount;
+
+  if (room == shown)
+    return;
+  else if (room)
+    m_Tabs->addTab("+");
+  else
+    m_Tabs->removeTab((int)m_TabCount);
+}
+
+/* Park the search tab we are leaving so returning to it restores the cursor */
+void CleMemoryInspector::saveTabPosition(void)
+{
+  if (m_ActiveTab < 0 || m_ActiveTab >= CLE_MAX_TABS || !m_CurrentMembank)
+    return;
+
+  m_TabPositions[m_ActiveTab].view =
+    m_CurrentMembank->base_guest + m_AddressOffset;
+  m_TabPositions[m_ActiveTab].cursor = m_HexWidget->cursorOffset();
+  m_TabPositions[m_ActiveTab].valid = true;
+}
+
+/* Park the region we are leaving so returning to it restores the view */
+void CleMemoryInspector::saveRegionOffset(void)
+{
+  int index = regionIndex(m_CurrentMembank);
+
+  if (index >= 0 && static_cast<size_t>(index) < m_RegionOffsets.size())
+    m_RegionOffsets[index] = m_AddressOffset;
+}
+
 void CleMemoryInspector::addressChanged(cl_addr_t address)
 {
   address &= ~((cl_addr_t)0xF);
@@ -191,6 +252,7 @@ void CleMemoryInspector::addressChanged(cl_addr_t address)
 
   if (m_CurrentMembank != new_bank)
   {
+    saveRegionOffset();
     m_CurrentMembank = new_bank;
     m_CurrentRegionSize = new_bank->size;
     m_HexWidget->setRange(new_bank->base_guest,
@@ -211,7 +273,7 @@ void CleMemoryInspector::addressChanged(cl_addr_t address)
     }
   }
 
-  m_AddressOffset = address - m_CurrentMembank->base_guest;
+  m_AddressOffset = (address - m_CurrentMembank->base_guest) & ~(cl_addr_t)0xF;
   m_HexWidget->setOffset(address);
 
   if (m_Slider->value() != m_AddressOffset)
@@ -255,12 +317,20 @@ void CleMemoryInspector::changeTab(void)
 {
   unsigned new_tab = m_Tabs->currentIndex();
 
+  saveTabPosition();
+
   /* Was the "new tab" icon clicked? */
   if (new_tab >= m_TabCount)
   {
-    /* Setup this tab to be a new search, add a "+" button */
+    if (m_TabCount >= CLE_MAX_TABS)
+    {
+      /* No room left, so stay on the tab we were already showing */
+      m_Tabs->setCurrentIndex(m_ActiveTab >= 0 ? m_ActiveTab : 0);
+      return;
+    }
+
+    /* Setup this tab to be a new search */
     m_Tabs->setTabText(new_tab, tr("New Search"));
-    m_Tabs->addTab("+");
     m_TabCount++;
     m_Searches[new_tab] = new CleResultTableNormal(this);
     m_Searches[new_tab]->setCompareType(getCurrentCompareType());
@@ -269,6 +339,10 @@ void CleMemoryInspector::changeTab(void)
     m_SizeDropdown->setDisabled(false);
     m_TableStack->addWidget(m_Searches[new_tab]->table());
     applyTheme(m_Searches[new_tab]->table());
+    updateNewTabButton();
+
+    /* A new tab starts out wherever the view already is */
+    m_TabPositions[new_tab].valid = false;
   }
   m_CurrentSearch = m_Searches[new_tab];
   m_CurrentSearch->rebuild();
@@ -280,6 +354,16 @@ void CleMemoryInspector::changeTab(void)
     m_SizeDropdown->findData(m_CurrentSearch->valueType()));
   m_HexWidget->setValueType(getCurrentSizeType());
   m_HexWidget->setSize(cl_sizeof_memtype(getCurrentSizeType()));
+
+  /* Put the hex view back where this tab left it. The size change above
+     re-aligns the cursor, so this has to follow it. */
+  if (new_tab < CLE_MAX_TABS && m_TabPositions[new_tab].valid &&
+      cl_find_memory_region(m_TabPositions[new_tab].view))
+  {
+    addressChanged(m_TabPositions[new_tab].view);
+    m_HexWidget->setCursorOffset(m_TabPositions[new_tab].cursor);
+  }
+  m_ActiveTab = (int8_t)new_tab;
 }
 
 void CleMemoryInspector::clickNew()
@@ -334,7 +418,27 @@ void CleMemoryInspector::focusedNoteChanged(cl_memnote_t note)
 
 void CleMemoryInspector::hexWidgetValueEdited(cl_addr_t address, uint64_t value, uint8_t size)
 {
-  cl_write_memory_value(&value, NULL, address, cl_pointer_type(size));
+  /* Write the value back exactly the way the view is reading it. The view's
+     own flags are what to follow here, not the region's endianness, as the
+     'S' and 'N' keys let the two disagree. */
+  const bool flip = m_HexWidget->wordFlipEnabled();
+  const bool big = m_HexWidget->viewEndianness() == CL_ENDIAN_BIG;
+  cl_addr_t offset;
+  uint8_t i;
+
+  if (!m_CurrentMembank)
+    return;
+
+  offset = address - m_CurrentMembank->base_guest;
+
+  for (i = 0; i < size; i++)
+  {
+    /* Most significant byte first when the view reads big-endian */
+    uint8_t byte = (uint8_t)(value >> ((big ? size - 1 - i : i) * 8));
+    cl_addr_t at = flip ? ((offset + i) ^ 3) : (offset + i);
+
+    cl_write_memory_buffer(&byte, m_CurrentMembank, at, 1);
+  }
 }
 
 void CleMemoryInspector::clickTabRename(void)
@@ -359,10 +463,21 @@ void CleMemoryInspector::clickTabDelete()
   delete m_Searches[m_ClickedTab];
 
   for (int i = m_ClickedTab; i < m_TabCount - 1; i++)
+  {
     m_Searches[i] = m_Searches[i + 1];
+    m_TabPositions[i] = m_TabPositions[i + 1];
+  }
   m_Searches[--m_TabCount] = nullptr;
+  m_TabPositions[m_TabCount].valid = false;
+
+  /* Keep the active tab pointing at the same search after the shift */
+  if (m_ActiveTab == m_ClickedTab)
+    m_ActiveTab = -1;
+  else if (m_ActiveTab > m_ClickedTab)
+    m_ActiveTab--;
 
   m_Tabs->removeTab(m_ClickedTab);
+  updateNewTabButton();
 }
 
 void CleMemoryInspector::rightClickTabs(const QPoint &pos)
@@ -418,10 +533,22 @@ void CleMemoryInspector::requestAddMemoryNote(cl_memnote_t note)
   }
 }
 
+void CleMemoryInspector::showActiveRegions()
+{
+  CleActiveRegionsDialog dlg(this);
+  dlg.exec();
+}
+
 void CleMemoryInspector::requestPointerSearch(cl_addr_t address)
 {
   if (!address)
     return;
+  else if (m_TabCount >= CLE_MAX_TABS)
+  {
+    QMessageBox::warning(this, "Live Editor",
+      tr("All search tabs are in use. Close one to start a pointer search."));
+    return;
+  }
 
   ClePointerSearchDialog dlg(this);
   if (dlg.exec() != QDialog::Accepted)
@@ -440,12 +567,13 @@ void CleMemoryInspector::requestPointerSearch(cl_addr_t address)
   m_Searches[m_TabCount]->setTarget(m_TextEntry->text());
 
   m_TabCount++;
+  m_TabPositions[m_TabCount - 1].valid = false;
   m_TableStack->addWidget(m_Searches[m_TabCount-1]->table());
   applyTheme(m_Searches[m_TabCount-1]->table());
   m_Tabs->setCurrentIndex(m_TabCount - 1);
   m_Tabs->setTabText(m_Tabs->currentIndex(), tr("Pointers"));
   m_Tabs->setTabTextColor(m_Tabs->currentIndex(), QColor(200, 180, 255));
-  m_Tabs->addTab("+");
+  updateNewTabButton();
   m_CurrentSearch = m_Searches[m_TabCount - 1];
   m_Status->setText(m_CurrentSearch->statusString());
 }
@@ -454,15 +582,31 @@ void CleMemoryInspector::changeRegionTab(int index)
 {
   if (index < 0 || (unsigned)index >= memory.region_count)
     return;
+  else
+  {
+    cl_memory_region_t *region = &memory.regions[index];
+    cl_addr_t offset = 0;
 
-  cl_memory_region_t *region = &memory.regions[index];
-  m_CurrentMembank = region;
-  m_CurrentRegionSize = region->size;
-  m_HexWidget->setByteSwapEnabled(region->endianness == CL_ENDIAN_BIG);
-  m_HexWidget->setRange(region->base_guest, region->base_guest + region->size + 1);
-  m_Slider->setMinimum(0);
-  m_Slider->setMaximum(region->size - 256);
-  m_AddressOffset = 0;
+    saveRegionOffset();
+
+    m_CurrentMembank = region;
+    m_CurrentRegionSize = region->size;
+    m_HexWidget->setByteSwapEnabled(region->endianness == CL_ENDIAN_BIG);
+    m_HexWidget->setWordFlipEnabled(region->endianness == CL_ENDIAN_WORD_FLIP_BL);
+    m_HexWidget->setRange(region->base_guest, region->base_guest + region->size + 1);
+    m_Slider->setMinimum(0);
+    m_Slider->setMaximum(region->size - 256);
+
+    /* Restore where we last were in this region, if it still fits */
+    if (static_cast<size_t>(index) < m_RegionOffsets.size())
+      offset = m_RegionOffsets[index];
+    if (offset + 256 > region->size)
+      offset = 0;
+
+    m_AddressOffset = offset;
+    m_HexWidget->setOffset(region->base_guest + offset);
+    m_Slider->setValue(static_cast<int>(offset));
+  }
 }
 
 void CleMemoryInspector::run()
@@ -471,25 +615,38 @@ void CleMemoryInspector::run()
   if (memory.region_count != m_CurrentRegionCount)
   {
     m_CurrentRegionCount = memory.region_count;
+    m_RegionOffsets.assign(memory.region_count, 0);
     m_RegionTabs->blockSignals(true);
     while (m_RegionTabs->count())
       m_RegionTabs->removeTab(0);
+    int firstActive = -1;
     for (unsigned i = 0; i < memory.region_count; i++)
     {
-      const char *title = memory.regions[i].title;
+      const cl_memory_region_t *region = &memory.regions[i];
+      const char *title = region->title;
       QString label = (title && title[0])
         ? QString(title)
-        : QString("0x%1").arg(memory.regions[i].base_guest, 0, 16);
+        : QString("0x%1").arg(region->base_guest, 0, 16);
       m_RegionTabs->addTab(label);
+
+      if (region->ignore)
+        m_RegionTabs->setTabTextColor(static_cast<int>(i),
+          palette().color(QPalette::Disabled, QPalette::Text));
+
+      if (firstActive < 0 && !region->ignore)
+        firstActive = static_cast<int>(i);
     }
     m_RegionTabs->blockSignals(false);
     m_RegionTabs->setVisible(memory.region_count > 1);
 
-    /* Memory regions just became available — initialize the active bank */
+    /* Memory regions just became available — seek to the first active region */
     if (!m_CurrentMembank && memory.region_count > 0)
     {
-      m_CurrentMembank = &memory.regions[0];
+      int target = firstActive >= 0 ? firstActive : 0;
+      m_RegionTabs->setCurrentIndex(target);
+      m_CurrentMembank = &memory.regions[target];
       m_HexWidget->setByteSwapEnabled(m_CurrentMembank->endianness == CL_ENDIAN_BIG);
+      m_HexWidget->setWordFlipEnabled(m_CurrentMembank->endianness == CL_ENDIAN_WORD_FLIP_BL);
       m_HexWidget->setOffset(m_CurrentMembank->base_guest);
     }
   }

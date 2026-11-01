@@ -591,19 +591,19 @@ const char *cl_string_value_type(cl_value_type type)
   switch (type)
   {
   case CL_MEMTYPE_INT8:
-    return "int8_t";
+    return "sint8";
   case CL_MEMTYPE_UINT8:
-    return "uint8_t";
+    return "uint8";
   case CL_MEMTYPE_INT16:
-    return "int16_t";
+    return "sint16";
   case CL_MEMTYPE_UINT16:
-    return "uint16_t";
+    return "uint16";
   case CL_MEMTYPE_INT32:
-    return "int32_t";
+    return "sint32";
   case CL_MEMTYPE_UINT32:
-    return "uint32_t";
+    return "uint32";
   case CL_MEMTYPE_INT64:
-    return "int64_t";
+    return "sint64";
   case CL_MEMTYPE_DOUBLE:
     return "double";
   case CL_MEMTYPE_FLOAT:

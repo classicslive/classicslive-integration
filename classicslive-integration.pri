@@ -52,6 +52,7 @@ contains(DEFINES, CL_HAVE_EDITOR=1) {
     SOURCES += \
         $$CL_EDITOR_DIR/cle_action_block.cpp \
         $$CL_EDITOR_DIR/cle_action_block_api.cpp \
+        $$CL_EDITOR_DIR/cle_active_regions_dialog.cpp \
         $$CL_EDITOR_DIR/cle_action_block_bookend.cpp \
         $$CL_EDITOR_DIR/cle_action_block_comparison.cpp \
         $$CL_EDITOR_DIR/cle_action_block_ctrbinary.cpp \
@@ -71,6 +72,7 @@ contains(DEFINES, CL_HAVE_EDITOR=1) {
         $$CL_EDITOR_DIR/cle_script_editor_block_canvas.cpp
 
     HEADERS += \
+        $$CL_EDITOR_DIR/cle_active_regions_dialog.h \
         $$CL_EDITOR_DIR/cle_action_block.h \
         $$CL_EDITOR_DIR/cle_action_block_api.h \
         $$CL_EDITOR_DIR/cle_action_block_bookend.h \

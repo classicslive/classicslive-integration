@@ -44,7 +44,9 @@ CleResultTableNormal::~CleResultTableNormal(void)
 
 cl_addr_t CleResultTableNormal::getClickedResultAddress(void)
 {
-  return m_Table->item(m_Table->currentRow(), COL_ADDRESS)->text().split(" ")[0].toULong(NULL, 16);
+  return (cl_addr_t)stringToValueBase(
+    m_Table->item(m_Table->currentRow(), COL_ADDRESS)->text().split(" ")[0],
+    NULL, 16);
 }
 
 void *CleResultTableNormal::searchData(void)
@@ -180,7 +182,9 @@ cl_error CleResultTableNormal::rebuild(void)
       }
 
       /* This page has matches, so copy a chunk from live memory for current values */
-      cl_read_memory_buffer(chunk_buffer, page->region, 0, page->size);
+      cl_read_memory_buffer(chunk_buffer, page->region,
+                            page->start - page->region->base_guest,
+                            page->size);
 
       for (cl_addr_t offset = 0; offset < page->size; offset += val_size)
       {
@@ -191,8 +195,9 @@ cl_error CleResultTableNormal::rebuild(void)
         /* Create a new row */
         m_Table->insertRow(current_row);
 
-        /* Address */
-        snprintf(temp_string, sizeof(temp_string), "%08X", (unsigned)(page->start + offset));
+        /* Address; at least 8 digits, more for addresses above 4GB */
+        snprintf(temp_string, sizeof(temp_string), "%08llX",
+                 (unsigned long long)(page->start + offset));
         m_Table->setItem(current_row, 0, new QTableWidgetItem(QString(temp_string)));
 
         /* Previous value (from chunk) */
@@ -252,7 +257,8 @@ cl_error CleResultTableNormal::run(void)
       break;
 
     /* Parse the address from the first column */
-    address = item->text().split(" ")[0].toULong(NULL, 16);
+    address = (cl_addr_t)stringToValueBase(
+      item->text().split(" ")[0], NULL, 16);
 
     /* Get the two values */
     if (cl_read_memory_value(&curr_value, nullptr, address, val_type) != CL_OK ||

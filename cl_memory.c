@@ -1,3 +1,4 @@
+#include "cl_abi.h"
 #include "cl_common.h"
 #include "cl_config.h"
 #include "cl_dma.h"
@@ -359,6 +360,27 @@ cl_error cl_memory_init_notes(void)
 }
 
 #if CL_HAVE_EDITOR
+
+cl_error cl_memory_remove_note(unsigned key)
+{
+  unsigned i;
+
+  for (i = 0; i < memory.note_count; i++)
+  {
+    if (memory.notes[i].key != key)
+      continue;
+
+    /* Shift remaining notes down over the removed entry */
+    memmove(&memory.notes[i], &memory.notes[i + 1],
+            (memory.note_count - i - 1) * sizeof(cl_memnote_t));
+    memory.note_count--;
+
+    cl_log("Removed memnote {%04u}\n", key);
+    return CL_OK;
+  }
+
+  return CL_ERR_PARAMETER_INVALID;
+}
 
 cl_error cl_memory_add_note(const cl_memnote_t *note)
 {

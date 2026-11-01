@@ -37,18 +37,26 @@ public:
 
   cl_error setTarget(const QString& target) override
   {
-    if (target.isEmpty())
+    bool ok;
+
+    if (target.trimmed().isEmpty())
       return cl_pointersearch_change_target(&m_Search, NULL);
     switch (m_Search.params.value_type)
     {
     case CL_MEMTYPE_FLOAT:
     case CL_MEMTYPE_DOUBLE:
-      return cl_pointersearch_change_target_float(&m_Search, target.toDouble());
+    {
+      double value = stringToFloat(target, NULL, &ok);
+
+      return ok ? cl_pointersearch_change_target_float(&m_Search, value)
+                : CL_ERR_PARAMETER_INVALID;
+    }
     default:
     {
-      bool ok;
-      int64_t val = stringToValue(target, &ok);
-      return ok ? cl_pointersearch_change_target_int(&m_Search, (cl_addr_t)val) : CL_ERR_PARAMETER_INVALID;
+      int64_t value = stringToValue(target, &ok);
+
+      return ok ? cl_pointersearch_change_target_int(&m_Search, (cl_addr_t)value)
+                : CL_ERR_PARAMETER_INVALID;
     }
     }
   }

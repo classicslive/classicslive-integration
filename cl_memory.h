@@ -158,6 +158,7 @@ cl_memnote_t* cl_find_memnote(unsigned key);
  * @return An error code representing the result of the operation.
  */
 cl_error cl_memory_add_note(const cl_memnote_t *note);
+cl_error cl_memory_remove_note(unsigned key);
 
 /**
  * Verifies and initializes all memory notes in the global memory context.

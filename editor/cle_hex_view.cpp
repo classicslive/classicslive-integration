@@ -16,15 +16,8 @@ extern "C"
   #include "../cl_memory.h"
 }
 
+#include "cle_common.h"
 #include "cle_hex_view.h"
-
-void swap_rects(QRect *a, QRect *b)
-{
-   QRect temp = *a;
-
-   *a = *b;
-   *b = temp;
-} 
 
 CleHexWidget::CleHexWidget(QWidget *parent, uint8_t size) : QWidget(parent)
 {
@@ -49,6 +42,7 @@ CleHexWidget::CleHexWidget(QWidget *parent, uint8_t size) : QWidget(parent)
    setFocusPolicy(Qt::ClickFocus);
 
    setByteSwapEnabled(false);
+   setWordFlipEnabled(false);
    setOffset(0);
    setSize(size);
 
@@ -164,31 +158,22 @@ void CleHexWidget::keyPressEvent(QKeyEvent *event)
    case Qt::Key_F:
       typeNybble(event->key() - Qt::Key_A + 10);
       break;
-   /* N64 endianness quirk */
    case Qt::Key_N:
-   {
-      uint32_t i;
-
-      for (i = 0; i < 256; i += 4)
-      {
-         swap_rects(&m_AsciiRects[i],   &m_AsciiRects[i+3]);
-         swap_rects(&m_AsciiRects[i+1], &m_AsciiRects[i+2]);
-      }
-      repaintAll();
+      setWordFlipEnabled(!m_UseWordFlip);
       break;
-   }
    case Qt::Key_S:
       setByteSwapEnabled(!m_UseByteSwap);
       break;
    case Qt::Key_G:
       {
-         uint32_t address;
-         QString  address_text;
-         bool     ok;
+         cl_addr_t address;
+         QString   address_text;
+         bool      ok;
 
          address_text = QInputDialog::getText(this, 
             tr("Goto Address"), tr("Address to goto:"));
-         address = address_text.toULong(&ok, 16);
+         /* Bare entries stay hexadecimal here, as the view itself is */
+         address = (cl_addr_t)stringToValueBase(address_text, &ok, 16);
          if (ok)
          {
             setOffset(address);
@@ -424,7 +409,7 @@ void CleHexWidget::repaintRect(const void *buffer, uint8_t index)
                            reinterpret_cast<const uint8_t*>(buffer),
                            index * m_Size,
                            cl_pointer_type(m_Size),
-                           m_UseByteSwap ? CL_ENDIAN_BIG : CL_ENDIAN_LITTLE);
+                           viewEndianness());
 
       switch (m_Size)
       {
@@ -471,6 +456,16 @@ void CleHexWidget::resetColors()
 void CleHexWidget::setByteSwapEnabled(bool enabled)
 {
    m_UseByteSwap = enabled;
+   m_AllDirty    = true;
+}
+
+/* Cores like mupen64 store each 32-bit word byte-reversed, so the byte the
+   machine addresses at X lives at X ^ 3 in the buffer we are handed. Undoing
+   that here lets every address the widget deals with stay canonical. */
+void CleHexWidget::setWordFlipEnabled(bool enabled)
+{
+   m_UseWordFlip = enabled;
+   m_AllDirty    = true;
 }
 
 void CleHexWidget::setFocusedNote(const cl_memnote_t *note)
@@ -571,7 +566,8 @@ void CleHexWidget::setOffset(cl_addr_t offset)
 
   for (i = 0; i < 16; i++)
   {
-    snprintf(m_AddrTexts[i], 16, "%8X", offset + i * 16);
+    snprintf(m_AddrTexts[i], 16, "%8llX",
+             (unsigned long long)(offset + i * 16));
     m_Painter->setPen(QColor("grey"));
     m_Painter->drawText(m_AddrRects[i], Qt::AlignRight | Qt::AlignVCenter, m_AddrTexts[i]);
   }
@@ -656,7 +652,19 @@ void CleHexWidget::typeNybble(uint8_t value)
 
 void CleHexWidget::refresh(const void *newbuffer, const void *oldbuffer)
 {
+   uint8_t  newflip[256], oldflip[256];
    uint32_t i;
+
+   if (m_UseWordFlip)
+   {
+      for (i = 0; i < 256; i++)
+      {
+         newflip[i] = ((const uint8_t*)newbuffer)[i ^ 3];
+         oldflip[i] = ((const uint8_t*)oldbuffer)[i ^ 3];
+      }
+      newbuffer = newflip;
+      oldbuffer = oldflip;
+   }
 
    for (i = 0; i < 256 / m_Size; i++)
    {

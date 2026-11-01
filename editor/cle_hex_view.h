@@ -18,10 +18,21 @@ class CleHexWidget : public QWidget
 public:
    CleHexWidget(QWidget *parent, uint8_t size);
 
+   cl_addr_t cursorOffset() const { return m_CursorOffset; }
+   bool wordFlipEnabled() const { return m_UseWordFlip; }
+
+   /* Endianness the view reads cells in, after any de-swizzling */
+   cl_endianness viewEndianness() const
+   {
+      return (m_UseByteSwap || m_UseWordFlip) ? CL_ENDIAN_BIG : CL_ENDIAN_LITTLE;
+   }
+
    void refresh(const void *newbuffer, const void *oldbuffer);
    void setByteSwapEnabled(bool enabled);
    void setFocusedNote(const cl_memnote_t *note);
+   void setCursorOffset(cl_addr_t offset);
    void setOffset(cl_addr_t offset);
+   void setWordFlipEnabled(bool enabled);
    void setRange(cl_addr_t min, cl_addr_t max);
    void setSize(uint8_t size);
    void setValueType(cl_value_type type);
@@ -73,7 +84,6 @@ private:
    void repaintRect(const void *buffer, uint8_t index);
 
    void resetColors();
-   void setCursorOffset(cl_addr_t offset);
    void typeNybble(uint8_t value);
 
    void onRightClick(cl_addr_t address, QPoint& pos);
@@ -95,6 +105,7 @@ private:
 
    bool          m_AllDirty;
    bool          m_UseByteSwap;
+   bool          m_UseWordFlip;
    cl_value_type m_ValueType = CL_MEMTYPE_UINT8;
 
    cl_memnote_t  m_FocusedNote;

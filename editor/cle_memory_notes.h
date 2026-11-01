@@ -28,6 +28,7 @@ private:
   
 private slots:
   void onItemDoubleClicked(QTableWidgetItem *item);
+  void onContextMenu(const QPoint &pos);
 
 private:
   QTableWidget* m_Table;

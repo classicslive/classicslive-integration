@@ -39,6 +39,20 @@ static unsigned cl_urlencode(char *dst, unsigned dst_size, const char *src)
 #if CL_HAVE_EDITOR
 void cle_init(void);
 void cle_run(void);
+
+static cl_bool s_editor_open = CL_FALSE;
+
+/* Opens the editor regardless of session/server state. Safe to call multiple
+   times — only the first call has any effect. */
+static void cle_open_editor(void)
+{
+  if (s_editor_open)
+    return;
+  s_editor_open = CL_TRUE;
+  cl_abi_install_memory_regions(&memory.regions, &memory.region_count);
+  cl_update_memory();
+  cle_init();
+}
 #endif
 
 #include <file/file_path.h>
@@ -139,14 +153,16 @@ static CL_NETWORK_CB(cl_start_cb)
   if (response.error_code || cl_init_session(response.data) != CL_OK)
   {
     session.state = CL_SESSION_LOGGED_IN;
+#if CL_HAVE_EDITOR
+    cle_open_editor();
+#endif
     return;
   }
   else
   {
     session.state = CL_SESSION_STARTED;
 #if CL_HAVE_EDITOR
-    cl_update_memory();
-    cle_init();
+    cle_open_editor();
 #endif
   }
 }
@@ -315,7 +331,12 @@ login_error:
 static CL_NETWORK_CB(cl_login_and_start_cb_2)
 {
   if (response.error_code)
+  {
     session.state = CL_SESSION_NONE;
+#if CL_HAVE_EDITOR
+    cle_open_editor();
+#endif
+  }
   else
   {
     cl_login_cb(response, userdata);
@@ -328,7 +349,12 @@ static CL_TASK_CB(cl_login_and_start_cb_1)
   if (!task->error)
     cl_login_internal(cl_login_and_start_cb_2);
   else
+  {
     session.state = CL_SESSION_NONE;
+#if CL_HAVE_EDITOR
+    cle_open_editor();
+#endif
+  }
 }
 
 cl_error cl_login(void)
@@ -402,6 +428,16 @@ cl_error cl_run(void)
 
     return CL_OK;
   }
+
+#if CL_HAVE_EDITOR
+  /* Editor open but no active session: keep memory and hex view live. */
+  if (s_editor_open)
+  {
+    cl_update_memory();
+    cle_run();
+    return CL_OK;
+  }
+#endif
 
   return CL_ERR_SESSION_MISMATCH;
 }

@@ -57,6 +57,9 @@ typedef enum
     #else
       #define CL_HOST_PLATFORM _CL_PLATFORM_GAMECUBE
     #endif
+  #elif defined(__SWITCH__)
+    #define CL_HOST_PLATFORM _CL_PLATFORM_SWITCH
+    #define CL_HOST_BITNESS _CL_BITNESS_64
   #elif defined(WIN32) || defined(_WIN32)
     #define CL_HOST_PLATFORM _CL_PLATFORM_WINDOWS
     #if defined(WIN64) || defined(_WIN64)

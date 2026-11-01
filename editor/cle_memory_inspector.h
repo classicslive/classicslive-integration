@@ -1,6 +1,8 @@
 #ifndef CLE_MEMORY_INSPECTOR_H
 #define CLE_MEMORY_INSPECTOR_H
 
+#include <vector>
+
 #include <QSlider>
 #include <QComboBox>
 #include <QGridLayout>
@@ -8,6 +10,7 @@
 #include <QInputDialog>
 #include <QLineEdit>
 #include <QMenu>
+#include <QMenuBar>
 #include <QPushButton>
 #include <QStackedWidget>
 #include <QTabBar>
@@ -50,6 +53,22 @@ private:
    cl_memory_region_t *m_CurrentMembank = nullptr;
 
    cl_addr_t m_AddressOffset;
+
+   /* Where the hex view was parked in each region, indexed like memory.regions */
+   std::vector<cl_addr_t> m_RegionOffsets;
+
+   /* Where the hex view was left in each search tab */
+   struct CleTabPosition
+   {
+     cl_addr_t view;
+     cl_addr_t cursor;
+     bool      valid;
+   };
+   CleTabPosition m_TabPositions[CLE_MAX_TABS];
+
+   /* The tab the hex view is currently showing, or -1 if it is not tracked */
+   int8_t m_ActiveTab = -1;
+
    cl_addr_t m_CurrentRegionSize = 0;
    unsigned  m_CurrentRegionCount = 0;
    uint8_t  *m_BufferPrevious = nullptr;
@@ -59,6 +78,7 @@ private:
 
    QComboBox      *m_CompareDropdown = nullptr;
    QGridLayout    *m_Layout = nullptr;
+   QMenuBar       *m_MenuBar = nullptr;
    QTabBar        *m_RegionTabs = nullptr;
    QComboBox      *m_SizeDropdown = nullptr;
    QLineEdit      *m_TextEntry = nullptr;
@@ -72,6 +92,10 @@ private:
 
    cl_compare_type getCurrentCompareType(void);
    cl_value_type getCurrentSizeType(void);
+   int     regionIndex(const cl_memory_region_t *region) const;
+   void    saveRegionOffset(void);
+   void    saveTabPosition(void);
+   void    updateNewTabButton(void);
    void    applyTheme(QWidget *w);
    void    rebuildLayout(void);
 
@@ -95,6 +119,7 @@ private slots:
 
    void requestAddMemoryNote(cl_memnote_t note);
    void requestPointerSearch(cl_addr_t address);
+   void showActiveRegions();
 };
 
 #endif

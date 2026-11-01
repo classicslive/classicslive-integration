@@ -48,8 +48,27 @@ cl_error CleResultTable::writeMemory(const cl_addr_t address,
   const cl_value_type value_type, const QString& string)
 {
   bool ok;
-  int64_t value64 = stringToValue(string, &ok);
+  int64_t value64;
 
+  /* Floating-point entries are read as the number they spell, not as the
+     bit pattern the digits would make */
+  if (value_type == CL_MEMTYPE_FLOAT || value_type == CL_MEMTYPE_DOUBLE)
+  {
+    double entered = stringToFloat(string, NULL, &ok);
+
+    if (!ok)
+      return CL_ERR_PARAMETER_INVALID;
+    else if (value_type == CL_MEMTYPE_FLOAT)
+    {
+      float value = (float)entered;
+
+      return cl_write_memory_value(&value, nullptr, address, value_type);
+    }
+    else
+      return cl_write_memory_value(&entered, nullptr, address, value_type);
+  }
+
+  value64 = stringToValue(string, &ok);
   if (!ok)
     return CL_ERR_PARAMETER_INVALID;
 
@@ -94,22 +113,6 @@ cl_error CleResultTable::writeMemory(const cl_addr_t address,
   case CL_MEMTYPE_INT64:
     {
       int64_t value = static_cast<int64_t>(value64);
-      cl_write_memory_value(&value, nullptr, address, value_type);
-    }
-    break;
-  case CL_MEMTYPE_FLOAT:
-    {
-      float value;
-      uint32_t temp = static_cast<uint32_t>(value64);
-      memcpy(&value, &temp, sizeof(float));
-      cl_write_memory_value(&value, nullptr, address, value_type);
-    }
-    break;
-  case CL_MEMTYPE_DOUBLE:
-    {
-      double value;
-      uint64_t temp = static_cast<uint64_t>(value64);
-      memcpy(&value, &temp, sizeof(double));
       cl_write_memory_value(&value, nullptr, address, value_type);
     }
     break;
