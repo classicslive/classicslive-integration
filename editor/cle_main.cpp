@@ -50,6 +50,13 @@ void cle_init()
   m_MemoryNotes->show();
   applyEditorTheme(m_MemoryNotes);
 
+  QObject::connect(m_MemoryNotes, SIGNAL(addressActivated(cl_addr_t)),
+                   m_MemoryInspector, SLOT(addressChanged(cl_addr_t)));
+  QObject::connect(m_MemoryNotes, SIGNAL(addressActivated(cl_addr_t)),
+                   m_MemoryInspector, SLOT(bringToFront()));
+  QObject::connect(m_MemoryNotes, SIGNAL(noteActivated(cl_memnote_t)),
+                   m_MemoryInspector, SLOT(focusedNoteChanged(cl_memnote_t)));
+
   m_ScriptEditor = new CleScriptEditorBlock();
   m_ScriptEditor->show();
   applyEditorTheme(m_ScriptEditor);

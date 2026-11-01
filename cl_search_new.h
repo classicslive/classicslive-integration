@@ -59,11 +59,13 @@ typedef struct
 
 /**
  * An opaque handle representing a target value for searches.
+ * This holds two slots: the target value itself, and, for precision-limited
+ * floating-point matching, the exclusive far edge of the match window.
  * The actual implementation is available in `cl_search.c`.
  */
 typedef union
 {
-  unsigned char raw[8];
+  unsigned char raw[16];
   double _align;
 } cl_search_target_t;
 
@@ -92,6 +94,15 @@ typedef struct
 
   /** Whether to use the target value as a value in comparisons */
   unsigned target_none;
+
+  /**
+   * Whether floating-point equality should match a window of values instead
+   * of one exact value. @see cl_search_change_target_precision
+   */
+  unsigned target_window;
+
+  /** Whether that window was built around a negative target value */
+  unsigned target_window_negative;
 } cl_search_parameters_t;
 
 /** 
@@ -152,6 +163,20 @@ cl_error cl_search_change_value_type(cl_search_t *search, cl_value_type type);
  *   against the previous value instead
  */
 cl_error cl_search_change_target(cl_search_t *search, const void *value);
+
+/**
+ * Changes the target value used in the search, matching floating-point values
+ * only as precisely as the user expressed them. A target of "2" then matches
+ * anything in [2, 3), "2.0" matches [2.0, 2.1), and "2.10" matches
+ * [2.10, 2.11). Negative targets window towards zero the same way, so "-2"
+ * matches (-3, -2]. Integer types ignore `decimals` and match exactly.
+ * @param search A pointer to the search to modify
+ * @param value A pointer to the new target value to use, or NULL to compare
+ *   against the previous value instead
+ * @param decimals The count of digits supplied after the decimal point
+ */
+cl_error cl_search_change_target_precision(cl_search_t *search,
+  const void *value, unsigned decimals);
 
 cl_error cl_search_free(cl_search_t *search);
 

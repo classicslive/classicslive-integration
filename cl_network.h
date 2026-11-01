@@ -23,6 +23,7 @@
 #define CL_API_URL CL_URL_SITE "/api/v1/"
 
 #define CL_END_MEMORYNOTE_ADD "memory_note/add"
+#define CL_END_MEMORYNOTE_DELETE "memory_note/delete"
 #define CL_END_SCRIPT_ADD "script/add"
 #define CL_END_SCRIPT_EDIT "script/edit"
 #endif

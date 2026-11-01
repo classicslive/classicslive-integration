@@ -8,6 +8,7 @@
 #include <QPen>
 #include <QInputDialog>
 #include <QRect>
+#include <QString>
 #include <QWidget>
 
 extern "C"
@@ -15,15 +16,8 @@ extern "C"
   #include "../cl_memory.h"
 }
 
+#include "cle_common.h"
 #include "cle_hex_view.h"
-
-void swap_rects(QRect *a, QRect *b)
-{
-   QRect temp = *a;
-
-   *a = *b;
-   *b = temp;
-} 
 
 CleHexWidget::CleHexWidget(QWidget *parent, uint8_t size) : QWidget(parent)
 {
@@ -48,6 +42,7 @@ CleHexWidget::CleHexWidget(QWidget *parent, uint8_t size) : QWidget(parent)
    setFocusPolicy(Qt::ClickFocus);
 
    setByteSwapEnabled(false);
+   setWordFlipEnabled(false);
    setOffset(0);
    setSize(size);
 
@@ -163,31 +158,22 @@ void CleHexWidget::keyPressEvent(QKeyEvent *event)
    case Qt::Key_F:
       typeNybble(event->key() - Qt::Key_A + 10);
       break;
-   /* N64 endianness quirk */
    case Qt::Key_N:
-   {
-      uint32_t i;
-
-      for (i = 0; i < 256; i += 4)
-      {
-         swap_rects(&m_AsciiRects[i],   &m_AsciiRects[i+3]);
-         swap_rects(&m_AsciiRects[i+1], &m_AsciiRects[i+2]);
-      }
-      repaintAll();
+      setWordFlipEnabled(!m_UseWordFlip);
       break;
-   }
    case Qt::Key_S:
       setByteSwapEnabled(!m_UseByteSwap);
       break;
    case Qt::Key_G:
       {
-         uint32_t address;
-         QString  address_text;
-         bool     ok;
+         cl_addr_t address;
+         QString   address_text;
+         bool      ok;
 
          address_text = QInputDialog::getText(this, 
             tr("Goto Address"), tr("Address to goto:"));
-         address = address_text.toULong(&ok, 16);
+         /* Bare entries stay hexadecimal here, as the view itself is */
+         address = (cl_addr_t)stringToValueBase(address_text, &ok, 16);
          if (ok)
          {
             setOffset(address);
@@ -242,7 +228,17 @@ void CleHexWidget::movePosition(int32_t offset)
 
 void CleHexWidget::onClickAddMemoryNote()
 {
-   emit requestAddMemoryNote(m_CursorOffset);
+   cl_memnote_t note;
+   memset(&note, 0, sizeof(note));
+   note.address_initial = m_CursorOffset;
+   note.type = m_ValueType;
+   emit requestAddMemoryNote(note);
+}
+
+void CleHexWidget::onClickAddMemoryNoteInStruct()
+{
+   if (m_HasPendingStructuredNote)
+      emit requestAddMemoryNote(m_PendingStructuredNote);
 }
 
 void CleHexWidget::onClickGoto()
@@ -262,14 +258,70 @@ void CleHexWidget::onRightClick(cl_addr_t address, QPoint& pos)
   else
   {
     QMenu menu;
-    QAction *action_add = menu.addAction(tr("&Add memory note..."));
-    QAction *action_ptr = menu.addAction(tr("Search for &pointers"));
+      QAction *action_add;
+      QAction *action_ptr;
     QAction *action_goto;
     const cl_memory_region_t *region;
     cl_addr_t goto_address;
     cl_value_type ptr_type;
 
-    setCursorOffset(address);
+      m_HasPendingStructuredNote = false;
+      setCursorOffset(address);
+
+      {
+         if (m_HasFocusedNote &&
+               m_FocusedNote.pointer_passes > 0 &&
+               m_FocusedNote.pointer_passes <= CL_POINTER_MAX_PASSES &&
+               m_FocusedNote.address)
+         {
+            cl_int64 delta;
+            unsigned final_index = m_FocusedNote.pointer_passes - 1;
+            unsigned old_last = m_FocusedNote.pointer_offsets[final_index];
+            cl_int64 new_last;
+
+            if (address >= m_FocusedNote.address)
+               delta = static_cast<cl_int64>(address - m_FocusedNote.address);
+            else
+               delta = -static_cast<cl_int64>(m_FocusedNote.address - address);
+
+            new_last = static_cast<cl_int64>(old_last) + delta;
+
+            if (new_last >= 0 && new_last <= 0xFFFFFFFFLL)
+            {
+               m_PendingStructuredNote = m_FocusedNote;
+               m_PendingStructuredNote.key = 0;
+               m_PendingStructuredNote.order = 0;
+               m_PendingStructuredNote.address = 0;
+               m_PendingStructuredNote.pointer_offsets[final_index] =
+                  static_cast<unsigned>(new_last);
+
+#if CL_HAVE_EDITOR
+               m_PendingStructuredNote.details.title[0] = '\0';
+               m_PendingStructuredNote.details.description[0] = '\0';
+               m_PendingStructuredNote.edited = CL_FALSE;
+#endif
+
+               m_HasPendingStructuredNote = true;
+
+               const char *focused_title = "selected note";
+
+#if CL_HAVE_EDITOR
+               if (m_FocusedNote.details.title[0])
+                  focused_title = m_FocusedNote.details.title;
+#endif
+
+               QAction *action_add_struct = menu.addAction(
+                  QString("Add memory note (in struct with %1)...")
+                     .arg(focused_title));
+               connect(action_add_struct, SIGNAL(triggered()), this,
+                  SLOT(onClickAddMemoryNoteInStruct()));
+            }
+         }
+      }
+
+      action_add = menu.addAction(tr("&Add memory note..."));
+      action_ptr = menu.addAction(tr("Search for &pointers"));
+
     connect(action_add, SIGNAL(triggered()), this,
       SLOT(onClickAddMemoryNote()));
     connect(action_ptr, SIGNAL(triggered()), this,
@@ -302,94 +354,94 @@ void CleHexWidget::paintEvent(QPaintEvent *event)
 
 void CleHexWidget::repaintAll()
 {
-   uint32_t i;
+    uint32_t i;
 
-   /* Draw the navigation bar on the left */
-   m_Painter->setBrush(Qt::NoBrush);
-   m_Painter->setPen(QColor("grey"));
-   for (i = 0; i < 16; i++)
-      m_Painter->drawText(m_AddrRects[i], Qt::AlignRight | Qt::AlignVCenter, m_AddrTexts[i]);
+    /* Draw the navigation bar on the left */
+    m_Painter->setBrush(Qt::NoBrush);
+    m_Painter->setPen(QColor("grey"));
+    for (i = 0; i < 16; i++)
+         m_Painter->drawText(m_AddrRects[i], Qt::AlignRight | Qt::AlignVCenter, m_AddrTexts[i]);
 
-   /* Draw the hex value view on the right */
-   for (i = 0; i < 256 / m_Size; i++)
-   {
-      /* Draw rects */
-      m_Painter->setBrush(m_RectColors[i]);
-      m_Painter->setPen(Qt::NoPen);
-      m_Painter->drawRect(m_Rects[i]);
+    /* Draw the hex value view on the right */
+    for (i = 0; i < 256 / m_Size; i++)
+    {
+         /* Draw rects */
+         m_Painter->setBrush(m_RectColors[i]);
+         m_Painter->setPen(Qt::NoPen);
+         m_Painter->drawRect(m_Rects[i]);
 
-      /* Draw text */
-      m_Painter->setPen(QColor("white"));
-      m_Painter->drawText(m_Rects[i], Qt::AlignCenter, m_Texts[i]);
-   }
+         /* Draw text */
+         m_Painter->setPen(QColor("white"));
+         m_Painter->drawText(m_Rects[i], Qt::AlignCenter, m_Texts[i]);
+    }
 
-   /* Draw the ASCII display */
-   m_Painter->setPen(QColor("grey"));
-   for (i = 0; i < 256; i++)
-      m_Painter->drawText(m_AsciiRects[i], Qt::AlignCenter, QString(m_AsciiText[i]));
+    /* Draw the ASCII display */
+    m_Painter->setPen(QColor("grey"));
+    for (i = 0; i < 256; i++)
+         m_Painter->drawText(m_AsciiRects[i], Qt::AlignCenter, QString(m_AsciiText[i]));
 
-   m_Painter->drawRect(m_Cursor);
+    m_Painter->drawRect(m_Cursor);
 }
 
 void CleHexWidget::repaintAscii(char new_char, uint8_t index)
 {
-   m_AsciiText[index] = new_char < 0x20 ? '.' : new_char;
+    m_AsciiText[index] = new_char < 0x20 ? '.' : new_char;
 
-   /* Clear area */
-   m_Painter->setBrush(palette().color(backgroundRole()));
-   m_Painter->setPen(Qt::NoPen);
-   m_Painter->drawRect(m_AsciiRects[index]);
+    /* Clear area */
+    m_Painter->setBrush(palette().color(backgroundRole()));
+    m_Painter->setPen(Qt::NoPen);
+    m_Painter->drawRect(m_AsciiRects[index]);
 
-   /* Draw char */
-   m_Painter->setFont(m_Font);
-   m_Painter->setPen(QColor("grey"));
-   m_Painter->drawText(m_AsciiRects[index], Qt::AlignCenter, QString(m_AsciiText[index]));
+    /* Draw char */
+    m_Painter->setFont(m_Font);
+    m_Painter->setPen(QColor("grey"));
+    m_Painter->drawText(m_AsciiRects[index], Qt::AlignCenter, QString(m_AsciiText[index]));
 }
 
 void CleHexWidget::repaintRect(const void *buffer, uint8_t index)
 {
-  int64_t val = 0;
+   int64_t val = 0;
 
-  /* Update the hex value drawn over the given rect */
-  if (buffer)
-  {
-    cl_read_value(&val,
-                  reinterpret_cast<const uint8_t*>(buffer),
-                  index * m_Size,
-                  cl_pointer_type(m_Size),
-                  m_UseByteSwap ? CL_ENDIAN_BIG : CL_ENDIAN_LITTLE);
+   /* Update the hex value drawn over the given rect */
+   if (buffer)
+   {
+      cl_read_value(&val,
+                           reinterpret_cast<const uint8_t*>(buffer),
+                           index * m_Size,
+                           cl_pointer_type(m_Size),
+                           viewEndianness());
 
-    switch (m_Size)
-    {
-    case 1:
-      snprintf(m_Texts[index], 16, "%02X", val);
-      break;
-    case 2:
-      snprintf(m_Texts[index], 16, "%04X", val);
-      break;
-    case 4:
-      snprintf(m_Texts[index], 16, "%08X", val);
-      break;
-    case 8:
-      snprintf(m_Texts[index], 16, "%016llX", val);
-      break;
-    default:
-      snprintf(m_Texts[index], 16, "Err");
-    }
+      switch (m_Size)
+      {
+      case 1:
+         snprintf(m_Texts[index], 16, "%02X", val);
+         break;
+      case 2:
+         snprintf(m_Texts[index], 16, "%04X", val);
+         break;
+      case 4:
+         snprintf(m_Texts[index], 16, "%08X", val);
+         break;
+      case 8:
+         snprintf(m_Texts[index], 16, "%016llX", val);
+         break;
+      default:
+         snprintf(m_Texts[index], 16, "Err");
+      }
 
-    /* Draw rect */
-    m_Painter->setBrush(m_RectColors[index]);
-    m_Painter->setPen(Qt::NoPen);
-    m_Painter->drawRect(m_Rects[index]);
+      /* Draw rect */
+      m_Painter->setBrush(m_RectColors[index]);
+      m_Painter->setPen(Qt::NoPen);
+      m_Painter->drawRect(m_Rects[index]);
 
-    /* Draw text */
-    if (m_PositionMin && m_Size == 4 && (val >= m_PositionMin && val < m_PositionMax))
-      /* Draw likely pointers in a different color */
-      m_Painter->setPen(QColor(200, 180, 255));
-    else
-      m_Painter->setPen(QColor(255, 255, 255));
-    m_Painter->drawText(m_Rects[index], Qt::AlignCenter, m_Texts[index]);
-  }
+      /* Draw text */
+      if (m_PositionMin && m_Size == 4 && (val >= m_PositionMin && val < m_PositionMax))
+         /* Draw likely pointers in a different color */
+         m_Painter->setPen(QColor(200, 180, 255));
+      else
+         m_Painter->setPen(QColor(255, 255, 255));
+      m_Painter->drawText(m_Rects[index], Qt::AlignCenter, m_Texts[index]);
+   }
 }
 
 void CleHexWidget::resetColors()
@@ -404,6 +456,32 @@ void CleHexWidget::resetColors()
 void CleHexWidget::setByteSwapEnabled(bool enabled)
 {
    m_UseByteSwap = enabled;
+   m_AllDirty    = true;
+}
+
+/* Cores like mupen64 store each 32-bit word byte-reversed, so the byte the
+   machine addresses at X lives at X ^ 3 in the buffer we are handed. Undoing
+   that here lets every address the widget deals with stay canonical. */
+void CleHexWidget::setWordFlipEnabled(bool enabled)
+{
+   m_UseWordFlip = enabled;
+   m_AllDirty    = true;
+}
+
+void CleHexWidget::setFocusedNote(const cl_memnote_t *note)
+{
+   if (note)
+   {
+      m_FocusedNote = *note;
+      m_HasFocusedNote = true;
+   }
+   else
+      m_HasFocusedNote = false;
+}
+
+void CleHexWidget::setValueType(cl_value_type type)
+{
+   m_ValueType = type;
 }
 
 void CleHexWidget::paintCursorCell(uint8_t index)
@@ -488,7 +566,8 @@ void CleHexWidget::setOffset(cl_addr_t offset)
 
   for (i = 0; i < 16; i++)
   {
-    snprintf(m_AddrTexts[i], 16, "%8X", offset + i * 16);
+    snprintf(m_AddrTexts[i], 16, "%8llX",
+             (unsigned long long)(offset + i * 16));
     m_Painter->setPen(QColor("grey"));
     m_Painter->drawText(m_AddrRects[i], Qt::AlignRight | Qt::AlignVCenter, m_AddrTexts[i]);
   }
@@ -573,7 +652,19 @@ void CleHexWidget::typeNybble(uint8_t value)
 
 void CleHexWidget::refresh(const void *newbuffer, const void *oldbuffer)
 {
+   uint8_t  newflip[256], oldflip[256];
    uint32_t i;
+
+   if (m_UseWordFlip)
+   {
+      for (i = 0; i < 256; i++)
+      {
+         newflip[i] = ((const uint8_t*)newbuffer)[i ^ 3];
+         oldflip[i] = ((const uint8_t*)oldbuffer)[i ^ 3];
+      }
+      newbuffer = newflip;
+      oldbuffer = oldflip;
+   }
 
    for (i = 0; i < 256 / m_Size; i++)
    {

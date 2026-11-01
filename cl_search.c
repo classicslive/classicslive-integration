@@ -176,6 +176,9 @@ static cl_error add_pass(cl_pointersearch_t* search)
       region = &memory.regions[j];
       target = next_result->address_initial;
 
+      if (region->ignore)
+        continue;
+
       if (region->size < region->pointer_length)
         continue;
 
@@ -251,6 +254,9 @@ cl_error cl_pointersearch_init(cl_pointersearch_t *search,
     for (i = 0; i < memory.region_count; i++)
     {
       region = &memory.regions[i];
+
+      if (region->ignore)
+        continue;
 
       if (region->size < region->pointer_length)
         continue;

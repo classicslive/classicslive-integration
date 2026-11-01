@@ -19,13 +19,19 @@ ClePointerSearchDialog::ClePointerSearchDialog(QWidget *parent) : QDialog(parent
   offsetRangeSpin->setDisplayIntegerBase(16);
 
   maxMatchesSpin = new QSpinBox(this);
-  maxMatchesSpin->setRange(1, 100000);
+  maxMatchesSpin->setRange(1, 4000000);
   maxMatchesSpin->setValue(1000);
+
+  maxMatchesPerPassSpin = new QSpinBox(this);
+  maxMatchesPerPassSpin->setRange(0, 1000000);
+  maxMatchesPerPassSpin->setValue(0);
+  maxMatchesPerPassSpin->setSpecialValueText(tr("No limit"));
 
   QFormLayout *formLayout = new QFormLayout;
   formLayout->addRow(tr("Pointer Levels:"), pointerFollowsSpin);
   formLayout->addRow(tr("Offset Range (hex):"), offsetRangeSpin);
   formLayout->addRow(tr("Max Matches:"), maxMatchesSpin);
+  formLayout->addRow(tr("Max Matches Per Pass:"), maxMatchesPerPassSpin);
 
   QDialogButtonBox *buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
   connect(buttons, &QDialogButtonBox::accepted, this, &QDialog::accept);

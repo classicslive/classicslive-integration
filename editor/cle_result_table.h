@@ -78,10 +78,10 @@ protected:
    /**
     * Writes user input from a result entry into emulated memory.
     * @param address The address to write to.
-    * @param params The params of the search type.
+    * @param value_type The type of value to write.
     * @param string The string the user entered into the result entry.
     */
-  cl_error writeMemory(const cl_addr_t address, const cl_search_parameters_t& params,
+  cl_error writeMemory(const cl_addr_t address, const cl_value_type value_type,
     const QString& string);
 };
 

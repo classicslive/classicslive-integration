@@ -1,6 +1,8 @@
 #ifndef CLE_MEMORY_INSPECTOR_H
 #define CLE_MEMORY_INSPECTOR_H
 
+#include <vector>
+
 #include <QSlider>
 #include <QComboBox>
 #include <QGridLayout>
@@ -8,6 +10,7 @@
 #include <QInputDialog>
 #include <QLineEdit>
 #include <QMenu>
+#include <QMenuBar>
 #include <QPushButton>
 #include <QStackedWidget>
 #include <QTabBar>
@@ -15,12 +18,12 @@
 #include <QTimer>
 #include <QWidget>
 
-extern "C" 
+extern "C"
 {
    #include "../cl_main.h"
    #include "../cl_memory.h"
    #include "../cl_network.h"
-   #include "../cl_search.h"
+   #include "../cl_search_pointer_new.h"
 }
 #include "cle_hex_view.h"
 #include "cle_memory_note_submit.h"
@@ -37,6 +40,8 @@ public:
 
 public slots:
    void run();
+   void bringToFront();
+   void addressChanged(cl_addr_t address);
 
 private:
    CleResultTable *m_Searches[CLE_MAX_TABS];
@@ -48,6 +53,22 @@ private:
    cl_memory_region_t *m_CurrentMembank = nullptr;
 
    cl_addr_t m_AddressOffset;
+
+   /* Where the hex view was parked in each region, indexed like memory.regions */
+   std::vector<cl_addr_t> m_RegionOffsets;
+
+   /* Where the hex view was left in each search tab */
+   struct CleTabPosition
+   {
+     cl_addr_t view;
+     cl_addr_t cursor;
+     bool      valid;
+   };
+   CleTabPosition m_TabPositions[CLE_MAX_TABS];
+
+   /* The tab the hex view is currently showing, or -1 if it is not tracked */
+   int8_t m_ActiveTab = -1;
+
    cl_addr_t m_CurrentRegionSize = 0;
    unsigned  m_CurrentRegionCount = 0;
    uint8_t  *m_BufferPrevious = nullptr;
@@ -57,6 +78,7 @@ private:
 
    QComboBox      *m_CompareDropdown = nullptr;
    QGridLayout    *m_Layout = nullptr;
+   QMenuBar       *m_MenuBar = nullptr;
    QTabBar        *m_RegionTabs = nullptr;
    QComboBox      *m_SizeDropdown = nullptr;
    QLineEdit      *m_TextEntry = nullptr;
@@ -70,29 +92,34 @@ private:
 
    cl_compare_type getCurrentCompareType(void);
    cl_value_type getCurrentSizeType(void);
+   int     regionIndex(const cl_memory_region_t *region) const;
+   void    saveRegionOffset(void);
+   void    saveTabPosition(void);
+   void    updateNewTabButton(void);
    void    applyTheme(QWidget *w);
    void    rebuildLayout(void);
 
 private slots:
-   void onAddressChanged(cl_addr_t address);
-   void onChangeCompareType();
-   void onChangeRegionTab(int index);
-   void onChangeScrollbar(int value);
-   void onChangeSizeType();
-   void onChangeTab();
-   void onClickNew();
-   void onClickSearch();
-   void onClickTabRename();
+   void changeCompareType();
+   void changeRegionTab(int index);
+   void changeScrollbar(int value);
+   void changeSizeType();
+   void changeTab();
+   void clickNew();
+   void clickSearch();
+   void clickTabDelete();
+   void clickTabRename();
 
-   void onHexWidgetValueEdited(cl_addr_t address, uint64_t value, uint8_t size);
+   void focusedNoteChanged(cl_memnote_t note);
+   void hexWidgetValueEdited(cl_addr_t address, uint64_t value, uint8_t size);
 
-   void onRightClickTabs(const QPoint &pos);
+   void rightClickTabs(const QPoint &pos);
 
-   void onTargetChanged(const QString&);
+   void targetChanged(const QString&);
 
    void requestAddMemoryNote(cl_memnote_t note);
-   void requestAddMemoryNote(cl_addr_t address);
    void requestPointerSearch(cl_addr_t address);
+   void showActiveRegions();
 };
 
 #endif

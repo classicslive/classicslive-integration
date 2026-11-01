@@ -1,6 +1,5 @@
 #include "cl_common.h"
 #include "cl_json.h"
-#include "cl_memory.h"
 #include "3rdparty/jsonsax/jsonsax.h"
 
 #include <string/stdstring.h>

@@ -488,11 +488,16 @@ typedef struct cl_memory_region_t
    * virtually-mapped hardware devices on emulators.
    */
   char title[256];
+
+#if CL_HAVE_EDITOR
+  /** Whether to ignore this region in searches. */
+  cl_bool ignore;
+#endif
 } cl_memory_region_t;
 
 /**
  * A "memory note" or "memnote" is a point in core memory that corresponds
- * with an observable in-game value. Instead of accessing specific addreses
+ * with an observable in-game value. Instead of accessing specific addresses
  * every frame, we allocate memory notes and update their contents, then look 
  * off of them for script conditions.
  *
