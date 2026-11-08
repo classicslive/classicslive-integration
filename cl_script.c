@@ -131,7 +131,7 @@ static unsigned cl_process_if_statements(cl_page_t *page, unsigned pos)
     if (action->if_type && action->indentation == current_indent)
     {
       if (evaluation)
-        evaluation = cl_process_action(action);
+        evaluation = (cl_process_action(action) == CL_TRUE) ? CL_TRUE : CL_FALSE;
       i++;
     }
     else if (action->indentation > current_indent)

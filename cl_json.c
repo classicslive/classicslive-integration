@@ -370,6 +370,12 @@ static void unescape(char *s)
   {
     if (*src == '\\')
     {
+      /* A lone backslash at the end (e.g. after truncation) stays as-is */
+      if (src[1] == '\0')
+      {
+        *dst++ = *src++;
+        break;
+      }
       src++;
       switch (*src)
       {
@@ -416,8 +422,15 @@ static void unescape(char *s)
 static void cl_json_strcpy(char *dst, size_t dstlen, const char *src,
   size_t srclen)
 {
-  snprintf(dst, dstlen, "%s", src);
-  dst[srclen] = '\0';
+  /* The source is a slice of the JSON document, not NUL-terminated, so copy
+   * by length, and never past the end of the destination */
+  size_t n;
+
+  if (!dst || dstlen == 0)
+    return;
+  n = srclen < dstlen ? srclen : dstlen - 1;
+  memcpy(dst, src, n);
+  dst[n] = '\0';
   unescape(dst);
 }
 
@@ -474,6 +487,16 @@ static int cl_json_string(void *userdata, const char *string, size_t length)
     case CL_JSON_TYPE_STRING:
       cl_json_strcpy(ud->data, ud->size, string, length);
       break;
+    case CL_JSON_TYPE_STRING_ALLOC:
+    {
+      char *copy = (char*)malloc(length + 1);
+
+      if (!copy)
+        return 1;
+      cl_json_strcpy(copy, length + 1, string, length);
+      *((char**)ud->data) = copy;
+      break;
+    }
     default:
       return 1;
     }

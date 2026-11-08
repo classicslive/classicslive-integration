@@ -65,7 +65,7 @@ cl_session_t session;
 static cl_error cl_init_session(const char* json)
 {
   const char *iterator;
-  char script_str[2048];
+  char *script_str = NULL;
   unsigned misc, i;
   cl_error error;
 
@@ -121,11 +121,18 @@ static cl_error cl_init_session(const char* json)
     json, CL_JSON_KEY_MEMORY_NOTES, CL_JSON_TYPE_MEMORY_NOTE);
   cl_memory_init_notes();
 
-  /* Get script */
-  iterator = &script_str[0];
-  if (cl_json_get(script_str, json, CL_JSON_KEY_SCRIPT, CL_JSON_TYPE_STRING, sizeof(script_str)) == CL_OK)
+  /* Get script, allocated to its full length (it's parsed into actions
+   * straight away, so the text isn't needed afterwards) */
+  if (cl_json_get(&script_str, json, CL_JSON_KEY_SCRIPT, CL_JSON_TYPE_STRING_ALLOC, 0) == CL_OK && script_str)
   {
-    if (cl_script_init(&iterator) != CL_OK)
+    cl_error script_error;
+
+    iterator = script_str;
+    script_error = cl_script_init(&iterator);
+    free(script_str);
+    script_str = NULL;
+
+    if (script_error != CL_OK)
     {
 #if !CL_HAVE_EDITOR
       cl_message(CL_MSG_ERROR, "Failed to initialize CL script.");
@@ -416,8 +423,6 @@ cl_error cl_run(void)
 #endif
 
     error = cl_script_update();
-    if (error != CL_OK)
-      return error;
 
     /* Pingback every X seconds to update rich presence */
     if (time(0) >= session.last_status_update + CL_PRESENCE_INTERVAL)
@@ -426,7 +431,7 @@ cl_error cl_run(void)
       cl_network_post_clint(CL_END_CLINT_PING, NULL, NULL, NULL);
     }
 
-    return CL_OK;
+    return error;
   }
 
 #if CL_HAVE_EDITOR

@@ -14,7 +14,7 @@
 static cl_error cl_act_no_process(cl_action_t *action)
 {
   CL_UNUSED(action);
-  return CL_ERR_CLIENT_RUNTIME;
+  return CL_OK;
 }
 
 cl_error cl_free_action(cl_action_t *action)
@@ -313,7 +313,7 @@ static cl_error cl_act_compare(cl_action_t *action)
   cl_counter_t right = cl_get_compare_value(action->arguments[2].uintval, action->arguments[3].uintval);
 
   if (left.type == CL_MEMTYPE_NOT_SET || right.type == CL_MEMTYPE_NOT_SET)
-    return cl_free_action(action);
+    return CL_FALSE;
 
   switch (action->arguments[4].intval)
   {
@@ -326,7 +326,8 @@ static cl_error cl_act_compare(cl_action_t *action)
   case CL_COMPARE_NOT_EQUAL:
     return cl_ctr_not_equal(&left, &right);
   default:
-    return cl_free_action(action);
+    cl_free_action(action);
+    return CL_FALSE;
   }
 }
 
@@ -336,9 +337,8 @@ static cl_error cl_act_changed(cl_action_t *action)
   cl_counter_t right = cl_get_compare_value(CL_SRCTYPE_PREVIOUS_RAM, action->arguments[0].uintval);
 
   if (left.type == CL_MEMTYPE_NOT_SET || right.type == CL_MEMTYPE_NOT_SET)
-    return cl_free_action(action);
-  else
-    return cl_ctr_not_equal(&left, &right);
+    return CL_FALSE;
+  return cl_ctr_not_equal(&left, &right);
 }
 
 static cl_error cl_act_bits(cl_action_t *action)
@@ -347,10 +347,10 @@ static cl_error cl_act_bits(cl_action_t *action)
   cl_counter_t right = cl_get_compare_value(action->arguments[2].uintval, action->arguments[3].uintval);
 
   if (left.type == CL_MEMTYPE_NOT_SET || right.type == CL_MEMTYPE_NOT_SET)
-    return cl_free_action(action);
+    return CL_FALSE;
 
   /* TODO: Not exactly what we want */
-  return (left.intval.raw & right.intval.raw) == right.intval.raw ? CL_OK : CL_ERR_CLIENT_RUNTIME;
+  return (left.intval.raw & right.intval.raw) == right.intval.raw ? CL_TRUE : CL_FALSE;
 }
 
 static cl_error cl_act_write(cl_action_t *action)
