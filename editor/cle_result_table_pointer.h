@@ -6,7 +6,7 @@
 
 extern "C"
 {
-  #include "../cl_search_pointer_new.h"
+  #include "../cl_search_pointer.h"
 }
 
 class CleResultTablePointer : public CleResultTable
@@ -15,7 +15,8 @@ class CleResultTablePointer : public CleResultTable
 
 public:
   CleResultTablePointer(QWidget *parent, cl_addr_t address, cl_value_type value_type,
-    unsigned passes, cl_addr_t range, cl_addr_t max_results, cl_addr_t max_results_per_pass);
+    unsigned passes, cl_addr_t range, cl_addr_t max_results, cl_addr_t max_results_per_pass,
+    const cl_memory_region_t *base_region = nullptr);
   ~CleResultTablePointer() override;
 
   cl_addr_t getClickedResultAddress() override;

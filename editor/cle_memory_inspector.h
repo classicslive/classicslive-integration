@@ -23,7 +23,7 @@ extern "C"
    #include "../cl_main.h"
    #include "../cl_memory.h"
    #include "../cl_network.h"
-   #include "../cl_search_pointer_new.h"
+   #include "../cl_search_pointer.h"
 }
 #include "cle_hex_view.h"
 #include "cle_memory_note_submit.h"
@@ -70,6 +70,9 @@ private:
    int8_t m_ActiveTab = -1;
 
    cl_addr_t m_CurrentRegionSize = 0;
+
+   /* Slider steps are offsets shifted down by this, to fit large regions in an int */
+   unsigned  m_SliderShift = 4;
    unsigned  m_CurrentRegionCount = 0;
    uint8_t  *m_BufferPrevious = nullptr;
    uint8_t  *m_BufferCurrent = nullptr;
@@ -95,6 +98,8 @@ private:
    int     regionIndex(const cl_memory_region_t *region) const;
    void    saveRegionOffset(void);
    void    saveTabPosition(void);
+   void    setSliderRange(cl_addr_t size);
+   void    setSliderOffset(cl_addr_t offset);
    void    updateNewTabButton(void);
    void    applyTheme(QWidget *w);
    void    rebuildLayout(void);

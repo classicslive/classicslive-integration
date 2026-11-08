@@ -1,5 +1,7 @@
 #include <QMessageBox>
 
+#include <climits>
+
 #include "cle_active_regions_dialog.h"
 #include "cle_memory_inspector.h"
 #include "cle_pointer_search_dialog.h"
@@ -100,7 +102,6 @@ CleMemoryInspector::CleMemoryInspector()
    /* Initialize scrollbar */
    m_Slider = new QSlider(Qt::Vertical, this);
    m_Slider->setInvertedAppearance(true);
-   m_Slider->setTickInterval(1024 * 1024); //1MB
    m_Slider->setTickPosition(QSlider::TicksRight);
    connect(m_Slider, SIGNAL(valueChanged(int)),
            this, SLOT(changeScrollbar(int)));
@@ -257,8 +258,7 @@ void CleMemoryInspector::addressChanged(cl_addr_t address)
     m_CurrentRegionSize = new_bank->size;
     m_HexWidget->setRange(new_bank->base_guest,
                           new_bank->base_guest + new_bank->size + 1);
-    m_Slider->setMinimum(0);
-    m_Slider->setMaximum(new_bank->size - 256);
+    setSliderRange(new_bank->size);
 
     /* Sync the region tab to the newly active bank */
     for (unsigned i = 0; i < memory.region_count; i++)
@@ -276,8 +276,7 @@ void CleMemoryInspector::addressChanged(cl_addr_t address)
   m_AddressOffset = (address - m_CurrentMembank->base_guest) & ~(cl_addr_t)0xF;
   m_HexWidget->setOffset(address);
 
-  if (m_Slider->value() != m_AddressOffset)
-    m_Slider->setValue(m_AddressOffset);
+  setSliderOffset(m_AddressOffset);
 }
 
 void CleMemoryInspector::changeCompareType(void)
@@ -302,7 +301,36 @@ void CleMemoryInspector::changeCompareType(void)
 
 void CleMemoryInspector::changeScrollbar(int value)
 {
-   addressChanged(m_CurrentMembank->base_guest + value);
+   addressChanged(m_CurrentMembank->base_guest +
+                  (static_cast<cl_addr_t>(value) << m_SliderShift));
+}
+
+void CleMemoryInspector::setSliderRange(cl_addr_t size)
+{
+  cl_addr_t span = size > 256 ? size - 256 : 0;
+
+  m_SliderShift = 4;
+  while ((span >> m_SliderShift) > INT_MAX)
+    m_SliderShift++;
+
+  m_Slider->blockSignals(true);
+  m_Slider->setRange(0, static_cast<int>(span >> m_SliderShift));
+  m_Slider->setTickInterval(qMax(1, static_cast<int>(
+    (size > CL_GB(1) ? CL_GB(1) : CL_MB(1)) >> m_SliderShift)));
+  m_Slider->blockSignals(false);
+}
+
+/* Moves the slider without it moving the view back */
+void CleMemoryInspector::setSliderOffset(cl_addr_t offset)
+{
+  int value = static_cast<int>(offset >> m_SliderShift);
+
+  if (m_Slider->value() != value)
+  {
+    m_Slider->blockSignals(true);
+    m_Slider->setValue(value);
+    m_Slider->blockSignals(false);
+  }
 }
 
 void CleMemoryInspector::changeSizeType()
@@ -561,7 +589,8 @@ void CleMemoryInspector::requestPointerSearch(cl_addr_t address)
     dlg.pointerFollows(),
     dlg.offsetRange(),
     dlg.maxMatches(),
-    dlg.maxMatchesPerPass()
+    dlg.maxMatchesPerPass(),
+    dlg.baseRegion()
   );
   m_Searches[m_TabCount]->setCompareType(getCurrentCompareType());
   m_Searches[m_TabCount]->setTarget(m_TextEntry->text());
@@ -594,8 +623,7 @@ void CleMemoryInspector::changeRegionTab(int index)
     m_HexWidget->setByteSwapEnabled(region->endianness == CL_ENDIAN_BIG);
     m_HexWidget->setWordFlipEnabled(region->endianness == CL_ENDIAN_WORD_FLIP_BL);
     m_HexWidget->setRange(region->base_guest, region->base_guest + region->size + 1);
-    m_Slider->setMinimum(0);
-    m_Slider->setMaximum(region->size - 256);
+    setSliderRange(region->size);
 
     /* Restore where we last were in this region, if it still fits */
     if (static_cast<size_t>(index) < m_RegionOffsets.size())
@@ -605,7 +633,7 @@ void CleMemoryInspector::changeRegionTab(int index)
 
     m_AddressOffset = offset;
     m_HexWidget->setOffset(region->base_guest + offset);
-    m_Slider->setValue(static_cast<int>(offset));
+    setSliderOffset(offset);
   }
 }
 
@@ -660,8 +688,8 @@ void CleMemoryInspector::run()
     m_CurrentRegionSize = m_CurrentMembank->size;
     m_HexWidget->setRange(m_CurrentMembank->base_guest,
                           m_CurrentMembank->base_guest + m_CurrentMembank->size + 1);
-    m_Slider->setMinimum(0);
-    m_Slider->setMaximum(m_CurrentMembank->size - 256);
+    setSliderRange(m_CurrentMembank->size);
+    setSliderOffset(m_AddressOffset);
   }
 
   m_CurrentSearch->run();

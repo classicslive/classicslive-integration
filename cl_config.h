@@ -189,7 +189,7 @@ typedef enum
 /**
  * The full hostname for the CL website.
  */
-#define CL_URL_HOSTNAME "192.168.86.15:8000"
+#define CL_URL_HOSTNAME "classicslive.doggylongface.com"
 #endif
 
 typedef struct cl_config_t

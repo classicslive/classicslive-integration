@@ -1,5 +1,6 @@
-#include "cl_search_pointer_new.h"
+#include "cl_search_pointer.h"
 
+#include "cl_common.h"
 #include "cl_memory.h"
 
 #include <stddef.h>
@@ -133,7 +134,9 @@ static void deepcopy_free(cl_pointersearch_deepcopy_t *dc)
    ======================================================================
 
    The map is a flat array of (value, address) pairs covering every
-   pointer-sized read from every non-ignored memory region. It is built
+   pointer-sized read from every non-ignored memory region whose value
+   points into a memory region; nothing else can be a link in a chain, and
+   on large address spaces most words are zeroes or plain data. It is built
    once at the start of a pointer search and sorted by value, enabling
    O(log n) range queries for each subsequent pass instead of O(memory).
 
@@ -159,7 +162,8 @@ typedef struct
  * When a single address has more than this many parents in the map, it is
  * likely a widely-shared object (e.g. a vtable or common heap node) and
  * expanding it would cause a combinatorial explosion in the result set.
- * Such targets are skipped during multi-pass expansion.
+ * Only its parents in executable image memory are kept, since a singleton
+ * referenced all over the heap is often exactly what a static points to.
  *
  * Set to 0 to disable pruning.
  */
@@ -233,6 +237,79 @@ static cl_error ptrmap_push(cl_ptrmap_t *map, cl_addr_t value, cl_addr_t address
   return CL_OK;
 }
 
+/* A span of guest memory that pointers can point into */
+typedef struct
+{
+  cl_addr_t start;
+  cl_addr_t end;
+} cl_ptrmap_range_t;
+
+static int ptrmap_range_cmp(const void *a, const void *b)
+{
+  const cl_ptrmap_range_t *ra = (const cl_ptrmap_range_t *)a;
+  const cl_ptrmap_range_t *rb = (const cl_ptrmap_range_t *)b;
+  if (ra->start < rb->start) return -1;
+  if (ra->start > rb->start) return  1;
+  return 0;
+}
+
+/**
+ * Collects every memory region, ignored or not, as sorted and merged spans.
+ * @return The number of spans written, which is at most memory.region_count
+ */
+static unsigned ptrmap_ranges(cl_ptrmap_range_t *ranges)
+{
+  unsigned count = 0;
+  unsigned i;
+
+  for (i = 0; i < memory.region_count; i++)
+  {
+    ranges[count].start = memory.regions[i].base_guest;
+    ranges[count].end   = memory.regions[i].base_guest + memory.regions[i].size;
+    count++;
+  }
+  if (!count)
+    return 0;
+  qsort(ranges, count, sizeof(*ranges), ptrmap_range_cmp);
+
+  /* Merge touching or overlapping spans so each value has one candidate */
+  for (i = 1, count = 1; i < memory.region_count; i++)
+  {
+    if (ranges[i].start <= ranges[count - 1].end)
+    {
+      if (ranges[i].end > ranges[count - 1].end)
+        ranges[count - 1].end = ranges[i].end;
+    }
+    else
+      ranges[count++] = ranges[i];
+  }
+
+  return count;
+}
+
+static cl_bool ptrmap_points_into(const cl_ptrmap_range_t *ranges,
+  unsigned count, cl_addr_t value)
+{
+  unsigned lo = 0;
+  unsigned hi = count;
+  unsigned mid;
+
+  if (!count || value < ranges[0].start || value >= ranges[count - 1].end)
+    return CL_FALSE;
+
+  /* Find the first span ending after the value */
+  while (lo < hi)
+  {
+    mid = lo + (hi - lo) / 2;
+    if (ranges[mid].end <= value)
+      lo = mid + 1;
+    else
+      hi = mid;
+  }
+
+  return lo < count && value >= ranges[lo].start;
+}
+
 static void ptrmap_free(cl_ptrmap_t *map)
 {
   free(map->entries);
@@ -243,7 +320,8 @@ static void ptrmap_free(cl_ptrmap_t *map)
 
 /**
  * Scans all non-ignored memory regions once and records every
- * pointer-sized value and its guest address, then sorts the result.
+ * pointer-sized value that points into a memory region, and its guest
+ * address, then sorts the result.
  *
  * This is the only full-memory scan for an entire multi-pass search.
  * Memory is read in CL_POINTERSEARCH_CHUNK_SIZE buckets to amortise
@@ -256,16 +334,25 @@ static void ptrmap_free(cl_ptrmap_t *map)
  */
 static cl_error ptrmap_build(cl_ptrmap_t *map, cl_addr_t *scanned_out)
 {
-  uint8_t  *chunk;
-  unsigned  i;
-  cl_addr_t scanned = 0;
-  cl_error  error   = CL_OK;
+  uint8_t           *chunk;
+  cl_ptrmap_range_t *ranges;
+  unsigned           range_count;
+  unsigned           i;
+  cl_addr_t          scanned = 0;
+  cl_error           error   = CL_OK;
 
   memset(map, 0, sizeof(*map));
 
-  chunk = (uint8_t *)malloc(CL_POINTERSEARCH_CHUNK_SIZE);
-  if (!chunk)
+  chunk  = (uint8_t *)malloc(CL_POINTERSEARCH_CHUNK_SIZE);
+  ranges = (cl_ptrmap_range_t *)malloc(
+    (memory.region_count ? memory.region_count : 1) * sizeof(*ranges));
+  if (!chunk || !ranges)
+  {
+    free(chunk);
+    free(ranges);
     return CL_ERR_PARAMETER_NULL;
+  }
+  range_count = ptrmap_ranges(ranges);
 
   for (i = 0; i < memory.region_count; i++)
   {
@@ -298,6 +385,8 @@ static cl_error ptrmap_build(cl_ptrmap_t *map, cl_addr_t *scanned_out)
       {
         cl_addr_t value = 0;
         cl_read_value(&value, chunk, k, ptr_type, region->endianness);
+        if (!ptrmap_points_into(ranges, range_count, value))
+          continue;
         error = ptrmap_push(map, value, region->base_guest + off + k);
         if (error != CL_OK)
           goto done;
@@ -307,6 +396,7 @@ static cl_error ptrmap_build(cl_ptrmap_t *map, cl_addr_t *scanned_out)
 
 done:
   free(chunk);
+  free(ranges);
   if (error == CL_OK)
   {
     /* Sort by value so all subsequent passes can use binary search */
@@ -322,181 +412,162 @@ done:
 }
 
 /* ======================================================================
-   Pass execution using the reverse pointer map
-   ====================================================================== */
+   Backward search using the reverse pointer map
+   ======================================================================
 
-/**
- * Pass 0: find all map entries whose stored value falls within
- * [target - range, target].  Each hit is an address that holds a pointer
- * pointing directly into the target's address range.
- *
- * Result layout after pass 0:
- *   address_initial  = address containing the pointer
- *   offsets[0]       = target - stored_value  (how far past the pointer)
- *   address_final    = target
- */
-static cl_addr_t ptrmap_pass0(const cl_ptrmap_t *map,
-  cl_addr_t target, cl_addr_t range,
-  cl_pointersearch_result_t *out, cl_addr_t max_out,
-  cl_addr_t max_per_pass)
+   The search walks backward from the target one pointer hop per pass. Every
+   address that can reach the target is kept as a node in a tree, which only
+   records the hop to its parent, so intermediate passes can hold millions of
+   candidates cheaply. Only the final pass produces results, and only it is
+   bound by max_results, since capping intermediate passes would drop the
+   paths that lead back to a static root.
+*/
+
+/* A candidate address, which reaches its parent node by adding offset */
+typedef struct
 {
-  cl_addr_t lo_val = (range <= target) ? (target - range) : 0;
-  cl_addr_t lo     = ptrmap_lower_bound(map, lo_val);
-  cl_addr_t hi     = ptrmap_upper_bound(map, target);
-  cl_addr_t idx;
-  cl_addr_t count  = 0;
+  cl_addr_t address;
+  cl_addr_t offset;
+  size_t    parent;
+} cl_ptrsearch_node_t;
 
-  for (idx = lo; idx < hi; idx++)
-  {
-    if (count >= max_out)
-      break;
-    if (max_per_pass && count >= max_per_pass)
-      break;
-
-    out[count].address_initial = map->entries[idx].address;
-    out[count].address_final   = target;
-    out[count].offsets[0]      = target - map->entries[idx].value;
-    count++;
-  }
-  return count;
-}
+#define CL_PTRSEARCH_NO_PARENT ((size_t)-1)
 
 /*
- * Comparison used to sort results by address_initial before multi-pass
- * expansion so that identical targets can be grouped and processed once.
+ * The most nodes kept across intermediate passes, to bound memory use when
+ * the search space explodes. Hitting it means some chains may be missing.
  */
-static int result_cmp_initial(const void *a, const void *b)
+#define CL_PTRSEARCH_MAX_NODES (1 << 24)
+
+/*
+ * Whether a chain may start at the given address. Only a chain's initial
+ * address, which is found on its final pass, is held to the base region.
+ */
+static cl_bool pointersearch_in_base(const cl_pointersearch_t *search,
+  cl_addr_t address)
 {
-  const cl_pointersearch_result_t *ra = (const cl_pointersearch_result_t *)a;
-  const cl_pointersearch_result_t *rb = (const cl_pointersearch_result_t *)b;
-  if (ra->address_initial < rb->address_initial) return -1;
-  if (ra->address_initial > rb->address_initial) return  1;
-  return 0;
+  return !search->base_size ||
+         (address >= search->base_start &&
+          address - search->base_start < search->base_size);
 }
 
 /**
- * Subsequent passes: expand the current result set by walking backward
- * one more pointer hop using the reverse map.
- *
- * Algorithm for each unique address_initial T in results:
- *   1. Binary-search ptrmap for entries with value in [T - range, T].
- *   2. For each such map entry (new_addr, val):
- *        For each existing result whose address_initial == T:
- *          Create a new result:
- *            new.address_initial = new_addr
- *            new.offsets[0]      = T - val        (offset for this new hop)
- *            new.offsets[1..]    = old.offsets[..] (existing chain, shifted up)
- *
- * Sorting the results before this function ensures each unique target T
- * is looked up exactly once, regardless of how many existing chains
- * share it as their head — avoiding redundant binary searches.
- *
- * Pruning: targets with more than CL_PTRMAP_PRUNE_THRESHOLD parents are
- * skipped to prevent combinatorial explosion from widely-shared objects
- * (e.g. common vtables, reference-counted heap nodes).
- *
- * @param pass  Pass index, 1-based (1 = second expansion, 2 = third, ...)
- *              Used to know how many offsets to shift from the old chain.
+ * Runs every pass of a new search over the reverse pointer map, writing up
+ * to search->max_results chains into search->results.
  */
-static cl_error ptrmap_expand_pass(cl_pointersearch_t *search,
-  const cl_ptrmap_t *map, unsigned pass)
+static cl_error ptrmap_search(cl_pointersearch_t *search, const cl_ptrmap_t *map)
 {
-  cl_pointersearch_result_t *new_results;
-  cl_addr_t new_count;
-  cl_addr_t i;
-  /* Declare all loop-body locals here for C89 compatibility */
-  cl_addr_t current_target;
-  cl_addr_t results_lo, results_hi;
-  cl_addr_t map_lo, map_hi, map_idx;
-  cl_addr_t r, k;
-  cl_addr_t lo_val;
-  cl_addr_t per_target;
-  cl_addr_t new_addr, new_offset;
+  cl_ptrsearch_node_t *nodes;
+  size_t    node_count = 1, node_capacity = 65536;
+  size_t    level_lo = 0, level_hi = 1, q;
+  cl_bool   truncated = CL_FALSE;
+  unsigned  pass;
 
-  new_results = (cl_pointersearch_result_t *)calloc(
-    search->max_results, sizeof(cl_pointersearch_result_t));
-  if (!new_results)
+  search->result_count = 0;
+  nodes = (cl_ptrsearch_node_t *)malloc(node_capacity * sizeof(*nodes));
+  if (!nodes)
     return CL_ERR_PARAMETER_NULL;
+  nodes[0].address = search->target_address;
+  nodes[0].offset  = 0;
+  nodes[0].parent  = CL_PTRSEARCH_NO_PARENT;
 
-  new_count = 0;
-
-  /* Sort by address_initial so each unique target is grouped contiguously.
-   * This is the key deduplication step: instead of scanning memory once per
-   * result (old behaviour), we now do one binary search per unique target. */
-  qsort(search->results, (size_t)search->result_count,
-        sizeof(*search->results), result_cmp_initial);
-
-  i = 0;
-  while (i < search->result_count && new_count < search->max_results)
+  for (pass = 0; pass < search->passes; pass++)
   {
-    per_target     = 0;
-    current_target = search->results[i].address_initial;
-    results_lo     = i;
+    cl_bool last = pass + 1 == search->passes;
 
-    /* Find the end of the group sharing current_target */
-    while (i < search->result_count &&
-           search->results[i].address_initial == current_target)
-      i++;
-    results_hi = i;
-
-    /* Look up all stored pointers within [current_target - range, current_target] */
-    lo_val  = (search->range <= current_target)
-              ? (current_target - search->range) : 0;
-    map_lo  = ptrmap_lower_bound(map, lo_val);
-    map_hi  = ptrmap_upper_bound(map, current_target);
-
-    /* Pruning: a target with an excessive number of parents is likely a
-     * widely-shared object.  Expanding it would multiply the result count
-     * by thousands for no practical gain.  Skip it entirely; other branches
-     * in the result set will still find valid chains. */
-    if (CL_PTRMAP_PRUNE_THRESHOLD > 0 &&
-        map_hi - map_lo > CL_PTRMAP_PRUNE_THRESHOLD)
-      continue;
-
-    for (map_idx = map_lo;
-         map_idx < map_hi && new_count < search->max_results;
-         map_idx++)
+    for (q = level_lo; q < level_hi; q++)
     {
-      new_addr   = map->entries[map_idx].address;
-      new_offset = current_target - map->entries[map_idx].value;
+      cl_addr_t target = nodes[q].address;
+      cl_addr_t lo_val = search->range <= target ? target - search->range : 0;
+      cl_addr_t map_lo = ptrmap_lower_bound(map, lo_val);
+      cl_addr_t map_hi = ptrmap_upper_bound(map, target);
+      cl_addr_t per_target = 0;
+      cl_addr_t idx;
 
-      /* Fan out: one new result per existing chain that passes through
-       * current_target.  In the common case (results_lo + 1 == results_hi)
-       * this inner loop executes exactly once. */
-      for (r = results_lo;
-           r < results_hi && new_count < search->max_results;
-           r++)
+      /* Pruning: a target with an excessive number of parents is likely a
+       * widely-shared object. Expanding it through the heap would multiply
+       * the candidates by thousands for no practical gain, so only parents
+       * in static image memory are kept. */
+      cl_bool prune = CL_PTRMAP_PRUNE_THRESHOLD > 0 &&
+                      map_hi - map_lo > CL_PTRMAP_PRUNE_THRESHOLD;
+
+      for (idx = map_lo; idx < map_hi; idx++)
       {
-        cl_pointersearch_result_t *old = &search->results[r];
-        cl_pointersearch_result_t *out = &new_results[new_count];
+        cl_addr_t address = map->entries[idx].address;
+        cl_addr_t offset  = target - map->entries[idx].value;
 
-        out->address_initial = new_addr;
-        out->address_final   = search->target_address;
+        if (last && !pointersearch_in_base(search, address))
+          continue;
+        if (prune)
+        {
+          const cl_memory_region_t *region = cl_find_memory_region(address);
 
-        /* Insert the new hop at offsets[0] and shift the existing chain up.
-         * Example for pass=2 (third pointer level):
-         *   out->offsets[0] = new_offset          (new hop: new_addr → current_target)
-         *   out->offsets[1] = old->offsets[0]     (old hop: current_target → ...)
-         *   out->offsets[2] = old->offsets[1]     (old hop: ... → target_address)  */
-        out->offsets[0] = new_offset;
-        for (k = 0; k < (cl_addr_t)pass && k + 1 < CL_POINTER_MAX_PASSES; k++)
-          out->offsets[k + 1] = old->offsets[k];
+          if (!region || !region->flags.bits.image)
+            continue;
+        }
 
-        new_count++;
-        per_target++;
+        if (last)
+        {
+          cl_pointersearch_result_t *out = &search->results[search->result_count++];
+          size_t   n = q;
+          unsigned k = 1;
+
+          /* Offsets run outward from the initial address to the target */
+          out->address_initial = address;
+          out->address_final   = search->target_address;
+          out->offsets[0]      = offset;
+          while (nodes[n].parent != CL_PTRSEARCH_NO_PARENT && k < CL_POINTER_MAX_PASSES)
+          {
+            out->offsets[k++] = nodes[n].offset;
+            n = nodes[n].parent;
+          }
+
+          if (search->result_count >= search->max_results)
+            goto done;
+        }
+        else
+        {
+          if (node_count >= CL_PTRSEARCH_MAX_NODES)
+          {
+            truncated = CL_TRUE;
+            break;
+          }
+          if (node_count >= node_capacity)
+          {
+            cl_ptrsearch_node_t *p = (cl_ptrsearch_node_t *)realloc(nodes,
+              node_capacity * 2 * sizeof(*nodes));
+
+            if (!p)
+            {
+              truncated = CL_TRUE;
+              break;
+            }
+            nodes = p;
+            node_capacity *= 2;
+          }
+          nodes[node_count].address = address;
+          nodes[node_count].offset  = offset;
+          nodes[node_count].parent  = q;
+          node_count++;
+        }
 
         /* Stop expanding this target once the per-pass cap is reached */
         if (search->max_results_per_pass &&
-            per_target >= search->max_results_per_pass)
-          goto next_target;
+            ++per_target >= search->max_results_per_pass)
+          break;
       }
     }
-    next_target: ;
+    level_lo = level_hi;
+    level_hi = node_count;
   }
 
-  free(search->results);
-  search->results      = new_results;
-  search->result_count = new_count;
+done:
+  free(nodes);
+  if (truncated)
+    cl_message(CL_MSG_WARN, "Pointer search hit its candidate limit, so "
+      "some chains may be missing. Lower the offset range or "
+      "pointer levels to search more thoroughly.");
+
   return CL_OK;
 }
 
@@ -534,6 +605,8 @@ cl_error cl_pointersearch_init(cl_pointersearch_t *search, cl_addr_t address,
   search->max_results          = max_results;
   search->max_results_per_pass = max_results_per_pass;
   search->target_address       = address;
+  search->base_start           = 0;
+  search->base_size            = 0;
   search->params.value_type    = value_type;
   search->params.value_size    = cl_sizeof_memtype(value_type);
   search->params.compare_type  = CL_COMPARE_EQUAL;
@@ -624,7 +697,6 @@ cl_error cl_pointersearch_step(cl_pointersearch_t *search)
     cl_ptrmap_t map;
     cl_addr_t   scanned = 0;
     clock_t     start   = clock();
-    unsigned    pass;
     cl_error    error;
 
     search->results = (cl_pointersearch_result_t *)calloc(
@@ -642,23 +714,13 @@ cl_error cl_pointersearch_step(cl_pointersearch_t *search)
     }
     search->memory_scanned = scanned;
 
-    /* Pass 0: direct pointers into target_address ± range */
-    search->result_count = ptrmap_pass0(&map,
-      search->target_address, search->range,
-      search->results, search->max_results,
-      search->max_results_per_pass);
-
-    /* Passes 1..N-1: expand backward one hop per pass using the map.
-     * Each pass replaces search->results with a new array where every
-     * result's address_initial has been pushed one level back.         */
-    for (pass = 1; pass < search->passes; pass++)
+    error = ptrmap_search(search, &map);
+    if (error != CL_OK)
     {
-      error = ptrmap_expand_pass(search, &map, pass);
-      if (error != CL_OK)
-      {
-        ptrmap_free(&map);
-        return error;
-      }
+      ptrmap_free(&map);
+      free(search->results);
+      search->results = NULL;
+      return error;
     }
 
     ptrmap_free(&map);
@@ -730,6 +792,22 @@ cl_error cl_pointersearch_change_compare_type(cl_pointersearch_t *search,
   else
   {
     search->params.compare_type = compare_type;
+
+    return CL_OK;
+  }
+}
+
+cl_error cl_pointersearch_change_base_region(cl_pointersearch_t *search,
+  const cl_memory_region_t *region)
+{
+  if (!search)
+    return CL_ERR_PARAMETER_NULL;
+  else if (search->results)
+    return CL_ERR_CLIENT_RUNTIME;
+  else
+  {
+    search->base_start = region ? region->base_guest : 0;
+    search->base_size  = region ? region->size : 0;
 
     return CL_OK;
   }

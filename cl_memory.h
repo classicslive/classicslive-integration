@@ -26,6 +26,15 @@ typedef enum
 cl_memory_region_t* cl_find_memory_region(cl_addr_t address);
 
 /**
+ * Converts a value given at a region's base_guest address, such as a constant
+ * pointer in a script, to the address the guest uses at runtime.
+ * @param value A value that may point into a memory region.
+ * @return The value at its runtime address, or the value unchanged if it does
+ * not point into a region with a different runtime address.
+ **/
+cl_addr_t cl_memory_runtime_address(cl_addr_t value);
+
+/**
  * Frees all values contained within the global memory context.
  */
 void cl_memory_free(void);

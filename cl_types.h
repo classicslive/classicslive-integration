@@ -453,6 +453,13 @@ typedef union cl_memory_region_flags
     unsigned image : 1;
     unsigned mapped : 1;
     unsigned privated : 1;
+
+    /**
+     * Pointer chains should start in this region, such as a game's main
+     * module on Switch. The Live Editor offers it as the default base region
+     * for pointer searches.
+     */
+    unsigned pointer_root : 1;
   } bits;
   unsigned raw;
 } cl_memory_region_flags;
@@ -493,6 +500,14 @@ typedef struct cl_memory_region_t
    * because 0 can be a valid guest memory location).
    */
   cl_addr_t base_guest;
+
+  /**
+   * The address the guest itself uses for the start of this region, if it
+   * differs from base_guest, otherwise 0. For example, a Switch game's main
+   * module is shown at a fixed canonical address so memory notes work across
+   * boots, but is loaded somewhere else, which is what its pointers hold.
+   */
+  cl_addr_t base_runtime;
 
   /** The size, in bytes, of this region. */
   cl_addr_t size;

@@ -1,105 +1,218 @@
 #ifndef CL_SEARCH_H
 #define CL_SEARCH_H
 
-#include "cl_memory.h"
 #include "cl_types.h"
 
+typedef struct cl_search_page_t cl_search_page_t;
+
+struct cl_search_page_t
+{
+  /* Number of matches found in this page */
+  cl_addr_t matches;
+
+  /* A buffer containing the memory chunk data and validity bitmap */
+  void *chunk;
+
+  /* A pointer to the position of the validity bitmap within the chunk */
+  unsigned char *validity;
+
+  /* The starting address of the memory chunk */
+  cl_addr_t start;
+
+  /* The first address of the memory chunk that resulted in a match */
+  cl_addr_t first;
+
+  /* The last address of the memory chunk that resulted in a match */
+  cl_addr_t end;
+
+  /**
+   * The size, in bytes, of the data in the memory chunk. Should typically be
+   * `CL_SEARCH_CHUNK_SIZE` except if the target region has memory smaller
+   * than that or if it's the last chunk in a region that can't be divided
+   * equally.
+   * The chunk size should be `size + size / search->params.value_size`.
+   */
+  cl_addr_t size;
+
+  /* Next page in the linked list */
+  cl_search_page_t *next;
+
+  /* The memory region this page is within */
+  const cl_memory_region_t *region;
+};
+
+/* A wrapper for search pages to group them by memory region */
+typedef struct
+{
+  /* The memory region these pages fall under */
+  const cl_memory_region_t *region;
+
+  /* The first page in the linked list */
+  cl_search_page_t *first_page;
+
+  /* The number of pages in this page region */
+  unsigned page_count;
+
+  /* The total number of matches in this page region */
+  cl_addr_t matches;
+} cl_search_page_region_t;
+
 /**
- * Parameters used for pointer searches
+ * An opaque handle representing a target value for searches.
+ * This holds two slots: the target value itself, and, for precision-limited
+ * floating-point matching, the exclusive far edge of the match window.
+ * The actual implementation is available in `cl_search.c`.
  */
+typedef union
+{
+  unsigned char raw[16];
+  double _align;
+} cl_search_target_t;
+
 typedef struct
 {
   /* The type of value being searched for */
   cl_value_type value_type;
 
-  /* The size, in bytes, of the value type */
+  /**
+   * The size, in bytes, of the value type.
+   * Should only ever be 1, 2, 4, or 8.
+   */
   unsigned value_size;
 
   /* The comparison method to use */
   cl_compare_type compare_type;
-} cl_pointersearch_parameters_t;
 
-/**
- * A single pointer search result containing the pointer chain and values.
+  /* The target value to compare against */
+  cl_search_target_t target;
+
+  /**
+   * A pointer to the target value to compare against. This offsets to the
+   * correct position of the target union.
+   */
+  const void *target_ptr;
+
+  /** Whether to use the target value as a value in comparisons */
+  unsigned target_none;
+
+  /**
+   * Whether floating-point equality should match a window of values instead
+   * of one exact value. @see cl_search_change_target_precision
+   */
+  unsigned target_window;
+
+  /** Whether that window was built around a negative target value */
+  unsigned target_window_negative;
+} cl_search_parameters_t;
+
+/** 
+ * The main structure representing an ongoing memory search.
+ * Upon creating a search, call `cl_search_init` to initialize it.
+ * To free the search, call `cl_search_free`.
  */
 typedef struct
 {
-  /* The initial address where the pointer chain starts */
-  cl_addr_t address_initial;
+  /**
+   * The parameters used for this search. Edit this by using
+   * `cl_search_change_params`.
+   */
+  cl_search_parameters_t params;
 
-  /* The final address after following all pointers */
-  cl_addr_t address_final;
+  cl_search_page_region_t *page_regions;
+  unsigned page_region_count;
 
-  /* The current value at the final address */
-  cl_addr_t value_current;
+  /* The number of times `cl_search_step` has been called with this search */
+  unsigned steps;
 
-  /* The previous value at the final address */
-  cl_addr_t value_previous;
+  /* The total number of pages allocated for this search */
+  unsigned total_page_count;
 
-  /* The offsets applied at each pointer level */
-  cl_addr_t offsets[CL_POINTER_MAX_PASSES];
-} cl_pointersearch_result_t;
+  /* The total number of matches found in the search */
+  cl_addr_t total_matches;
 
-/**
- * The main pointer search structure.
- * Searches for pointer chains that lead to a target address.
- */
-typedef struct
-{
-  /* Search parameters */
-  cl_pointersearch_parameters_t params;
+  /* The total memory usage of the search, in bytes */
+  cl_addr_t memory_usage;
 
-  /* Number of pointer dereferences in the chain */
-  unsigned passes;
+  /* The total amount of memory scanned in the last step, in bytes */
+  cl_addr_t memory_scanned;
 
-  /* Maximum offset range to search for at each level */
-  cl_addr_t range;
-
-  /* Array of found pointer chains */
-  cl_pointersearch_result_t *results;
-
-  /* Number of results found */
-  cl_addr_t result_count;
-
-  /* Maximum number of results to store */
-  cl_addr_t max_results;
-} cl_pointersearch_t;
+  /* The amount of time taken by the last search step, in seconds */
+  double time_taken;
+} cl_search_t;
 
 /**
- * Frees memory allocated for a pointer search.
- * @param search A pointer to the pointer search to free
- * @return CL_OK on success, or an error code on failure
+ * Changes the comparison type used in the search.
+ * @param search A pointer to the search to modify
+ * @param compare_type The new comparison type to use
  */
-cl_error cl_pointersearch_free(cl_pointersearch_t *search);
+cl_error cl_search_change_compare_type(cl_search_t *search,
+  cl_compare_type compare_type);
 
 /**
- * Initializes a pointer search to find chains leading to a target address.
- * @param search A pointer to the search structure to initialize
- * @param address The target address to find pointers to
- * @param value_type The type of value at the target address
- * @param passes The number of pointer dereferences to search through
- * @param range The maximum offset range for each pointer level
- * @param max_results The maximum number of results to store
- * @return CL_OK on success, or an error code on failure
+ * Changes the value type used in the search. This cannot be used once the
+ * search has begun (i.e. after calling `cl_search_step`).
+ * @param search A pointer to the search to modify
+ * @param type The new value type to use
  */
-cl_error cl_pointersearch_init(cl_pointersearch_t *search, cl_addr_t address,
-  cl_value_type value_type, unsigned passes, cl_addr_t range,
-  cl_addr_t max_results);
+cl_error cl_search_change_value_type(cl_search_t *search, cl_value_type type);
 
 /**
- * Filters pointer search results based on value comparisons.
- * @param search A pointer to the pointer search
- * @param value A pointer to the value to compare against, or NULL to compare
- *   against previous values
- * @return The number of matching results
+ * Changes the target value used in the search.
+ * @param search A pointer to the search to modify
+ * @param value A pointer to the new target value to use, or NULL to compare
+ *   against the previous value instead
  */
-cl_addr_t cl_pointersearch_step(cl_pointersearch_t *search, const void *value);
+cl_error cl_search_change_target(cl_search_t *search, const void *value);
 
 /**
- * Updates the current values for all pointer search results.
- * Resolves each pointer chain and reads the current value.
- * @param search A pointer to the pointer search to update
+ * Changes the target value used in the search, matching floating-point values
+ * only as precisely as the user expressed them. A target of "2" then matches
+ * anything in [2, 3), "2.0" matches [2.0, 2.1), and "2.10" matches
+ * [2.10, 2.11). Negative targets window towards zero the same way, so "-2"
+ * matches (-3, -2]. Integer types ignore `decimals` and match exactly.
+ * @param search A pointer to the search to modify
+ * @param value A pointer to the new target value to use, or NULL to compare
+ *   against the previous value instead
+ * @param decimals The count of digits supplied after the decimal point
  */
-void cl_pointersearch_update(cl_pointersearch_t *search);
+cl_error cl_search_change_target_precision(cl_search_t *search,
+  const void *value, unsigned decimals);
+
+cl_error cl_search_free(cl_search_t *search);
+
+/**
+ * Initializes a memory search structure.
+ * @param search A pointer to the search to initialize
+ */
+cl_error cl_search_init(cl_search_t *search);
+
+/**
+ * Remove one address from the search, freeing any memory if possible.
+ * @param search A pointer to the search
+ * @param address The address to invalidate
+ */
+cl_error cl_search_remove(cl_search_t *search, cl_addr_t address);
+
+/**
+ * Resets a search, freeing the data but retaining the parameters.
+ * @param search A pointer to the search to reset
+ */
+cl_error cl_search_reset(cl_search_t *search);
+
+/**
+ * Filters the values to only those that match the given `params`. The total
+ * number of matches will then be available in `total_matches`.
+ * @param search A pointer to the search to perform a step on
+ */
+cl_error cl_search_step(cl_search_t *search);
+
+/**
+ * Retrieves the value at a given address from the search backup memory.
+ * @param dst A pointer to a type matching the search's `type`
+ * @param search The search to retrieve the value from
+ * @param address The virtual address of the value to retrieve
+ */
+cl_error cl_search_backup_value(void *dst, const cl_search_t *search,
+  cl_addr_t address);
 
 #endif

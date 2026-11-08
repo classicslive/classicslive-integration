@@ -1,5 +1,5 @@
-#ifndef CL_SEARCH_POINTER_NEW_H
-#define CL_SEARCH_POINTER_NEW_H
+#ifndef CL_SEARCH_POINTER_H
+#define CL_SEARCH_POINTER_H
 
 #include "cl_types.h"
 
@@ -108,6 +108,13 @@ typedef struct
   /* The target address to find pointers to */
   cl_addr_t target_address;
 
+  /**
+   * If base_size is nonzero, only chains whose initial address lies in
+   * [base_start, base_start + base_size) are kept.
+   */
+  cl_addr_t base_start;
+  cl_addr_t base_size;
+
   /* Total bytes read across all passes in the last step */
   cl_addr_t memory_scanned;
 
@@ -131,6 +138,16 @@ cl_error cl_pointersearch_free(cl_pointersearch_t *search);
  */
 cl_error cl_pointersearch_change_compare_type(cl_pointersearch_t *search,
   cl_compare_type compare_type);
+
+/**
+ * Restricts the search to pointer chains starting in a memory region. This
+ * cannot be used once the search has begun (i.e. after calling
+ * `cl_pointersearch_step`).
+ * @param search A pointer to the search to modify
+ * @param region The region chains must start in, or NULL to allow any
+ */
+cl_error cl_pointersearch_change_base_region(cl_pointersearch_t *search,
+  const cl_memory_region_t *region);
 
 /**
  * Changes the value type used in the search. This cannot be used once the

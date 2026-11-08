@@ -43,6 +43,22 @@ cl_memory_region_t* cl_find_memory_region(cl_addr_t address)
   return CL_NULL;
 }
 
+cl_addr_t cl_memory_runtime_address(cl_addr_t value)
+{
+  unsigned i;
+
+  for (i = 0; i < memory.region_count; i++)
+  {
+    const cl_memory_region_t *region = &memory.regions[i];
+
+    if (region->base_runtime && value >= region->base_guest &&
+        value - region->base_guest < region->size)
+      return value - region->base_guest + region->base_runtime;
+  }
+
+  return value;
+}
+
 cl_memnote_t* cl_find_memnote(unsigned key)
 {
   unsigned i;
@@ -218,7 +234,7 @@ cl_error cl_init_membanks_libretro(const struct retro_memory_descriptor **descs,
   {
     cl_memory_region_t *region = &memory.regions[i];
 
-    cl_log("Region %02X: 0x%08X | %08X bytes | %s\n", i, region->base_guest,
+    cl_log("Region %02X: 0x" CL_ADDRF " | " CL_ADDRF " bytes | %s\n", i, region->base_guest,
            region->size, region->title);
   }
 
@@ -308,7 +324,7 @@ static cl_error cl_memory_init_note(cl_memnote_t *note)
 {
   cl_counter_t counter;
 
-  cl_log("Memory note {%04u} - S: %u, P: %u, A: %08X",
+  cl_log("Memory note {%04u} - S: %u, P: %u, A: " CL_ADDRF,
          note->key,
          cl_sizeof_memtype(note->type),
          note->pointer_passes,
@@ -399,7 +415,7 @@ cl_error cl_memory_add_note(const cl_memnote_t *note)
 #endif
   memory.note_count++;
 
-  cl_log("Added memnote {%04u} - S: %u, P: %u, A: %08X\n",
+  cl_log("Added memnote {%04u} - S: %u, P: %u, A: " CL_ADDRF "\n",
     note->key,
     cl_sizeof_memtype(note->type),
     note->pointer_passes,
@@ -485,9 +501,18 @@ cl_error cl_write_memory_value_internal(const void *value,
 cl_error cl_read_memory_buffer_external(void *value,
   const cl_memory_region_t *bank, cl_addr_t address, cl_addr_t size)
 {
+  unsigned read = 0;
+  cl_error error;
+
   if (bank)
     address += bank->base_guest;
-  return cl_abi_external_read_buffer(value, address, size, CL_NULL);
+  error = cl_abi_external_read_buffer(value, address, size, &read);
+
+  /* Part of the range may not be mapped, leaving the rest of the buffer stale */
+  if (error == CL_OK && read != size)
+    return CL_ERR_PARAMETER_INVALID;
+
+  return error;
 }
 
 cl_error cl_read_memory_value_external(void *value,
@@ -585,7 +610,7 @@ static cl_error cl_update_memnote(cl_memnote_t *note)
   cl_ctr_store(&note->current, &new_val, note->type);
 
   /* Logic for "last unique" values; the previous value will persist */
-  if (cl_ctr_equal_exact(&note->previous, &note->current) != CL_OK)
+  if (!cl_ctr_equal_exact(&note->previous, &note->current))
     note->last_unique = note->previous;
 
   return CL_OK;
@@ -617,7 +642,7 @@ cl_error cl_write_memnote(cl_memnote_t *note, const cl_counter_t *value)
   if (error != CL_OK)
     return error;
 
-  return cl_write_memory_value(cl_ctr_is_float(value) == CL_OK ?
+  return cl_write_memory_value(cl_ctr_is_float(value) ?
     (const void *)&value->floatval.fp : (const void *)&value->intval.i64,
     CL_NULL, note->address, note->type);
 }

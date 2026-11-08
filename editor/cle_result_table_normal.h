@@ -6,7 +6,7 @@
 extern "C"
 {
   #include "../cl_memory.h"
-  #include "../cl_search_new.h"
+  #include "../cl_search.h"
 }
 
 #include "cle_common.h"

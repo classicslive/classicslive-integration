@@ -11,7 +11,7 @@ extern "C"
 
 CleResultTablePointer::CleResultTablePointer(QWidget *parent, cl_addr_t address,
    cl_value_type value_type, unsigned passes, cl_addr_t range, cl_addr_t max_results,
-   cl_addr_t max_results_per_pass)
+   cl_addr_t max_results_per_pass, const cl_memory_region_t *base_region)
 {
    char offset_str[16];
    unsigned i;
@@ -47,6 +47,7 @@ CleResultTablePointer::CleResultTablePointer(QWidget *parent, cl_addr_t address,
    {
       cl_log("Failed to initialize pointer search for address %016llX\n", (unsigned long long)address);
    }
+   cl_pointersearch_change_base_region(&m_Search, base_region);
    step();
 }
 

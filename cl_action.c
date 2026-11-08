@@ -31,6 +31,22 @@ cl_error cl_free_action(cl_action_t *action)
   return CL_ERR_CLIENT_RUNTIME;
 }
 
+static cl_error cl_act_closed(cl_action_t *action)
+{
+  CL_UNUSED(action);
+  return CL_OK;
+}
+
+/**
+ * Retires an action that has finished its job so it never runs again.
+ * Unlike cl_free_action, the action stays linked into its page and processes
+ * as a successful no-op, so it doesn't report a runtime error every frame.
+ **/
+static void cl_close_action(cl_action_t *action)
+{
+  action->function = cl_act_closed;
+}
+
 static cl_error cl_print_counter_values(char *buffer, unsigned len)
 {
   const cl_counter_t *counter;
@@ -82,6 +98,8 @@ static cl_counter_t cl_get_compare_value(cl_src_t source, cl_int64 offset)
   switch (source)
   {
   case CL_SRCTYPE_IMMEDIATE_INT:
+    /* Constant pointers are stored at canonical addresses, like memory notes */
+    offset = (cl_int64)cl_memory_runtime_address((cl_addr_t)offset);
     counter.type = CL_MEMTYPE_INT64;
     cl_ctr_store(&counter, &offset, CL_MEMTYPE_INT64);
     break;
@@ -223,6 +241,14 @@ static cl_error cl_act_post_achievement(cl_action_t *action)
 {
   cl_counter_t ach_id = cl_get_compare_value(action->arguments[0].uintval,
                                              action->arguments[1].uintval);
+
+  /*
+   * Close this action before notifying anyone, so a frontend that re-enters
+   * the script while showing the message (e.g. a modal dialog's event loop)
+   * can't submit the achievement again.
+   */
+  cl_close_action(action);
+
 #if CL_HAVE_EDITOR
   cl_message(CL_MSG_INFO, "Editor mode: Achievement " CL_FU64 " unlocked.",
     ach_id.intval.raw);
@@ -237,8 +263,6 @@ static cl_error cl_act_post_achievement(cl_action_t *action)
     cl_network_post_clint(CL_END_CLINT_ACHIEVEMENT, data, cl_achievement_cb, NULL);
   }
 #endif
-  /* Clear this action so we don't re-submit the achievement */
-  cl_free_action(action);
 
   return CL_OK;
 }
