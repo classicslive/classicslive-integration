@@ -16,6 +16,7 @@
 #define CL_END_CLINT_CLOSE "close"
 #define CL_END_CLINT_LOGIN "login"
 #define CL_END_CLINT_PING "ping"
+#define CL_END_CLINT_PROGRESS "progress"
 #define CL_END_CLINT_START "start"
 #define CL_END_CLINT_STOP "stop"
 

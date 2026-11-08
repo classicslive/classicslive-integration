@@ -81,6 +81,8 @@ static const cl_json_key_map_t cl_json_key_map[] =
   { CL_JSON_KEY_ORDER,          "order"          },
   { CL_JSON_KEY_PASSWORD,       "password"       },
   { CL_JSON_KEY_POINTER_SIZE,   "pointer_size"   },
+  { CL_JSON_KEY_PROGRESS_COUNT, "progress_count" },
+  { CL_JSON_KEY_PROGRESS_TOTAL, "progress_total" },
   { CL_JSON_KEY_REASON,         "reason"         },
   { CL_JSON_KEY_SCRIPT,         "script"         },
   { CL_JSON_KEY_SESSION_ID,     "session_id"     },
@@ -230,7 +232,9 @@ static int cl_json_number_array(void *userdata, const char* number,
   size_t length)
 {
   cl_json_t *ud = (cl_json_t*)userdata;
-  unsigned value = 0;
+  /* Parse as 64-bit so memory note addresses above 4GB (e.g. 0x80033DCBC0)
+   * aren't truncated; fields narrower than this are cast on assignment. */
+  uint64_t value = 0;
   cl_error error = cl_strto(&number, &value, sizeof(value), CL_FALSE);
   CL_UNUSED(length);
 
@@ -251,6 +255,12 @@ static int cl_json_number_array(void *userdata, const char* number,
         break;
       case CL_JSON_KEY_FLAGS:
         ach->flags = value;
+        break;
+      case CL_JSON_KEY_PROGRESS_COUNT:
+        ach->progress_count = value;
+        break;
+      case CL_JSON_KEY_PROGRESS_TOTAL:
+        ach->progress_total = value;
         break;
       default:
         break;
@@ -278,7 +288,7 @@ static int cl_json_number_array(void *userdata, const char* number,
       switch (ud->field)
       {
       case CL_JSON_KEY_ADDRESS:
-        note->address_initial = value;
+        note->address_initial = (cl_addr_t)value;
         break;
       case CL_JSON_KEY_FLAGS:
         note->flags = value;

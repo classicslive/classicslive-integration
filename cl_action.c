@@ -1,11 +1,14 @@
 #include "cl_action.h"
 #include "cl_common.h"
 #include "cl_dma.h"
+#include "cl_json.h"
+#include "cl_main.h"
 #include "cl_memory.h"
 #include "cl_network.h"
 #include "cl_script.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 static cl_error cl_act_no_process(cl_action_t *action)
@@ -146,6 +149,76 @@ static cl_counter_t *cl_get_mutable_value(cl_src_t source, cl_int64 offset)
   return NULL;
 }
 
+#if !CL_HAVE_EDITOR
+static cl_achievement_t *cl_find_achievement(unsigned id)
+{
+  unsigned i;
+
+  for (i = 0; i < session.achievement_count; i++)
+    if (session.achievements[i].id == id)
+      return &session.achievements[i];
+
+  return NULL;
+}
+
+/**
+ * Applies the "achievements" list the server returns from the achievement
+ * and progress endpoints: the achievement itself plus any progress
+ * achievements it advanced or completed. Announces new unlocks and progress,
+ * except for subachievements, which only count toward their parents.
+ */
+static void cl_apply_achievement_updates(const char *json)
+{
+  cl_achievement_t *updates = NULL;
+  unsigned count = 0;
+  unsigned i;
+
+  if (!json || cl_json_get_array((void**)&updates, &count, json,
+      CL_JSON_KEY_ACHIEVEMENTS, CL_JSON_TYPE_ACHIEVEMENT) != CL_OK)
+    return;
+
+  for (i = 0; i < count; i++)
+  {
+    const cl_achievement_t *update = &updates[i];
+    cl_achievement_t *ach = cl_find_achievement(update->id);
+    cl_bool newly_unlocked, progressed, is_sub;
+
+    if (!ach)
+      continue;
+
+    newly_unlocked = update->unlocked && !ach->unlocked;
+    progressed = update->progress_total &&
+                 update->progress_count != ach->progress_count;
+    is_sub = (update->flags & CL_ACHIEVEMENT_FLAG_SUBACHIEVEMENT) != 0;
+
+    ach->unlocked = ach->unlocked || update->unlocked;
+    ach->flags = update->flags;
+    if (update->progress_total)
+    {
+      ach->progress_count = update->progress_count;
+      ach->progress_total = update->progress_total;
+    }
+
+    if (is_sub)
+      continue;
+    else if (newly_unlocked)
+      cl_message(CL_MSG_INFO, "Achievement unlocked: %s", ach->title);
+    else if (progressed && !ach->unlocked)
+      cl_message(CL_MSG_INFO, "%s: %u / %u", ach->title,
+                 ach->progress_count, ach->progress_total);
+  }
+
+  free(updates);
+}
+
+static CL_NETWORK_CB(cl_achievement_cb)
+{
+  CL_UNUSED(userdata);
+  if (!response.error_code)
+    cl_apply_achievement_updates(response.data);
+}
+#endif
+
 static cl_error cl_act_post_achievement(cl_action_t *action)
 {
   cl_counter_t ach_id = cl_get_compare_value(action->arguments[0].uintval,
@@ -155,9 +228,14 @@ static cl_error cl_act_post_achievement(cl_action_t *action)
     ach_id.intval.raw);
 #else
   char data[CL_POST_DATA_SIZE];
+  cl_achievement_t *ach = cl_find_achievement((unsigned)ach_id.intval.raw);
 
-  snprintf(data, CL_POST_DATA_SIZE, "achievement_id=" CL_FU64, ach_id.intval.raw);
-  cl_network_post_clint(CL_END_CLINT_ACHIEVEMENT, data, NULL, NULL);
+  /* Don't resubmit an achievement the server already knows is unlocked */
+  if (!ach || !ach->unlocked)
+  {
+    snprintf(data, CL_POST_DATA_SIZE, "achievement_id=" CL_FU64, ach_id.intval.raw);
+    cl_network_post_clint(CL_END_CLINT_ACHIEVEMENT, data, cl_achievement_cb, NULL);
+  }
 #endif
   /* Clear this action so we don't re-submit the achievement */
   cl_free_action(action);
@@ -165,16 +243,26 @@ static cl_error cl_act_post_achievement(cl_action_t *action)
   return CL_OK;
 }
 
+/**
+ * Asks the server how far along a progress achievement is and announces it.
+ * Progress itself comes from unlocking the achievement's subachievements.
+ */
 static cl_error cl_act_post_progress(cl_action_t *action)
 {
-  unsigned key = (unsigned)action->arguments[0].uintval;
+  cl_counter_t ach_id = cl_get_compare_value(action->arguments[0].uintval,
+                                             action->arguments[1].uintval);
+#if !CL_HAVE_EDITOR
   char data[CL_POST_DATA_SIZE];
 
-  snprintf(data, CL_POST_DATA_SIZE, "ach_id=%u", key);
-  if (cl_print_counter_values(data, sizeof(data)) != CL_OK)
-    cl_message(CL_MSG_ERROR, "Unable to allocate progress data.");
-  else
-    cl_message(CL_MSG_ERROR, "Unimplemented endpoint progress\n%s", data);
+  snprintf(data, CL_POST_DATA_SIZE, "achievement_id=" CL_FU64, ach_id.intval.raw);
+  cl_network_post_clint(CL_END_CLINT_PROGRESS, data, cl_achievement_cb, NULL);
+
+  /* Clear this action so we don't spam progress requests every frame */
+  cl_free_action(action);
+#else
+  cl_message(CL_MSG_INFO, "Editor mode: Progress requested for " CL_FU64 ".",
+    ach_id.intval.raw);
+#endif
 
   return CL_OK;
 }

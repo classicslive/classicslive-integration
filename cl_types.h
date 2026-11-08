@@ -176,6 +176,22 @@ typedef enum
   CL_MEMTYPE_SIZE
 } cl_value_type;
 
+/**
+ * Achievement flag bits, matching the server's ACH_FLAG_* constants.
+ */
+typedef enum
+{
+  CL_ACHIEVEMENT_FLAG_MISSABLE       = 1 << 0,
+  CL_ACHIEVEMENT_FLAG_COMPLETION     = 1 << 2,
+  CL_ACHIEVEMENT_FLAG_AOTW           = 1 << 4,
+
+  /* Unlocks once all of its subachievements are unlocked (server side) */
+  CL_ACHIEVEMENT_FLAG_PROGRESS       = 1 << 5,
+
+  /* Part of a progress achievement; not announced on its own */
+  CL_ACHIEVEMENT_FLAG_SUBACHIEVEMENT = 1 << 6
+} cl_achievement_flag;
+
 typedef struct
 {
   char title[64];
@@ -184,6 +200,10 @@ typedef struct
   unsigned flags;
   unsigned id;
   cl_bool unlocked;
+
+  /* For progress achievements: subachievements unlocked, out of how many */
+  unsigned progress_count;
+  unsigned progress_total;
 } cl_achievement_t;
 
 typedef struct
