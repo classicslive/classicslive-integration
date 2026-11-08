@@ -524,10 +524,8 @@ typedef struct cl_memory_region_t
    */
   char title[256];
 
-#if CL_HAVE_EDITOR
-  /** Whether to ignore this region in searches. */
+  /** Whether to ignore this region in searches, ie. as set in the editor. */
   cl_bool ignore;
-#endif
 } cl_memory_region_t;
 
 /**
