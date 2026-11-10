@@ -26,6 +26,7 @@ CLASSICS_LIVE_SOURCES_LIBRETRO = \
     $(CLASSICS_LIVE_LIBRETRO_DIR)/encodings/encoding_base64.c \
     $(CLASSICS_LIVE_LIBRETRO_DIR)/encodings/encoding_crc32.c \
     $(CLASSICS_LIVE_LIBRETRO_DIR)/encodings/encoding_utf.c \
+    $(CLASSICS_LIVE_LIBRETRO_DIR)/features/features_cpu.c \
     $(CLASSICS_LIVE_LIBRETRO_DIR)/file/file_path.c \
     $(CLASSICS_LIVE_LIBRETRO_DIR)/file/file_path_io.c \
     $(CLASSICS_LIVE_LIBRETRO_DIR)/hash/lrc_hash.c \
@@ -34,6 +35,9 @@ CLASSICS_LIVE_SOURCES_LIBRETRO = \
     $(CLASSICS_LIVE_LIBRETRO_DIR)/string/stdstring.c \
     $(CLASSICS_LIVE_LIBRETRO_DIR)/time/rtime.c \
     $(CLASSICS_LIVE_LIBRETRO_DIR)/utils/md5.c
+
+CLASSICS_LIVE_SOURCES_LIBRETRO += \
+    $(wildcard $(CLASSICS_LIVE_LIBRETRO_DIR)/string/rstrtod.c)
 
 # VFS is sometimes needed, sometimes not, and sometimes broken. Define this
 # variable if it causes issues.
