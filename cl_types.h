@@ -286,7 +286,7 @@ typedef struct
    * Required when using CL_GAMEIDENTIFIER_PRODUCT_CODE.
    * The exact format depends on the platform.
    */
-  char product[32];
+  char product[256];
 
   /**
    * When using CL_GAMEIDENTIFIER_PRODUCT_CODE, the version string.
