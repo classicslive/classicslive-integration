@@ -124,6 +124,18 @@ typedef enum
 #define CL_HAVE_EDITOR 0
 #endif
 
+#ifndef CL_HAVE_NETWORK
+/**
+ * Whether or not the Classics Live web service is used: login, game
+ * identification, achievements, scripts and memory note submission.
+ * If false, only memory access and searching are built, plus the memory
+ * inspector when CL_HAVE_EDITOR is set, so they can be used standalone. The
+ * frontend then does not need to supply the library_name, network_post,
+ * thread or user_data callbacks. See cl_abi.h.
+ */
+#define CL_HAVE_NETWORK 1
+#endif
+
 #ifndef CL_HAVE_FILESYSTEM
 /**
  * Whether or not the filesystem will be accessed in this implementation.

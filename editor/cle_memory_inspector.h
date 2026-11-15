@@ -25,8 +25,14 @@ extern "C"
    #include "../cl_network.h"
    #include "../cl_search_pointer.h"
 }
+#include <QLabel>
+
 #include "cle_hex_view.h"
+#if CL_HAVE_NETWORK
 #include "cle_memory_note_submit.h"
+#else
+class CleMemoryNoteSubmit;
+#endif
 #include "cle_result_table.h"
 
 #define CLE_MAX_TABS 8

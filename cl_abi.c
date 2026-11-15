@@ -11,13 +11,16 @@ cl_error cl_abi_register(const cl_abi_t *abi)
     if (abi->version < CL_ABI_VERSION)
       return CL_ERR_PARAMETER_INVALID;
     else if (/* !abi->functions.core.display_message || */
-        !abi->functions.core.install_memory_regions ||
-        !abi->functions.core.library_name ||
-        !abi->functions.core.network_post ||
-        /* !abi->functions.core.set_pause || */
-        !abi->functions.core.thread ||
-        !abi->functions.core.user_data)
+        !abi->functions.core.install_memory_regions
+        /* || !abi->functions.core.set_pause */)
       return CL_ERR_PARAMETER_INVALID;
+#if CL_HAVE_NETWORK
+    else if (!abi->functions.core.library_name ||
+             !abi->functions.core.network_post ||
+             !abi->functions.core.thread ||
+             !abi->functions.core.user_data)
+      return CL_ERR_PARAMETER_INVALID;
+#endif
 #if CL_EXTERNAL_MEMORY
     else if (!abi->functions.external.read_buffer ||
              !abi->functions.external.read_value ||

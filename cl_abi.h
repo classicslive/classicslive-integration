@@ -43,14 +43,14 @@ cl_error cl_abi_install_memory_regions(cl_memory_region_t **regions,
  * This could be the name of a dynamically linked library, an external
  *   process name, or the name of a program classicslive-integration has
  *   been statically compiled into.
- * Cannot be stubbed.
+ * Cannot be stubbed if `CL_HAVE_NETWORK` is nonzero.
  * @param name A pointer that will be set to the library name string.
  */
 cl_error cl_abi_library_name(const char **name);
 
 /**
  * Instructs the frontend to send an HTTP POST request.
- * Cannot be stubbed.
+ * Cannot be stubbed if `CL_HAVE_NETWORK` is nonzero.
  * @param url The URL to send the POST request to.
  * @param data The data to be sent in the POST request. The caller is
  *   responsible for managing this pointer's memory.
@@ -77,7 +77,7 @@ cl_error cl_abi_set_pause(unsigned mode);
  *   pointer after the task (and its callback, if applicable) has completed.
  * The caller is responsible for only using the "state" pointer with allocated
  *   memory, not stack memory or statics.
- * Cannot be stubbed.
+ * Cannot be stubbed if `CL_HAVE_NETWORK` is nonzero.
  * @param task The task to be run in a new thread.
  */
 cl_error cl_abi_thread(cl_task_t *task);
@@ -85,7 +85,7 @@ cl_error cl_abi_thread(cl_task_t *task);
 /**
  * Requests known user data from the frontend, used for retrieving
  *   login information and settings data.
- * Cannot be stubbed.
+ * Cannot be stubbed if `CL_HAVE_NETWORK` is nonzero.
  * @param user A pointer to the user data being written to.
  * @param index The user index being requested. Zero-indexed.
  */

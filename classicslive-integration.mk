@@ -2,23 +2,31 @@
 CLASSICS_LIVE_DIR ?= $(PWD)
 CLASSICS_LIVE_LIBRETRO_DIR ?= $(CLASSICS_LIVE_DIR)/../libretro-common
 
+# Memory access and searching
 CLASSICS_LIVE_SOURCES_CLASSICSLIVE = \
     $(CLASSICS_LIVE_DIR)/cl_abi.c \
-    $(CLASSICS_LIVE_DIR)/cl_action.c \
     $(CLASSICS_LIVE_DIR)/cl_common.c \
     $(CLASSICS_LIVE_DIR)/cl_config.c \
     $(CLASSICS_LIVE_DIR)/cl_counter.c \
     $(CLASSICS_LIVE_DIR)/cl_dma.c \
+    $(CLASSICS_LIVE_DIR)/cl_memory.c \
+    $(CLASSICS_LIVE_DIR)/cl_search.c \
+    $(CLASSICS_LIVE_DIR)/cl_search_pointer.c
+
+# The web service, and the libretro-common files it identifies content with.
+# Set CL_HAVE_NETWORK=0 to leave them out; see cl_config.h.
+ifeq ($(CL_HAVE_NETWORK),0)
+CLASSICS_LIVE_CFLAGS += -DCL_HAVE_NETWORK=0
+else
+CLASSICS_LIVE_SOURCES_CLASSICSLIVE += \
+    $(CLASSICS_LIVE_DIR)/cl_action.c \
     $(CLASSICS_LIVE_DIR)/cl_identify.c \
     $(CLASSICS_LIVE_DIR)/cl_json.c \
     $(CLASSICS_LIVE_DIR)/cl_main.c \
-    $(CLASSICS_LIVE_DIR)/cl_memory.c \
     $(CLASSICS_LIVE_DIR)/cl_network.c \
     $(CLASSICS_LIVE_DIR)/cl_script.c \
-    $(CLASSICS_LIVE_DIR)/cl_search.c \
-    $(CLASSICS_LIVE_DIR)/cl_search_pointer.c \
     $(CLASSICS_LIVE_DIR)/3rdparty/jsonsax/jsonsax.c \
-    $(CLASSICS_LIVE_DIR)/3rdparty/jsonsax/jsonsax_full.c \
+    $(CLASSICS_LIVE_DIR)/3rdparty/jsonsax/jsonsax_full.c
 
 CLASSICS_LIVE_SOURCES_LIBRETRO = \
     $(CLASSICS_LIVE_LIBRETRO_DIR)/compat/compat_strl.c \
@@ -62,6 +70,8 @@ CLASSICS_LIVE_SOURCES_LIBRETRO += \
 
 CLASSICS_LIVE_CFLAGS += -DHAVE_ZLIB=1
 CLASSICS_LIVE_LIBS += -lz
+endif
+
 endif
 
 CLASSICS_LIVE_SOURCES = \

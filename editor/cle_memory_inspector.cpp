@@ -547,6 +547,10 @@ void CleMemoryInspector::targetChanged(const QString& target)
 
 void CleMemoryInspector::requestAddMemoryNote(cl_memnote_t note)
 {
+#if !CL_HAVE_NETWORK
+  /* No web service to submit to; the menus hide this, but stay safe */
+  CL_UNUSED(note);
+#else
   if (!session.game_id)
   {
     QMessageBox::warning(this, "Live Editor",
@@ -559,6 +563,7 @@ void CleMemoryInspector::requestAddMemoryNote(cl_memnote_t note)
     m_MemoryNoteSubmit = new CleMemoryNoteSubmit(note);
     m_MemoryNoteSubmit->show();
   }
+#endif
 }
 
 void CleMemoryInspector::showActiveRegions()

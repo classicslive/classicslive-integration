@@ -86,7 +86,9 @@ void CleResultTablePointer::onResultRightClick(const QPoint& pos)
    else
    {
       m_ClickedResult = m_Table->rowAt(pos.y());
-      if (m_ClickedResult < 0 || m_ClickedResult >= m_Table->rowCount())
+      /* Adding a note is this menu's only entry */
+      if (!CL_HAVE_NETWORK || m_ClickedResult < 0 ||
+          m_ClickedResult >= m_Table->rowCount())
          return;
       else
       {

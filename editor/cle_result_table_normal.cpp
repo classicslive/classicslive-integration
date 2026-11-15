@@ -121,6 +121,7 @@ void CleResultTableNormal::onResultRightClick(const QPoint& pos)
       QMenu menu;
       QAction *action_add = menu.addAction(tr("&Add memory note..."));
       QAction *action_ptr = menu.addAction(tr("Search for &pointers..."));
+      action_add->setVisible(CL_HAVE_NETWORK);
       QAction *action_remove = menu.addAction(tr("&Remove"));
 
       connect(action_add, SIGNAL(triggered()), this,
