@@ -30,6 +30,7 @@ cl_value_type cl_pointer_type(const unsigned size);
 /**
  * Whether values stored with a given endianness must be byte-swapped to be
  * read on this host, ie. when `CL_ENDIAN_WORD_FLIP_BL` is set.
+ */
 #if CL_HOST_ENDIANNESS == _CL_ENDIANNESS_BIG
 #define CL_NEEDS_SWAP(endianness) \
   ((endianness) == CL_ENDIAN_LITTLE || (endianness) == CL_ENDIAN_WORD_FLIP_BL)
