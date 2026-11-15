@@ -186,11 +186,14 @@ cl_error CleResultTableNormal::rebuild(void)
                             page->start - page->region->base_guest,
                             page->size);
 
-      for (cl_addr_t offset = 0; offset < page->size; offset += val_size)
+      for (cl_addr_t storage = 0; storage < page->size; storage += val_size)
       {
         /* Skip value if not a match */
-        if (!valid[offset / val_size])
+        if (!valid[storage / val_size])
           continue;
+
+        cl_addr_t offset = CL_WORD_FLIP_OFFSET(storage, val_size,
+                                               page->region->endianness);
 
         /* Create a new row */
         m_Table->insertRow(current_row);

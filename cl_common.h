@@ -27,6 +27,24 @@ void cl_log(const char *format, ...);
  */
 cl_value_type cl_pointer_type(const unsigned size);
 
+/**
+ * Whether values stored with a given endianness must be byte-swapped to be
+ * read on this host, ie. when `CL_ENDIAN_WORD_FLIP_BL` is set.
+#if CL_HOST_ENDIANNESS == _CL_ENDIANNESS_BIG
+#define CL_NEEDS_SWAP(endianness) \
+  ((endianness) == CL_ENDIAN_LITTLE || (endianness) == CL_ENDIAN_WORD_FLIP_BL)
+#else
+#define CL_NEEDS_SWAP(endianness) ((endianness) == CL_ENDIAN_BIG)
+#endif
+
+/**
+ * Converts between a value's offset and where it is stored, for endianness
+ * mismatches.
+ */
+#define CL_WORD_FLIP_OFFSET(offset, size, endianness) \
+  (((endianness) == CL_ENDIAN_WORD_FLIP_BL && (size) < 4) ? \
+    ((offset) ^ (cl_addr_t)(4 - (size))) : (offset))
+
 cl_error cl_read_8(void *value, const void *src, cl_addr_t offset);
 cl_error cl_read_16(void *value, const void *src, cl_addr_t offset,
   cl_endianness endianness);
