@@ -1191,6 +1191,8 @@ cl_error cl_search_init(cl_search_t *search)
   if (!search)
     return CL_ERR_PARAMETER_NULL;
 
+  /* Zero-init the search */
+  memset(search, 0, sizeof(cl_search_t));
 
   if (!memory.regions)
     return CL_ERR_PARAMETER_NULL;
