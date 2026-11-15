@@ -313,6 +313,7 @@ void CleHexWidget::onRightClick(cl_addr_t address, QPoint& pos)
                QAction *action_add_struct = menu.addAction(
                   QString("Add memory note (in struct with %1)...")
                      .arg(focused_title));
+               action_add_struct->setVisible(CL_HAVE_NETWORK);
                connect(action_add_struct, SIGNAL(triggered()), this,
                   SLOT(onClickAddMemoryNoteInStruct()));
             }
@@ -320,6 +321,7 @@ void CleHexWidget::onRightClick(cl_addr_t address, QPoint& pos)
       }
 
       action_add = menu.addAction(tr("&Add memory note..."));
+      action_add->setVisible(CL_HAVE_NETWORK);
       action_ptr = menu.addAction(tr("Search for &pointers"));
 
     connect(action_add, SIGNAL(triggered()), this,
