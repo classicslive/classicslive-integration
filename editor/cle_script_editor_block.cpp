@@ -33,11 +33,17 @@ CleScriptEditorBlock::CleScriptEditorBlock(QWidget *parent)
 {
   m_Canvas = new CleScriptEditorBlockCanvas(this);
 
+  /* The canvas grows to fit its blocks; scroll or drag empty space to move */
+  m_ScrollArea = new QScrollArea(this);
+  m_ScrollArea->setWidget(m_Canvas);
+  m_ScrollArea->setWidgetResizable(true);
+  m_Canvas->setScrollArea(m_ScrollArea);
+
   m_SaveButton = new QPushButton("Save", this);
   connect(m_SaveButton, SIGNAL(clicked()), this, SLOT(onSaveButtonClicked()));
 
   auto layout = new QVBoxLayout(this);
-  layout->addWidget(m_Canvas);
+  layout->addWidget(m_ScrollArea);
   layout->addWidget(m_SaveButton);
 
   setLayout(layout);

@@ -201,6 +201,12 @@ typedef struct
   unsigned id;
   cl_bool unlocked;
 
+  /**
+   * Whether a script has already submitted this achievement since the script
+   * was loaded, so the same unlock action can fire again for other IDs.
+   */
+  cl_bool submitted;
+
   /* For progress achievements: subachievements unlocked, out of how many */
   unsigned progress_count;
   unsigned progress_total;
@@ -356,6 +362,9 @@ typedef struct cl_session_t
   unsigned game_id;
   char game_title[256];
   char icon_url[256];
+
+  /* The rich presence text last returned by the server, or empty */
+  char presence[256];
 
   char generic_post[2048];
   cl_session_flags_t flags;

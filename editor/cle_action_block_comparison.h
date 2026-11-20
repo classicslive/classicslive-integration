@@ -8,6 +8,13 @@
 #include <QLineEdit>
 #include <QStackedWidget>
 
+/* Pages of the left operand value stack */
+typedef enum
+{
+  CLE_COMPARE_LEFT_NOTE = 0,
+  CLE_COMPARE_LEFT_COUNTER
+} cle_compare_left_page;
+
 class CleActionBlockComparison : public CleActionBlock
 {
   Q_OBJECT
@@ -29,6 +36,12 @@ private:
 
   /* Left operand value (memory note selection) */
   QComboBox *m_LeftComboBox;
+
+  /* Left operand value (counter index) */
+  QLineEdit *m_LeftLineEdit;
+
+  /* Holder for the different left operand value types */
+  QStackedWidget *m_LeftStack;
 
   /* Comparison type selection */
   QComboBox *m_ComparisonType;
@@ -55,8 +68,16 @@ private:
    */
   int64_t rightValue(void);
 
+  /**
+   * Returns the value of the left operand: a counter index or a note key.
+   * @param ok Set to whether the value is valid.
+   * @return The value of the left operand.
+   */
+  int64_t leftValue(bool *ok);
+
 private slots:
   void onChangeLeftNote(int index);
+  void onChangeLeftType(int index);
   void onChangeRightType(int index);
 };
 

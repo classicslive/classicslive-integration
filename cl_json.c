@@ -81,6 +81,7 @@ static const cl_json_key_map_t cl_json_key_map[] =
   { CL_JSON_KEY_ORDER,          "order"          },
   { CL_JSON_KEY_PASSWORD,       "password"       },
   { CL_JSON_KEY_POINTER_SIZE,   "pointer_size"   },
+  { CL_JSON_KEY_PRESENCE,       "presence"       },
   { CL_JSON_KEY_PROGRESS_COUNT, "progress_count" },
   { CL_JSON_KEY_PROGRESS_TOTAL, "progress_total" },
   { CL_JSON_KEY_REASON,         "reason"         },
@@ -389,6 +390,7 @@ static void unescape(char *s)
         case '\\': *dst++ = '\\'; break;
         case '\'': *dst++ = '\''; break;
         case '"': *dst++ = '"'; break;
+        case '/': *dst++ = '/'; break;
         case 'x':
         {
           int val = 0;

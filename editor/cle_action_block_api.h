@@ -6,6 +6,15 @@
 #include <QComboBox>
 #include <QLabel>
 #include <QLineEdit>
+#include <QStackedWidget>
+
+/* Pages of the value stack, one per kind of ID source */
+typedef enum
+{
+  CLE_API_VALUE_CONSTANT = 0,
+  CLE_API_VALUE_COUNTER,
+  CLE_API_VALUE_NOTE
+} cle_api_value_page;
 
 class CleActionBlockApi : public CleActionBlock
 {
@@ -29,10 +38,26 @@ private:
 
   QComboBox *m_ComboBox = nullptr;
 
+  /* Where the ID comes from: a constant, a counter, or a memory note */
+  QComboBox *m_SourceType = nullptr;
+
+  /* Counter index, when the ID comes from a counter */
+  QLineEdit *m_CounterEdit = nullptr;
+
+  /* Memory note, when the ID comes from a note's value */
+  QComboBox *m_NoteComboBox = nullptr;
+
+  /* Holds the value widget for each source type */
+  QStackedWidget *m_ValueStack = nullptr;
+
   void setAchievementIconByIndex(unsigned index);
+
+  /** @return The ID for a constant source, or 0 with ok false if invalid */
+  unsigned constantId(bool *ok);
 
 private slots:
   void onChanged(int index);
+  void onChangeSource(int index);
   void onEdited(const QString& text);
 };
 

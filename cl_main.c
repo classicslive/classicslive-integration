@@ -62,6 +62,13 @@ static void cle_open_editor(void)
 
 cl_session_t session;
 
+/**
+ * Bumped by `cl_free`, so a login chain started before it (hashing, then
+ * login, then start) knows to stop instead of reviving the freed session.
+ */
+static unsigned cl_generation;
+static unsigned cl_login_generation;
+
 static cl_error cl_init_session(const char* json)
 {
   const char *iterator;
@@ -157,7 +164,11 @@ static cl_error cl_init_session(const char* json)
 static CL_NETWORK_CB(cl_start_cb)
 {
   CL_UNUSED(userdata);
-  if (response.error_code || cl_init_session(response.data) != CL_OK)
+
+  /* The session was freed while this was in flight */
+  if (session.state != CL_SESSION_STARTING)
+    return;
+  else if (response.error_code || cl_init_session(response.data) != CL_OK)
   {
     session.state = CL_SESSION_LOGGED_IN;
 #if CL_HAVE_EDITOR
@@ -172,6 +183,22 @@ static CL_NETWORK_CB(cl_start_cb)
     cle_open_editor();
 #endif
   }
+}
+
+static CL_NETWORK_CB(cl_ping_cb)
+{
+  char presence[sizeof(session.presence)];
+
+  CL_UNUSED(userdata);
+  if (response.error_code || !response.data ||
+      session.state != CL_SESSION_STARTED)
+    return;
+  else if (cl_json_get(presence, response.data, CL_JSON_KEY_PRESENCE,
+                       CL_JSON_TYPE_STRING, sizeof(presence)) != CL_OK)
+    return;
+
+  presence[sizeof(presence) - 1] = '\0';
+  snprintf(session.presence, sizeof(session.presence), "%s", presence);
 }
 
 cl_error cl_start(cl_game_identifier_t identifier)
@@ -258,7 +285,11 @@ cl_error cl_start(cl_game_identifier_t identifier)
 static CL_NETWORK_CB(cl_login_cb)
 {
   CL_UNUSED(userdata);
-  if (response.error_code)
+
+  /* The session was freed while this was in flight */
+  if (session.state != CL_SESSION_LOGGING_IN)
+    return;
+  else if (response.error_code)
     session.state = CL_SESSION_NONE;
   else
   {
@@ -337,7 +368,10 @@ login_error:
 
 static CL_NETWORK_CB(cl_login_and_start_cb_2)
 {
-  if (response.error_code)
+  if (session.state != CL_SESSION_LOGGING_IN ||
+      cl_login_generation != cl_generation)
+    return;
+  else if (response.error_code)
   {
     session.state = CL_SESSION_NONE;
 #if CL_HAVE_EDITOR
@@ -353,7 +387,9 @@ static CL_NETWORK_CB(cl_login_and_start_cb_2)
 
 static CL_TASK_CB(cl_login_and_start_cb_1)
 {
-  if (!task->error)
+  if (cl_login_generation != cl_generation)
+    return;
+  else if (!task->error)
     cl_login_internal(cl_login_and_start_cb_2);
   else
   {
@@ -387,6 +423,7 @@ cl_error cl_login_and_start(cl_game_identifier_t identifier)
       return error;
 
     session.identifier = identifier;
+    cl_login_generation = cl_generation;
 
     if (identifier.type == CL_GAMEIDENTIFIER_FILE_HASH &&
         identifier.checksum[0] == '\0')
@@ -428,7 +465,7 @@ cl_error cl_run(void)
     if (time(0) >= session.last_status_update + CL_PRESENCE_INTERVAL)
     {
       session.last_status_update = time(0);
-      cl_network_post_clint(CL_END_CLINT_PING, NULL, NULL, NULL);
+      cl_network_post_clint(CL_END_CLINT_PING, NULL, cl_ping_cb, NULL);
     }
 
     return error;
@@ -456,6 +493,7 @@ cl_error cl_free(void)
   free(session.achievements);
   free(session.leaderboards);
   memset(&session, 0, sizeof(session));
+  cl_generation++;
 
   return CL_OK;
 }

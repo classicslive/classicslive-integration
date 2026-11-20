@@ -89,6 +89,7 @@ contains(DEFINES, CL_HAVE_EDITOR=1):equals(CL_NETWORK, 1) {
         $$CL_EDITOR_DIR/cle_action_block_comparison.cpp \
         $$CL_EDITOR_DIR/cle_action_block_ctrbinary.cpp \
         $$CL_EDITOR_DIR/cle_action_block_ctrunary.cpp \
+        $$CL_EDITOR_DIR/cle_action_block_keyword.cpp \
         $$CL_EDITOR_DIR/cle_action_block_nop.cpp \
         $$CL_EDITOR_DIR/cle_main.cpp \
         $$CL_EDITOR_DIR/cle_memory_note_submit.cpp \
@@ -103,6 +104,7 @@ contains(DEFINES, CL_HAVE_EDITOR=1):equals(CL_NETWORK, 1) {
         $$CL_EDITOR_DIR/cle_action_block_comparison.h \
         $$CL_EDITOR_DIR/cle_action_block_ctrbinary.h \
         $$CL_EDITOR_DIR/cle_action_block_ctrunary.h \
+        $$CL_EDITOR_DIR/cle_action_block_keyword.h \
         $$CL_EDITOR_DIR/cle_action_block_nop.h \
         $$CL_EDITOR_DIR/cle_main.h \
         $$CL_EDITOR_DIR/cle_memory_note_submit.h \

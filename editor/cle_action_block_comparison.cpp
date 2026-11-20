@@ -18,16 +18,26 @@ CleActionBlockComparison::CleActionBlockComparison(cl_action_t *action,
   m_LeftType->addItem("current", CL_SRCTYPE_CURRENT_RAM);
   m_LeftType->addItem("previous", CL_SRCTYPE_PREVIOUS_RAM);
   m_LeftType->addItem("last unique", CL_SRCTYPE_LAST_UNIQUE_RAM);
+  m_LeftType->addItem("counter", CL_SRCTYPE_COUNTER);
+  connect(m_LeftType, SIGNAL(currentIndexChanged(int)), this, SLOT(onChangeLeftType(int)));
   m_Layout->addWidget(m_LeftType);
 
   /* Left operand value (dropdown box) */
   /* TODO: Have this refresh when the combobox is clicked */
   m_LeftComboBox = new QComboBox(this);
-  for (unsigned i = 0; i < memory.note_count; i++)
-    m_LeftComboBox->addItem(memory.notes[i].details.title, memory.notes[i].key);
+  populateNoteComboBox(m_LeftComboBox);
   connect(m_LeftComboBox, SIGNAL(currentIndexChanged(int)),
           this, SLOT(onChangeLeftNote(int)));
-  m_Layout->addWidget(m_LeftComboBox);
+
+  /* Left operand value (counter index) */
+  m_LeftLineEdit = new QLineEdit(this);
+  m_LeftLineEdit->setPlaceholderText("Counter index");
+
+  /* Left operand value stacker, in cle_compare_left_page order */
+  m_LeftStack = new QStackedWidget(this);
+  m_LeftStack->insertWidget(CLE_COMPARE_LEFT_NOTE, m_LeftComboBox);
+  m_LeftStack->insertWidget(CLE_COMPARE_LEFT_COUNTER, m_LeftLineEdit);
+  m_Layout->addWidget(m_LeftStack);
 
   /* Comparison selector */
   m_ComparisonType = new QComboBox(this);
@@ -43,6 +53,7 @@ CleActionBlockComparison::CleActionBlockComparison(cl_action_t *action,
   m_RightType->addItem("current", CL_SRCTYPE_CURRENT_RAM);
   m_RightType->addItem("previous", CL_SRCTYPE_PREVIOUS_RAM);
   m_RightType->addItem("last unique", CL_SRCTYPE_LAST_UNIQUE_RAM);
+  m_RightType->addItem("counter", CL_SRCTYPE_COUNTER);
   connect(m_RightType, SIGNAL(currentIndexChanged(int)), this, SLOT(onChangeRightType(int)));
   m_Layout->addWidget(m_RightType);
 
@@ -52,8 +63,7 @@ CleActionBlockComparison::CleActionBlockComparison(cl_action_t *action,
   /* Right operand value (dropdown box) */
   /* TODO: Have this refresh when the combobox is clicked */
   m_RightComboBoxNotes = new QComboBox(this);
-  for (unsigned i = 0; i < memory.note_count; i++)
-    m_RightComboBoxNotes->addItem(memory.notes[i].details.title);
+  populateNoteComboBox(m_RightComboBoxNotes);
 
   /* Right operand value (memory note friendly value selection) */
   m_RightComboBoxValues = new QComboBox(this);
@@ -83,6 +93,25 @@ void CleActionBlockComparison::onChangeLeftNote(int index)
     onChangeRightType(0);
 }
 
+void CleActionBlockComparison::onChangeLeftType(int index)
+{
+  Q_UNUSED(index)
+  m_LeftStack->setCurrentIndex(
+    m_LeftType->currentData().toUInt() == CL_SRCTYPE_COUNTER ?
+    CLE_COMPARE_LEFT_COUNTER : CLE_COMPARE_LEFT_NOTE);
+
+  /* A note's friendly values only apply when the left side is a note */
+  onChangeLeftNote(0);
+}
+
+int64_t CleActionBlockComparison::leftValue(bool *ok)
+{
+  if (m_LeftStack->currentIndex() == CLE_COMPARE_LEFT_COUNTER)
+    return stringToValue(m_LeftLineEdit->text(), ok);
+
+  return m_LeftComboBox->currentData().toUInt(ok);
+}
+
 void CleActionBlockComparison::onChangeRightType(int index)
 {
   Q_UNUSED(index)
@@ -94,7 +123,8 @@ void CleActionBlockComparison::onChangeRightType(int index)
   {
     // Check if the left operand references a note with friendly values
     int leftNoteIndex = m_LeftComboBox->currentIndex();
-    if (leftNoteIndex < 0 || leftNoteIndex >= (int)memory.note_count)
+    if (m_LeftStack->currentIndex() == CLE_COMPARE_LEFT_COUNTER ||
+        leftNoteIndex < 0 || leftNoteIndex >= (int)memory.note_count)
     {
       // No valid note — fallback to plain line edit
       m_RightStack->setCurrentIndex(0);
@@ -142,9 +172,13 @@ void CleActionBlockComparison::populate(void)
 {
   m_LeftType->setCurrentIndex(
     m_LeftType->findData(static_cast<uint>(m_Action->arguments[0].uintval)));
+  onChangeLeftType(0);
 
-  m_LeftComboBox->setCurrentIndex(
-    m_LeftComboBox->findData(static_cast<uint>(m_Action->arguments[1].uintval)));
+  if (m_LeftStack->currentIndex() == CLE_COMPARE_LEFT_COUNTER)
+    m_LeftLineEdit->setText(QString::number(m_Action->arguments[1].uintval));
+  else
+    m_LeftComboBox->setCurrentIndex(
+      m_LeftComboBox->findData(static_cast<uint>(m_Action->arguments[1].uintval)));
 
   m_ComparisonType->setCurrentIndex(
     m_ComparisonType->findData(static_cast<uint>(m_Action->arguments[4].uintval)));
@@ -231,11 +265,17 @@ void CleActionBlockComparison::setType(cl_action_id type)
 
 cle_result_t CleActionBlockComparison::toString(void)
 {
+  bool ok = false;
+  int64_t left = leftValue(&ok);
+
+  if (!ok)
+    return { "Empty or invalid values", false };
+
   QString string = QString("%1 %2 5 %3 %4 %5 %6 %7")
     .arg(indentation(), 0, CL_RADIX)
     .arg(type(), 0, CL_RADIX)
     .arg(m_LeftType->currentData().toUInt(), 0, CL_RADIX)
-    .arg(m_LeftComboBox->currentData().toUInt(), 0, CL_RADIX)
+    .arg(left, 0, CL_RADIX)
     .arg(m_RightType->currentData().toUInt(), 0, CL_RADIX)
     .arg(rightValue(), 0, CL_RADIX)
     .arg(m_ComparisonType->currentData().toUInt(), 0, CL_RADIX);

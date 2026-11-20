@@ -24,6 +24,7 @@ CleActionBlockCtrBinary::CleActionBlockCtrBinary(cl_action_t *action,
   /* Right operand type */
   m_ModifierType = new QComboBox(this);
   m_ModifierType->addItem("constant", CL_SRCTYPE_IMMEDIATE_INT);
+  m_ModifierType->addItem("counter", CL_SRCTYPE_COUNTER);
   m_ModifierType->addItem("current", CL_SRCTYPE_CURRENT_RAM);
   m_ModifierType->addItem("previous", CL_SRCTYPE_PREVIOUS_RAM);
   m_ModifierType->addItem("last unique", CL_SRCTYPE_LAST_UNIQUE_RAM);
@@ -37,8 +38,7 @@ CleActionBlockCtrBinary::CleActionBlockCtrBinary(cl_action_t *action,
   /* Right operand value (dropdown box) */
   /* TODO: Have this refresh when the combobox is clicked */
   m_ModifierValueComboBox = new QComboBox(this);
-  for (unsigned i = 0; i < memory.note_count; i++)
-    m_ModifierValueComboBox->addItem(memory.notes[i].details.title);
+  populateNoteComboBox(m_ModifierValueComboBox);
 
   /* Right operand value stacker */
   m_ModifierStack = new QStackedWidget(this);

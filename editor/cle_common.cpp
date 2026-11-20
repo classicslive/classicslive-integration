@@ -1,5 +1,21 @@
 #include "cle_common.h"
 
+extern "C"
+{
+  #include "../cl_memory.h"
+}
+
+#include <QComboBox>
+
+void populateNoteComboBox(QComboBox *box)
+{
+  unsigned i;
+
+  for (i = 0; i < memory.note_count; i++)
+    box->addItem(memory.notes[i].details.title,
+                 static_cast<uint>(memory.notes[i].key));
+}
+
 QString formatBytes(double bytes)
 {
   const double kb = 1024.0;

@@ -2,6 +2,7 @@
 #define CLE_SCRIPT_EDITOR_BLOCK_H
 
 #include <QPushButton>
+#include <QScrollArea>
 #include <QScrollBar>
 #include <QTabWidget>
 
@@ -19,6 +20,7 @@ public:
 
 private:
   CleScriptEditorBlockCanvas *m_Canvas = nullptr;
+  QScrollArea *m_ScrollArea = nullptr;
   QPushButton *m_SaveButton = nullptr;
   QPushButton *m_SubmitButton = nullptr;
   QString m_Script;

@@ -3,7 +3,9 @@
 extern "C"
 {
   #include "../cl_main.h"
+  #include "../cl_memory.h"
   #include "../cl_network.h"
+  #include "../cl_script.h"
 }
 
 #include <QCompleter>
@@ -18,9 +20,22 @@ extern "C"
 CleActionBlockApi::CleActionBlockApi(cl_action_t *action, QWidget* parent)
   : CleActionBlock(action, parent)
 {
+  unsigned i;
+
   /* Operand label */
   m_Label = new QLabel(this);
   m_Layout->addWidget(m_Label);
+
+  /* ID source; onChangeSource picks the matching value widget */
+  m_SourceType = new QComboBox(this);
+  m_SourceType->addItem(tr("constant"), CL_SRCTYPE_IMMEDIATE_INT);
+  m_SourceType->addItem(tr("counter"), CL_SRCTYPE_COUNTER);
+  m_SourceType->addItem(tr("current"), CL_SRCTYPE_CURRENT_RAM);
+  m_SourceType->addItem(tr("previous"), CL_SRCTYPE_PREVIOUS_RAM);
+  m_SourceType->addItem(tr("last unique"), CL_SRCTYPE_LAST_UNIQUE_RAM);
+  m_SourceType->setToolTip(tr("Where the ID comes from. A counter or memory "
+    "note lets one action unlock a different achievement each time."));
+  m_Layout->addWidget(m_SourceType);
 
   /* ComboBox with editable field (achievements) */
   m_ComboBox = new QComboBox(this);
@@ -28,7 +43,7 @@ CleActionBlockApi::CleActionBlockApi(cl_action_t *action, QWidget* parent)
   m_ComboBox->setInsertPolicy(QComboBox::NoInsert);
 
   // Populate with available achievements
-  for (unsigned i = 0; i < session.achievement_count; i++)
+  for (i = 0; i < session.achievement_count; i++)
   {
     const cl_achievement_t* ach = &session.achievements[i];
     QString title = QString::fromUtf8(ach->title);
@@ -43,7 +58,19 @@ CleActionBlockApi::CleActionBlockApi(cl_action_t *action, QWidget* parent)
   connect(m_ComboBox->lineEdit(), SIGNAL(textEdited(QString)),
           this, SLOT(onEdited(QString)));
 
-  m_Layout->addWidget(m_ComboBox);
+  /* Counter index and memory note pickers for the other sources */
+  m_CounterEdit = new QLineEdit(this);
+  m_CounterEdit->setPlaceholderText(tr("Counter index"));
+  m_NoteComboBox = new QComboBox(this);
+  populateNoteComboBox(m_NoteComboBox);
+
+  m_ValueStack = new QStackedWidget(this);
+  m_ValueStack->insertWidget(CLE_API_VALUE_CONSTANT, m_ComboBox);
+  m_ValueStack->insertWidget(CLE_API_VALUE_COUNTER, m_CounterEdit);
+  m_ValueStack->insertWidget(CLE_API_VALUE_NOTE, m_NoteComboBox);
+  m_Layout->addWidget(m_ValueStack);
+  connect(m_SourceType, SIGNAL(currentIndexChanged(int)),
+          this, SLOT(onChangeSource(int)));
 
   /* Image label */
   m_Image = QImage(256, 256, QImage::Format_ARGB32);
@@ -133,19 +160,55 @@ void CleActionBlockApi::setAchievementIconByIndex(unsigned index)
   });
 }
 
+void CleActionBlockApi::onChangeSource(int index)
+{
+  unsigned source = m_SourceType->itemData(index).toUInt();
+  int page;
+
+  if (source == CL_SRCTYPE_IMMEDIATE_INT)
+    page = CLE_API_VALUE_CONSTANT;
+  else if (source == CL_SRCTYPE_COUNTER)
+    page = CLE_API_VALUE_COUNTER;
+  else
+    page = CLE_API_VALUE_NOTE;
+  m_ValueStack->setCurrentIndex(page);
+
+  /* The icon only means something for a fixed achievement */
+  m_ImageLabel->setVisible(page == CLE_API_VALUE_CONSTANT);
+}
+
 void CleActionBlockApi::populate(void)
 {
-  unsigned current_id;
+  unsigned source, current_id, i;
+  int index;
 
   if (!m_Action || m_Action->argument_count < 2)
     return;
 
+  source = m_Action->arguments[0].uintval;
   current_id = m_Action->arguments[1].uintval;
+  index = m_SourceType->findData(source);
+  m_SourceType->setCurrentIndex(index >= 0 ? index : 0);
+  onChangeSource(m_SourceType->currentIndex());
+
+  if (m_ValueStack->currentIndex() == CLE_API_VALUE_COUNTER)
+  {
+    m_CounterEdit->setText(QString::number(current_id));
+    return;
+  }
+  else if (m_ValueStack->currentIndex() == CLE_API_VALUE_NOTE)
+  {
+    index = m_NoteComboBox->findData(current_id);
+    if (index >= 0)
+      m_NoteComboBox->setCurrentIndex(index);
+    return;
+  }
+
   m_ComboBox->setEditText(QString::number(current_id));
   if (m_Action->type == CL_ACTTYPE_POST_ACHIEVEMENT ||
       m_Action->type == CL_ACTTYPE_POST_PROGRESS)
   {
-    for (unsigned i = 0; i < session.achievement_count; i++)
+    for (i = 0; i < session.achievement_count; i++)
     {
       if (session.achievements[i].id == current_id)
       {
@@ -156,7 +219,7 @@ void CleActionBlockApi::populate(void)
   }
   else if (m_Action->type == CL_ACTTYPE_POST_LEADERBOARD)
   {
-    for (unsigned i = 0; i < session.leaderboard_count; i++)
+    for (i = 0; i < session.leaderboard_count; i++)
     {
       if (session.leaderboards[i].id == current_id)
       {
@@ -189,28 +252,49 @@ void CleActionBlockApi::setType(cl_action_id type)
   CleActionBlock::setType(type);
 }
 
+unsigned CleActionBlockApi::constantId(bool *ok)
+{
+  QVariant data = m_ComboBox->currentData();
+  unsigned id = 0;
+
+  *ok = false;
+  if (data.isValid())
+    id = data.toUInt(ok);
+
+  /* Fall back to a typed number */
+  if (!*ok)
+    id = static_cast<unsigned>(stringToValue(m_ComboBox->currentText(), ok));
+
+  return *ok ? id : 0;
+}
+
 cle_result_t CleActionBlockApi::toString(void)
 {
-  unsigned id = 0;
+  unsigned source = m_SourceType->currentData().toUInt();
+  int64_t value = 0;
   bool ok = false;
 
-  // Try to get the data from the combo box's current index
-  QVariant data = m_ComboBox->currentData();
-  if (data.isValid())
-    id = data.toUInt(&ok);
-
-  // Fallback: parse the text if data is invalid or not ok
-  if (!ok)
-    id = stringToValue(m_ComboBox->currentText(), &ok);
-
+  switch (m_ValueStack->currentIndex())
+  {
+  case CLE_API_VALUE_CONSTANT:
+    value = constantId(&ok);
+    break;
+  case CLE_API_VALUE_COUNTER:
+    value = stringToValue(m_CounterEdit->text(), &ok);
+    ok = ok && value >= 0 && value < CL_COUNTERS_SIZE;
+    break;
+  case CLE_API_VALUE_NOTE:
+    value = m_NoteComboBox->currentData().toUInt(&ok);
+    break;
+  }
   if (!ok)
     return { "Empty or invalid values", false };
 
   QString string = QString("%1 %2 2 %3 %4")
     .arg(indentation(), 0, CL_RADIX)
     .arg(type(), 0, CL_RADIX)
-    .arg(CL_SRCTYPE_IMMEDIATE_INT)
-    .arg(id, 0, CL_RADIX);
+    .arg(source)
+    .arg(value, 0, CL_RADIX);
 
   return { string, true };
 }

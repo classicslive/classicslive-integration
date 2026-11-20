@@ -3,6 +3,7 @@
 #include "cl_main.h"
 #include "cl_memory.h"
 #include "cl_network.h"
+#include "cl_script.h"
 #include "cl_search.h"
 
 #include <stdio.h>
@@ -27,6 +28,10 @@ typedef struct
 static cl_test_system_t cl_test_system;
 static unsigned cl_test_thread_depth = 0;
 static char cl_test_msg[256];
+
+/* Achievement submissions the fake server has received, and the last one */
+static unsigned cl_test_achievement_posts = 0;
+static char cl_test_achievement_data[256];
 
 static cl_error cl_test_display_message(unsigned level, const char *msg)
 {
@@ -145,6 +150,9 @@ static cl_error cl_test_network_post(const char *url, char *data,
   }
   else if (strstr(url, CL_CLINT_URL CL_END_CLINT_ACHIEVEMENT))
   {
+    cl_test_achievement_posts++;
+    snprintf(cl_test_achievement_data, sizeof(cl_test_achievement_data),
+             "%s", data ? data : "");
     response.data =
       "{"
         "\"success\":true"
@@ -351,6 +359,243 @@ static cl_error cl_test_console_init(void)
   return CL_OK;
 }
 
+/* Script logic test pieces: conditions on counters 0-2, results in 14-15 */
+#define CL_TEST_IF_A "0 15 5 5 0 0 1 1 "
+#define CL_TEST_IF_B "0 15 5 5 1 0 1 1 "
+#define CL_TEST_IF_C "0 15 5 5 2 0 1 1 "
+#define CL_TEST_OR "0 24 0 "
+#define CL_TEST_THEN "1 5 3 15 0 1 "
+#define CL_TEST_ELSE "0 23 0 1 5 3 15 0 2 "
+
+/* If A { if B { 15 = 1 } else { 15 = 2 } } else { 15 = 3 }, then 14 = 7 */
+#define CL_TEST_NESTED \
+  "0 15 5 5 0 0 1 1 1 15 5 5 1 0 1 1 2 5 3 15 0 1 1 23 0 2 5 3 15 0 2 " \
+  "0 23 0 1 5 3 15 0 3 0 5 3 14 0 7 "
+
+/* Expected result when the script is rejected at load time */
+#define CL_TEST_REJECTED -1
+
+typedef struct
+{
+  const char *logic;
+  int a, b, c;
+
+  /* counter 15 * 100 + counter 14, or CL_TEST_REJECTED */
+  cl_int64 expected;
+} cl_test_script_case_t;
+
+static const cl_test_script_case_t cl_test_script_cases[] =
+{
+  /* Plain AND chains behave as before */
+  { CL_TEST_IF_A CL_TEST_IF_B CL_TEST_THEN, 1, 1, 0, 100 },
+  { CL_TEST_IF_A CL_TEST_IF_B CL_TEST_THEN, 1, 0, 0, 0 },
+
+  /* A OR B */
+  { CL_TEST_IF_A CL_TEST_OR CL_TEST_IF_B CL_TEST_THEN CL_TEST_ELSE, 0, 0, 0, 200 },
+  { CL_TEST_IF_A CL_TEST_OR CL_TEST_IF_B CL_TEST_THEN CL_TEST_ELSE, 1, 0, 0, 100 },
+  { CL_TEST_IF_A CL_TEST_OR CL_TEST_IF_B CL_TEST_THEN CL_TEST_ELSE, 0, 1, 0, 100 },
+  { CL_TEST_IF_A CL_TEST_OR CL_TEST_IF_B CL_TEST_THEN CL_TEST_ELSE, 1, 1, 0, 100 },
+
+  /* (A OR B) AND C */
+  { CL_TEST_IF_A CL_TEST_OR CL_TEST_IF_B CL_TEST_IF_C CL_TEST_THEN CL_TEST_ELSE, 1, 0, 0, 200 },
+  { CL_TEST_IF_A CL_TEST_OR CL_TEST_IF_B CL_TEST_IF_C CL_TEST_THEN CL_TEST_ELSE, 0, 1, 1, 100 },
+  { CL_TEST_IF_A CL_TEST_OR CL_TEST_IF_B CL_TEST_IF_C CL_TEST_THEN CL_TEST_ELSE, 0, 0, 1, 200 },
+
+  /* A AND (B OR C) */
+  { CL_TEST_IF_A CL_TEST_IF_B CL_TEST_OR CL_TEST_IF_C CL_TEST_THEN CL_TEST_ELSE, 1, 0, 1, 100 },
+  { CL_TEST_IF_A CL_TEST_IF_B CL_TEST_OR CL_TEST_IF_C CL_TEST_THEN CL_TEST_ELSE, 0, 1, 1, 200 },
+  { CL_TEST_IF_A CL_TEST_IF_B CL_TEST_OR CL_TEST_IF_C CL_TEST_THEN CL_TEST_ELSE, 1, 0, 0, 200 },
+
+  /* Nested if/else under an if/else, then an action that always runs */
+  { CL_TEST_NESTED, 1, 1, 0, 107 },
+  { CL_TEST_NESTED, 1, 0, 0, 207 },
+  { CL_TEST_NESTED, 0, 1, 0, 307 },
+
+  /* Misplaced OR and ELSE are rejected at load time */
+  { CL_TEST_OR CL_TEST_IF_A CL_TEST_THEN, 0, 0, 0, CL_TEST_REJECTED },
+  { CL_TEST_IF_A CL_TEST_OR CL_TEST_THEN, 0, 0, 0, CL_TEST_REJECTED },
+  { CL_TEST_IF_A CL_TEST_OR CL_TEST_OR CL_TEST_IF_B CL_TEST_THEN, 0, 0, 0, CL_TEST_REJECTED },
+  { "0 15 5 5 0 0 1 1 1 24 0 0 15 5 5 1 0 1 1 " CL_TEST_THEN, 0, 0, 0, CL_TEST_REJECTED },
+  { CL_TEST_ELSE, 0, 0, 0, CL_TEST_REJECTED },
+  { CL_TEST_IF_A CL_TEST_THEN CL_TEST_ELSE CL_TEST_ELSE, 0, 0, 0, CL_TEST_REJECTED }
+};
+
+/**
+ * Counts the actions in serialized script actions.
+ * @param text Actions as "<indent> <type> <argc> <args...>" repeated.
+ * @return The number of actions.
+ */
+static unsigned cl_test_count_actions(const char *text)
+{
+  char *end;
+  unsigned count = 0;
+  long argc;
+
+  while (*text)
+  {
+    strtol(text, &end, 10);
+    if (end == text)
+      break;
+    strtol(end, &end, 10);
+    argc = strtol(end, &end, 10);
+    while (argc-- > 0)
+      strtol(end, &end, 10);
+    text = end;
+    count++;
+    while (*text == ' ')
+      text++;
+  }
+
+  return count;
+}
+
+/**
+ * Runs each script logic case for one frame through the real interpreter.
+ * @return CL_OK if every case gave its expected result.
+ */
+static cl_error cl_test_script_logic(void)
+{
+  const cl_test_script_case_t *test;
+  char text[512];
+  const char *pos;
+  cl_int64 result;
+  unsigned i;
+
+  for (i = 0; i < sizeof(cl_test_script_cases) / sizeof(cl_test_script_cases[0]); i++)
+  {
+    test = &cl_test_script_cases[i];
+
+    /* Three actions set the inputs before the case's own logic */
+    snprintf(text, sizeof(text),
+      "1 %u 0 5 3 0 0 %d 0 5 3 1 0 %d 0 5 3 2 0 %d %s",
+      3 + cl_test_count_actions(test->logic), test->a, test->b, test->c,
+      test->logic);
+    pos = text;
+    if (cl_script_init(&pos) != CL_OK)
+      result = CL_TEST_REJECTED;
+    else
+    {
+      cl_script_update();
+      result = script.pages[0].counters[15].intval.i64 * 100 +
+               script.pages[0].counters[14].intval.i64;
+    }
+    cl_script_free();
+    if (result != test->expected)
+    {
+      printf("Script logic case %u failed: expected %ld, got %ld\n", i,
+             (long)test->expected, (long)result);
+      return CL_ERR_CLIENT_RUNTIME;
+    }
+  }
+
+  return CL_OK;
+}
+
+/**
+ * Loads, runs and frees a two-page script, then frees a script that failed
+ * partway through loading its second page. Run under a memory checker to
+ * catch bad frees.
+ * @return CL_OK if both pages ran and nothing crashed.
+ */
+static cl_error cl_test_script_pages(void)
+{
+  const char *two_pages = "2 1 0 5 3 15 0 1 1 0 5 3 15 0 2";
+  const char *truncated = "2 1 0 5 3 15 0 1 2 0 5 3 15 0 2";
+  const char *pos;
+  cl_int64 first, second;
+
+  pos = two_pages;
+  if (cl_script_init(&pos) != CL_OK)
+    return CL_ERR_CLIENT_RUNTIME;
+  cl_script_update();
+  first = script.pages[0].counters[15].intval.i64;
+  second = script.pages[1].counters[15].intval.i64;
+  cl_script_free();
+  if (first != 1 || second != 2)
+  {
+    printf("Script page test failed: pages gave %ld and %ld\n",
+           (long)first, (long)second);
+    return CL_ERR_CLIENT_RUNTIME;
+  }
+
+  pos = truncated;
+  if (cl_script_init(&pos) == CL_OK)
+  {
+    printf("Script page test failed: truncated script loaded\n");
+    return CL_ERR_CLIENT_RUNTIME;
+  }
+  cl_script_free();
+
+  return CL_OK;
+}
+
+/* One frame of the dynamic unlock test: counter 0's value and expected posts */
+typedef struct
+{
+  cl_int64 id;
+  unsigned posts;
+} cl_test_unlock_frame_t;
+
+static const cl_test_unlock_frame_t cl_test_unlock_frames[] =
+{
+  { 1, 1 }, /* Unlocks 1 */
+  { 1, 1 }, /* Already submitted */
+  { 2, 2 }, /* The same action unlocks 2 */
+  { 3, 2 }, /* Not an achievement of this game */
+  { 0, 2 },
+  { 2, 2 }  /* Already submitted */
+};
+
+/**
+ * Runs a single "unlock achievement[counter 0]" action while counter 0
+ * changes, checking each achievement is submitted once, then that reloading
+ * the script allows submitting again. Needs a session with achievements 1, 2.
+ * @return CL_OK if every frame posted what it should.
+ */
+static cl_error cl_test_dynamic_unlock(void)
+{
+  const char *text = "1 1 0 18 2 5 0";
+  const char *pos;
+  unsigned base, i;
+  unsigned count = sizeof(cl_test_unlock_frames) / sizeof(cl_test_unlock_frames[0]);
+
+  cl_script_free();
+  pos = text;
+  if (cl_script_init(&pos) != CL_OK)
+    return CL_ERR_CLIENT_RUNTIME;
+  base = cl_test_achievement_posts;
+
+  /* The final pass reloads the script and expects achievement 1 again */
+  for (i = 0; i <= count; i++)
+  {
+    if (i == count)
+    {
+      cl_script_free();
+      pos = text;
+      cl_script_init(&pos);
+    }
+    cl_ctr_store_int(&script.pages[0].counters[0],
+                     i < count ? cl_test_unlock_frames[i].id : 1);
+    cl_script_update();
+    if (cl_test_achievement_posts - base !=
+        (i < count ? cl_test_unlock_frames[i].posts : 3))
+    {
+      printf("Dynamic unlock frame %u failed: %u posts, last \"%s\"\n", i,
+             cl_test_achievement_posts - base, cl_test_achievement_data);
+      return CL_ERR_CLIENT_RUNTIME;
+    }
+  }
+  if (strcmp(cl_test_achievement_data, "achievement_id=1") &&
+      strncmp(cl_test_achievement_data, "achievement_id=1&", 17))
+  {
+    printf("Dynamic unlock posted the wrong data: \"%s\"\n",
+           cl_test_achievement_data);
+    return CL_ERR_CLIENT_RUNTIME;
+  }
+
+  return CL_OK;
+}
+
 static cl_error cl_test_console_free(void)
 {
   unsigned i;
@@ -419,6 +664,15 @@ cl_error cl_test(void)
   error = cl_test_console_init();
   if (error != CL_OK)
     return error;
+
+  printf("============================================================\n");
+  printf("Performing script logic tests (OR, ELSE)...\n");
+  error = cl_test_script_logic();
+  if (error == CL_OK)
+    error = cl_test_script_pages();
+  if (error != CL_OK)
+    return error;
+  printf("Script logic tests passed!\n");
 
   printf("============================================================\n");
   printf("Performing login flow tests...\n");
@@ -538,6 +792,13 @@ cl_error cl_test(void)
     cl_read_memory_value(&word, NULL, 0x20000004, CL_MEMTYPE_UINT32);
     printf(" - Frame %u completed, memory at 0x20000004 = 0x%08x\n", i, word);
   }
+
+  printf("============================================================\n");
+  printf("Performing dynamic achievement ID tests...\n");
+  error = cl_test_dynamic_unlock();
+  if (error != CL_OK)
+    return error;
+  printf("Dynamic achievement ID tests passed!\n");
 
   printf("============================================================\n");
   printf("Freeing test session...\n");

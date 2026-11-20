@@ -37,7 +37,18 @@ typedef enum
   CL_ACTTYPE_POST_POLL,
   CL_ACTTYPE_POST_INFO,
 
+  /**
+   * Placed after a condition chain's body, at the chain's indentation. The
+   * actions indented under it run only when the chain was false.
+   */
   CL_ACTTYPE_ELSE,
+
+  /**
+   * Placed between two conditions at the same indentation. Joins them into
+   * one clause that is true if either is true. OR binds tighter than the
+   * implicit AND between conditions, so "A OR B, C" means (A or B) and C.
+   */
+  CL_ACTTYPE_LOGICAL_OR,
 
   CL_ACTTYPE_SIZE
 } cl_action_id;

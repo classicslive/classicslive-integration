@@ -31,22 +31,6 @@ cl_error cl_free_action(cl_action_t *action)
   return CL_ERR_CLIENT_RUNTIME;
 }
 
-static cl_error cl_act_closed(cl_action_t *action)
-{
-  CL_UNUSED(action);
-  return CL_OK;
-}
-
-/**
- * Retires an action that has finished its job so it never runs again.
- * Unlike cl_free_action, the action stays linked into its page and processes
- * as a successful no-op, so it doesn't report a runtime error every frame.
- **/
-static void cl_close_action(cl_action_t *action)
-{
-  action->function = cl_act_closed;
-}
-
 static cl_error cl_print_counter_values(char *buffer, unsigned len)
 {
   const cl_counter_t *counter;
@@ -167,7 +151,6 @@ static cl_counter_t *cl_get_mutable_value(cl_src_t source, cl_int64 offset)
   return NULL;
 }
 
-#if !CL_HAVE_EDITOR
 static cl_achievement_t *cl_find_achievement(unsigned id)
 {
   unsigned i;
@@ -178,6 +161,8 @@ static cl_achievement_t *cl_find_achievement(unsigned id)
 
   return NULL;
 }
+
+#if !CL_HAVE_EDITOR
 
 /**
  * Applies the "achievements" list the server returns from the achievement
@@ -237,31 +222,38 @@ static CL_NETWORK_CB(cl_achievement_cb)
 }
 #endif
 
+/**
+ * Submits the achievement whose ID the action's source gives. The ID can come
+ * from a counter or memory note, so one action can unlock a different
+ * achievement each time it runs, ie. "unlock achievement[current level]".
+ * IDs this game doesn't have, and ones already unlocked or submitted since
+ * the script was loaded, are ignored so nothing is posted every frame.
+ * @param action The action, with a source type and value as arguments.
+ * @return CL_OK.
+ **/
 static cl_error cl_act_post_achievement(cl_action_t *action)
 {
   cl_counter_t ach_id = cl_get_compare_value(action->arguments[0].uintval,
                                              action->arguments[1].uintval);
+  cl_achievement_t *ach;
+#if !CL_HAVE_EDITOR
+  char data[CL_POST_DATA_SIZE];
+#endif
 
-  /*
-   * Close this action before notifying anyone, so a frontend that re-enters
-   * the script while showing the message (e.g. a modal dialog's event loop)
-   * can't submit the achievement again.
-   */
-  cl_close_action(action);
+  if (ach_id.type == CL_MEMTYPE_NOT_SET)
+    return CL_OK;
+  ach = cl_find_achievement((unsigned)ach_id.intval.raw);
+  if (!ach || ach->unlocked || ach->submitted)
+    return CL_OK;
+
+  /* Mark before notifying, in case showing the message re-enters the script */
+  ach->submitted = CL_TRUE;
 
 #if CL_HAVE_EDITOR
-  cl_message(CL_MSG_INFO, "Editor mode: Achievement " CL_FU64 " unlocked.",
-    ach_id.intval.raw);
+  cl_message(CL_MSG_INFO, "Editor mode: Achievement %u unlocked.", ach->id);
 #else
-  char data[CL_POST_DATA_SIZE];
-  cl_achievement_t *ach = cl_find_achievement((unsigned)ach_id.intval.raw);
-
-  /* Don't resubmit an achievement the server already knows is unlocked */
-  if (!ach || !ach->unlocked)
-  {
-    snprintf(data, CL_POST_DATA_SIZE, "achievement_id=" CL_FU64, ach_id.intval.raw);
-    cl_network_post_clint(CL_END_CLINT_ACHIEVEMENT, data, cl_achievement_cb, NULL);
-  }
+  snprintf(data, CL_POST_DATA_SIZE, "achievement_id=%u", ach->id);
+  cl_network_post_clint(CL_END_CLINT_ACHIEVEMENT, data, cl_achievement_cb, NULL);
 #endif
 
   return CL_OK;
@@ -544,6 +536,10 @@ static const cl_acttype_t action_types[] =
   { CL_ACTTYPE_POST_ACHIEVEMENT, CL_FALSE, 2, 2,  0, cl_act_post_achievement },
   { CL_ACTTYPE_POST_LEADERBOARD, CL_FALSE, 2, 16, 2, cl_act_post_leaderboard },
   { CL_ACTTYPE_POST_PROGRESS,    CL_FALSE, 2, 16, 2, cl_act_post_progress },
+
+  /* Control flow; handled by the script interpreter, never run directly */
+  { CL_ACTTYPE_ELSE,        CL_FALSE, 0, 0, 0, cl_act_no_process },
+  { CL_ACTTYPE_LOGICAL_OR,  CL_TRUE,  0, 0, 0, cl_act_no_process },
 
   { 0, CL_FALSE, 0, 0, 0, NULL }
 };

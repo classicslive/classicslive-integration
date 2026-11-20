@@ -8,7 +8,17 @@ extern "C"
 
 #include <QString>
 
+class QComboBox;
+
 QString formatBytes(double bytes);
+
+/**
+ * Fills a combo box with every memory note, titled by the note's title, in
+ * note order, with the note's key as each item's data. Scripts refer to notes
+ * by key, so findData(key) selects a note and currentData() reads one back.
+ * @param box The combo box to fill.
+ */
+void populateNoteComboBox(QComboBox *box);
 
 /**
  * Parses a number the user typed. Accepts an optional sign followed by an

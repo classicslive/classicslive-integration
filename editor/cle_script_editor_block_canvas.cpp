@@ -4,6 +4,7 @@
 #include "cle_action_block_comparison.h"
 #include "cle_action_block_ctrbinary.h"
 #include "cle_action_block_ctrunary.h"
+#include "cle_action_block_keyword.h"
 #include "cle_action_block_nop.h"
 
 extern "C"
@@ -11,10 +12,12 @@ extern "C"
   #include "../cl_script.h"
 };
 
+#include <QComboBox>
 #include <QMenu>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QScrollArea>
+#include <QScrollBar>
 
 CleScriptEditorBlockCanvas::CleScriptEditorBlockCanvas(QWidget *parent)
   : QWidget(parent)
@@ -23,7 +26,6 @@ CleScriptEditorBlockCanvas::CleScriptEditorBlockCanvas(QWidget *parent)
   if (buildFromScript() != CL_OK)
     buildNew();
 
-  setMinimumSize(640, 480);
   setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
   setAttribute(Qt::WA_OpaquePaintEvent);
   setFocusPolicy(Qt::StrongFocus);
@@ -70,6 +72,7 @@ cl_error CleScriptEditorBlockCanvas::buildFromScript(void)
     prev = next;
   }
   end->attachTo(prev, 0);
+  updateExtent();
 
   return CL_OK;
 }
@@ -94,6 +97,7 @@ cl_error CleScriptEditorBlockCanvas::buildNew(void)
 
   middle->attachTo(start, 0);
   end->attachTo(middle, 0);
+  updateExtent();
 
   return CL_OK;
 }
@@ -102,6 +106,8 @@ CleActionBlock *CleScriptEditorBlockCanvas::addBlock(cl_action_t *action,
   QPoint pos)
 {
   CleActionBlock *block = nullptr;
+  QList<QComboBox*> boxes;
+  int i;
 
   switch (action->type)
   {
@@ -130,6 +136,10 @@ CleActionBlock *CleScriptEditorBlockCanvas::addBlock(cl_action_t *action,
   case CL_ACTTYPE_COMPARE:
     block = new CleActionBlockComparison(action, this);
     break;
+  case CL_ACTTYPE_ELSE:
+  case CL_ACTTYPE_LOGICAL_OR:
+    block = new CleActionBlockKeyword(action, this);
+    break;
   case CL_ACTTYPE_NO_PROCESS:
     block = new CleActionBlockNop(action, this);
   }
@@ -142,6 +152,15 @@ CleActionBlock *CleScriptEditorBlockCanvas::addBlock(cl_action_t *action,
             this, SLOT(checkSnaps(CleActionBlock*)));
     block->show();
     blocks.push_back(block);
+
+    /* Combo boxes only take the wheel once clicked, so scrolling passes over them */
+    boxes = block->findChildren<QComboBox*>();
+    for (i = 0; i < boxes.size(); i++)
+    {
+      boxes[i]->setFocusPolicy(Qt::StrongFocus);
+      boxes[i]->installEventFilter(this);
+    }
+    updateExtent();
   }
 
   return block;
@@ -154,24 +173,17 @@ CleActionBlock *CleScriptEditorBlockCanvas::addBlock(cl_action_t *action)
 
 void CleScriptEditorBlockCanvas::checkSnaps(CleActionBlock* position)
 {
+  int indentation = -1;
   unsigned i;
 
-  for (i = 0; i < blocks.size(); i++)
-  {
-    if (blocks[i] == position)
-      continue;
-    else
-    {
-      auto indentation = blocks[i]->snapIndentation(position->pos());
-
-      if (indentation >= 0)
-      {
-        position->attachTo(blocks[i], indentation);
-        return;
-      }
-    }
-  }
-  position->detach();
+  for (i = 0; i < blocks.size() && indentation < 0; i++)
+    if (blocks[i] != position)
+      indentation = blocks[i]->snapIndentation(position->pos());
+  if (indentation >= 0)
+    position->attachTo(blocks[i - 1], indentation);
+  else
+    position->detach();
+  updateExtent();
 }
 
 void CleScriptEditorBlockCanvas::mousePressEvent(QMouseEvent *event)
@@ -183,6 +195,10 @@ void CleScriptEditorBlockCanvas::mousePressEvent(QMouseEvent *event)
     /* Add comparison actions */
     QAction *comparisonAction = subMenu.addAction("Compare values");
     comparisonAction->setData(CL_ACTTYPE_COMPARE);
+    QAction *logicalOrAction = subMenu.addAction("OR (between two comparisons)");
+    logicalOrAction->setData(CL_ACTTYPE_LOGICAL_OR);
+    QAction *elseAction = subMenu.addAction("Else (after a comparison's actions)");
+    elseAction->setData(CL_ACTTYPE_ELSE);
 
     QMenu *basicMathMenu = subMenu.addMenu("Basic Math");
     QMenu *bitwiseMenu = subMenu.addMenu("Bitwise Operations");
@@ -225,6 +241,66 @@ void CleScriptEditorBlockCanvas::mousePressEvent(QMouseEvent *event)
       addBlock(action, event->pos());
     }
   }
+  /* Dragging empty space scrolls the view */
+  else if ((event->button() == Qt::LeftButton ||
+            event->button() == Qt::MiddleButton) && m_ScrollArea)
+  {
+    m_Panning = true;
+    m_PanStart = event->globalPos();
+    m_PanScroll = QPoint(m_ScrollArea->horizontalScrollBar()->value(),
+                         m_ScrollArea->verticalScrollBar()->value());
+    setCursor(Qt::ClosedHandCursor);
+  }
+}
+
+void CleScriptEditorBlockCanvas::mouseMoveEvent(QMouseEvent *event)
+{
+  QPoint delta;
+
+  if (!m_Panning || !m_ScrollArea)
+    return;
+  delta = event->globalPos() - m_PanStart;
+  m_ScrollArea->horizontalScrollBar()->setValue(m_PanScroll.x() - delta.x());
+  m_ScrollArea->verticalScrollBar()->setValue(m_PanScroll.y() - delta.y());
+}
+
+void CleScriptEditorBlockCanvas::mouseReleaseEvent(QMouseEvent *event)
+{
+  Q_UNUSED(event)
+  if (m_Panning)
+  {
+    m_Panning = false;
+    unsetCursor();
+  }
+}
+
+bool CleScriptEditorBlockCanvas::eventFilter(QObject *object, QEvent *event)
+{
+  /* Ignored and filtered, the wheel event goes to the parents instead */
+  if (event->type() == QEvent::Wheel && object->isWidgetType() &&
+      !static_cast<QWidget*>(object)->hasFocus())
+  {
+    event->ignore();
+    return true;
+  }
+
+  return QWidget::eventFilter(object, event);
+}
+
+void CleScriptEditorBlockCanvas::updateExtent(void)
+{
+  QRect area;
+  int right = CLE_CANVAS_MIN_WIDTH;
+  int bottom = CLE_CANVAS_MIN_HEIGHT;
+  unsigned i;
+
+  for (i = 0; i < blocks.size(); i++)
+  {
+    area = blocks[i]->geometry();
+    right = qMax(right, area.right() + CLE_CANVAS_MARGIN);
+    bottom = qMax(bottom, area.bottom() + CLE_CANVAS_MARGIN);
+  }
+  setMinimumSize(right, bottom);
 }
 
 void CleScriptEditorBlockCanvas::paintEvent(QPaintEvent *event)
