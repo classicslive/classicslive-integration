@@ -110,6 +110,8 @@ typedef enum
     #define CL_HOST_ENDIANNESS _CL_ENDIANNESS_BIG
   #elif defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
     #define CL_HOST_ENDIANNESS _CL_ENDIANNESS_LITTLE
+  #elif defined(_WIN32)
+    #define CL_HOST_ENDIANNESS _CL_ENDIANNESS_LITTLE
   #else
     #warning "Unable to determine host endianness, assuming little-endian"
     #define CL_HOST_ENDIANNESS _CL_ENDIANNESS_LITTLE

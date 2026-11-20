@@ -473,7 +473,7 @@ static int cl_search_needs_previous(const cl_search_parameters_t *params)
 static cl_search_compare_func_t cl_search_comparison_function(
   cl_search_parameters_t params, cl_endianness endianness)
 {
-  int swap = (endianness != CL_HOST_ENDIANNESS);
+  int swap = CL_NEEDS_SWAP(endianness);
 
   switch (params.value_type)
   {
@@ -1188,7 +1188,13 @@ cl_error cl_search_init(cl_search_t *search)
 {
   unsigned i;
 
-  if (!search || !memory.regions)
+  if (!search)
+    return CL_ERR_PARAMETER_NULL;
+
+  /* Zero-init the search */
+  memset(search, 0, sizeof(cl_search_t));
+
+  if (!memory.regions)
     return CL_ERR_PARAMETER_NULL;
   else if (memory.region_count == 0)
     return CL_ERR_PARAMETER_INVALID;
@@ -1197,9 +1203,6 @@ cl_error cl_search_init(cl_search_t *search)
     cl_message(CL_MSG_ERROR, "Compile: search target impl size mismatch");
     return CL_ERR_CLIENT_COMPILE;
   }
-
-  /* Zero-init the search */
-  memset(search, 0, sizeof(cl_search_t));
 
   /* Allocate and init page regions, skipping any that are marked ignored */
   search->page_regions = (cl_search_page_region_t*)calloc(
@@ -1532,12 +1535,13 @@ cl_error cl_search_remove(cl_search_t *search, cl_addr_t address)
       /* Is it in this page? */
       if (address >= page->start && address < page->start + page->size)
       {
-        cl_addr_t offset = address - page->start;
+        cl_addr_t offset = CL_WORD_FLIP_OFFSET(address - page->start,
+          search->params.value_size, page->region->endianness);
         unsigned char *target = &page->validity[offset / search->params.value_size];
 
         if (*target)
         {
-          page->validity[offset / search->params.value_size] = 0;
+          *target = 0;
           page->matches--;
 
           return CL_OK;

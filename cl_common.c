@@ -94,11 +94,7 @@ cl_error cl_read_16(void *value, const void *src, cl_addr_t offset,
   uint16_t tmp = *((const uint16_t*)(
     (const uint8_t*)src + offset));
 
-#if CL_HOST_ENDIANNESS == _CL_ENDIANNESS_BIG
-  if (endianness == CL_ENDIAN_LITTLE)
-#else
-  if (endianness == CL_ENDIAN_BIG)
-#endif
+  if (CL_NEEDS_SWAP(endianness))
   {
 #if defined(_MSC_VER)
     tmp = _byteswap_ushort(tmp);
@@ -128,11 +124,7 @@ cl_error cl_read_32(void *value, const void *src, cl_addr_t offset,
   uint32_t tmp = *((const uint32_t*)(
     (const uint8_t*)src + offset));
 
-#if CL_HOST_ENDIANNESS == _CL_ENDIANNESS_BIG
-  if (endianness == CL_ENDIAN_LITTLE)
-#else
-  if (endianness == CL_ENDIAN_BIG)
-#endif
+  if (CL_NEEDS_SWAP(endianness))
   {
 #if defined(_MSC_VER)
     tmp = _byteswap_ulong(tmp);
@@ -165,11 +157,7 @@ cl_error cl_read_64(void *value, const void *src, cl_addr_t offset,
   uint64_t tmp = *((const uint64_t*)(
     (const uint8_t*)src + offset));
 
-#if CL_HOST_ENDIANNESS == _CL_ENDIANNESS_BIG
-  if (endianness == CL_ENDIAN_LITTLE)
-#else
-  if (endianness == CL_ENDIAN_BIG)
-#endif
+  if (CL_NEEDS_SWAP(endianness))
   {
 #if defined(_MSC_VER)
     tmp = _byteswap_uint64(tmp);
@@ -186,6 +174,8 @@ cl_error cl_read_64(void *value, const void *src, cl_addr_t offset,
           ((tmp & 0xFF00000000000000ULL) >> 56);
 #endif
   }
+  if (endianness == CL_ENDIAN_WORD_FLIP_BL)
+    tmp = (tmp << 32) | (tmp >> 32);
   *((uint64_t*)value) = tmp;
 
   return CL_OK;
@@ -201,10 +191,12 @@ cl_error cl_read_value(void *value, const void *src, cl_addr_t offset,
   {
   case CL_MEMTYPE_INT8:
   case CL_MEMTYPE_UINT8:
-    return cl_read_8(value, src, offset);
+    return cl_read_8(value, src,
+      CL_WORD_FLIP_OFFSET(offset, 1, endianness));
   case CL_MEMTYPE_INT16:
   case CL_MEMTYPE_UINT16:
-    return cl_read_16(value, src, offset, endianness);
+    return cl_read_16(value, src,
+      CL_WORD_FLIP_OFFSET(offset, 2, endianness), endianness);
   case CL_MEMTYPE_INT32:
   case CL_MEMTYPE_UINT32:
   case CL_MEMTYPE_FLOAT:
@@ -296,11 +288,7 @@ cl_error cl_write_16(const void *value, void *dst, cl_addr_t offset,
 #endif
   uint16_t tmp = *(const uint16_t*)value;
 
-#if CL_HOST_ENDIANNESS == _CL_ENDIANNESS_BIG
-  if (endianness == CL_ENDIAN_LITTLE)
-#else
-  if (endianness == CL_ENDIAN_BIG)
-#endif
+  if (CL_NEEDS_SWAP(endianness))
   {
 #if defined(_MSC_VER)
     tmp = _byteswap_ushort(tmp);
@@ -330,11 +318,7 @@ cl_error cl_write_32(const void *value, void *dst, cl_addr_t offset,
 #endif
   uint32_t tmp = *(const uint32_t*)value;
 
-#if CL_HOST_ENDIANNESS == _CL_ENDIANNESS_BIG
-  if (endianness == CL_ENDIAN_LITTLE)
-#else
-  if (endianness == CL_ENDIAN_BIG)
-#endif
+  if (CL_NEEDS_SWAP(endianness))
   {
 #if defined(_MSC_VER)
     tmp = _byteswap_ulong(tmp);
@@ -367,11 +351,7 @@ cl_error cl_write_64(const void *value, void *dst, cl_addr_t offset,
 #endif
   uint64_t tmp = *(const uint64_t*)value;
 
-#if CL_HOST_ENDIANNESS == _CL_ENDIANNESS_BIG
-  if (endianness == CL_ENDIAN_LITTLE)
-#else
-  if (endianness == CL_ENDIAN_BIG)
-#endif
+  if (CL_NEEDS_SWAP(endianness))
   {
 #if defined(_MSC_VER)
     tmp = _byteswap_uint64(tmp);
@@ -389,6 +369,8 @@ cl_error cl_write_64(const void *value, void *dst, cl_addr_t offset,
 #endif
   }
 
+  if (endianness == CL_ENDIAN_WORD_FLIP_BL)
+    tmp = (tmp << 32) | (tmp >> 32);
   *((uint64_t*)((uint8_t*)dst + offset)) = tmp;
 
   return CL_OK;
@@ -404,10 +386,12 @@ cl_error cl_write_value(const void *value, void *dst, cl_addr_t offset,
   {
   case CL_MEMTYPE_INT8:
   case CL_MEMTYPE_UINT8:
-    return cl_write_8(value, dst, offset);
+    return cl_write_8(value, dst,
+      CL_WORD_FLIP_OFFSET(offset, 1, endianness));
   case CL_MEMTYPE_INT16:
   case CL_MEMTYPE_UINT16:
-    return cl_write_16(value, dst, offset, endianness);
+    return cl_write_16(value, dst,
+      CL_WORD_FLIP_OFFSET(offset, 2, endianness), endianness);
   case CL_MEMTYPE_INT32:
   case CL_MEMTYPE_UINT32:
   case CL_MEMTYPE_FLOAT:
