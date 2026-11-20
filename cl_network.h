@@ -14,6 +14,7 @@
 
 #define CL_END_CLINT_ACHIEVEMENT "achievement"
 #define CL_END_CLINT_CLOSE "close"
+#define CL_END_CLINT_LEADERBOARD "leaderboard"
 #define CL_END_CLINT_LOGIN "login"
 #define CL_END_CLINT_PING "ping"
 #define CL_END_CLINT_PROGRESS "progress"

@@ -7,6 +7,7 @@
 #include "cl_network.h"
 #include "cl_script.h"
 
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -46,13 +47,13 @@ static cl_error cl_print_counter_values(char *buffer, unsigned len)
     counter = &script.current_page->counters[i];
 
     /* Get counter value to temporary buffer */
-    if (counter->type == CL_MEMTYPE_FLOAT ||
-        counter->type == CL_MEMTYPE_DOUBLE)
+    /* Integers are stored sign-extended, so print them signed */
+    if (cl_ctr_is_float(counter))
       snprintf(counter_buffer, sizeof(counter_buffer), "&c%u=%f",
                i, counter->floatval.fp);
     else
-      snprintf(counter_buffer, sizeof(counter_buffer), "&c%u=" CL_FU64,
-               i, counter->intval.raw);
+      snprintf(counter_buffer, sizeof(counter_buffer), "&c%u=" CL_FS64,
+               i, counter->intval.i64);
 
     /* Check destination buffer can hold it */
     current_len = strlen(buffer);
@@ -283,18 +284,88 @@ static cl_error cl_act_post_progress(cl_action_t *action)
   return CL_OK;
 }
 
-/** @todo Support optional values */
+static cl_leaderboard_t *cl_find_leaderboard(unsigned id)
+{
+  unsigned i;
+
+  for (i = 0; i < session.leaderboard_count; i++)
+    if (session.leaderboards[i].id == id)
+      return &session.leaderboards[i];
+
+  return NULL;
+}
+
+#if !CL_HAVE_EDITOR
+static CL_NETWORK_CB(cl_leaderboard_cb)
+{
+  /* Looked up again, in case the session ended while the request was out */
+  const cl_leaderboard_t *ldb = cl_find_leaderboard((unsigned)(uintptr_t)userdata);
+  const char *title = ldb && ldb->title[0] ? ldb->title : "Leaderboard";
+  cl_bool success = CL_FALSE;
+  cl_bool personal_best = CL_FALSE;
+  char display[64];
+  char reason[256];
+
+  if (!response.data || cl_json_get(&success, response.data, CL_JSON_KEY_SUCCESS,
+      CL_JSON_TYPE_BOOLEAN, sizeof(success)) != CL_OK || !success)
+  {
+    if (!response.data || cl_json_get(reason, response.data, CL_JSON_KEY_REASON,
+        CL_JSON_TYPE_STRING, sizeof(reason)) != CL_OK)
+      snprintf(reason, sizeof(reason), "No response from the server.");
+    cl_message(CL_MSG_ERROR, "%s: score not submitted. %s", title, reason);
+    return;
+  }
+
+  if (cl_json_get(display, response.data, CL_JSON_KEY_DISPLAY,
+      CL_JSON_TYPE_STRING, sizeof(display)) != CL_OK)
+    snprintf(display, sizeof(display), "submitted");
+  cl_json_get(&personal_best, response.data, CL_JSON_KEY_PERSONAL_BEST,
+    CL_JSON_TYPE_BOOLEAN, sizeof(personal_best));
+
+  cl_message(CL_MSG_INFO, "%s: %s%s", title, display,
+    personal_best ? " (new personal best!)" : "");
+}
+#endif
+
+/**
+ * Submits a score to the leaderboard whose ID the action's source gives,
+ * along with every counter on the current page as c0..c15. The server works
+ * out the score from those (and the rich memory note values, which every
+ * request carries as m<id>) using the leaderboard's formula.
+ */
 static cl_error cl_act_post_leaderboard(cl_action_t *action)
 {
   cl_counter_t ldb_id = cl_get_compare_value(action->arguments[0].uintval,
                                              action->arguments[1].uintval);
+  cl_leaderboard_t *ldb;
+  cl_bool ran_last_frame;
   char data[CL_POST_DATA_SIZE];
 
-  snprintf(data, CL_POST_DATA_SIZE, "leaderboard_id=" CL_FU64, ldb_id.intval.raw);
+  if (ldb_id.type == CL_MEMTYPE_NOT_SET)
+    return CL_OK;
+  ldb = cl_find_leaderboard((unsigned)ldb_id.intval.raw);
+  if (!ldb)
+    return CL_OK;
+
+  ran_last_frame = ldb->last_frame && ldb->last_frame + 1 == script.frame;
+  ldb->last_frame = script.frame;
+  if (ran_last_frame)
+    return CL_OK;
+
+  snprintf(data, CL_POST_DATA_SIZE, "leaderboard_id=%u", ldb->id);
   if (cl_print_counter_values(data, sizeof(data)) != CL_OK)
-    cl_message(CL_MSG_ERROR, "Unable to allocate leaderboard data.");
-  else
-    cl_message(CL_MSG_ERROR, "Unimplemented endpoint leaderboard\n%s", data);
+  {
+    cl_message(CL_MSG_ERROR, "Unable to build leaderboard data.");
+    return CL_OK;
+  }
+
+#if CL_HAVE_EDITOR
+  cl_message(CL_MSG_INFO, "Editor mode: Leaderboard %u submitted.\n%s",
+    ldb->id, data);
+#else
+  cl_network_post_clint(CL_END_CLINT_LEADERBOARD, data, cl_leaderboard_cb,
+    (void*)(uintptr_t)ldb->id);
+#endif
 
   return CL_OK;
 }

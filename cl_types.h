@@ -219,6 +219,10 @@ typedef struct
   char details[256];
   char icon_url[64];
   unsigned id;
+
+  /* The script frame its post action last ran on (0: never). A score is
+     only submitted when the action didn't also run on the frame before. */
+  unsigned last_frame;
 } cl_leaderboard_t;
 
 typedef struct

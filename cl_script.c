@@ -304,6 +304,7 @@ cl_error cl_script_update(void)
   if (script.status != CL_SCRIPT_STATUS_ACTIVE)
     return CL_ERR_CLIENT_RUNTIME;
 
+  script.frame++;
   for (i = 0; i < script.page_count; i++)
   {
     script.current_page = &script.pages[i];

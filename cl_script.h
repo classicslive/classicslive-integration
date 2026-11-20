@@ -39,6 +39,9 @@ typedef struct cl_script_t
   /* Which page in a script is currently being processed. */
   cl_page_t *current_page;
 
+  /* How many times the script has been updated; the first update is frame 1. */
+  unsigned frame;
+
   cl_bool evaluation;
 
   /* The status of the script. For example, CL_SCRIPT_STATUS_ACTIVE. */

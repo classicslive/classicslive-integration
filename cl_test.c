@@ -32,6 +32,8 @@ static char cl_test_msg[256];
 /* Achievement submissions the fake server has received, and the last one */
 static unsigned cl_test_achievement_posts = 0;
 static char cl_test_achievement_data[256];
+static unsigned cl_test_leaderboard_posts = 0;
+static char cl_test_leaderboard_data[512];
 
 static cl_error cl_test_display_message(unsigned level, const char *msg)
 {
@@ -142,7 +144,7 @@ static cl_error cl_test_network_post(const char *url, char *data,
         "],"
         "\"leaderboards\":"
         "["
-          "{\"leaderboard_id\":1,\"title\":\"High Scores\",\"description\":\""
+          "{\"id\":1,\"title\":\"High Scores\",\"description\":\""
             "Top scores for the game.\"}"
         "],"
         "\"script\":\"1 2 0 15 5 1 1 0 5 1 1 18 2 0 1\""
@@ -156,6 +158,20 @@ static cl_error cl_test_network_post(const char *url, char *data,
     response.data =
       "{"
         "\"success\":true"
+      "}\n";
+  }
+  else if (strstr(url, CL_CLINT_URL CL_END_CLINT_LEADERBOARD))
+  {
+    cl_test_leaderboard_posts++;
+    snprintf(cl_test_leaderboard_data, sizeof(cl_test_leaderboard_data),
+             "%s", data ? data : "");
+    response.data =
+      "{"
+        "\"success\":true,"
+        "\"leaderboard_id\":1,"
+        "\"score\":1234,"
+        "\"display\":\"1,234\","
+        "\"personal_best\":true"
       "}\n";
   }
   else if (strstr(url, CL_CLINT_URL CL_END_CLINT_CLOSE))
@@ -596,6 +612,65 @@ static cl_error cl_test_dynamic_unlock(void)
   return CL_OK;
 }
 
+/**
+ * A leaderboard action under a condition submits once each time the
+ * condition becomes true, not on every frame it stays true, and sends the
+ * page's counters (signed) with it. Unknown leaderboard IDs are ignored.
+ * Counter 0 holds the leaderboard ID, counter 1 the condition, counter 2 a
+ * negative value. The script is "if c1 == 1: post leaderboard[c0]".
+ */
+typedef struct
+{
+  unsigned id;
+  unsigned condition;
+  unsigned posts;
+} cl_test_ldb_frame_t;
+
+static const cl_test_ldb_frame_t cl_test_ldb_frames[] =
+{
+  { 1, 1, 1 }, /* condition becomes true: submit */
+  { 1, 1, 1 }, /* still true: don't resubmit */
+  { 1, 0, 1 }, /* false */
+  { 1, 1, 2 }, /* true again: submit */
+  { 1, 0, 2 },
+  { 9, 1, 2 }, /* this game has no leaderboard 9 */
+};
+
+static cl_error cl_test_leaderboard(void)
+{
+  const char *text = "1 2 0 15 5 5 1 0 1 1 1 19 2 5 0";
+  const char *pos = text;
+  const char *expected = "leaderboard_id=1&c0=1&c1=1&c2=-7&c3=0";
+  unsigned count = sizeof(cl_test_ldb_frames) / sizeof(cl_test_ldb_frames[0]);
+  unsigned base, i;
+
+  cl_script_free();
+  if (cl_script_init(&pos) != CL_OK)
+    return CL_ERR_CLIENT_RUNTIME;
+  base = cl_test_leaderboard_posts;
+  cl_ctr_store_int(&script.pages[0].counters[2], -7);
+
+  for (i = 0; i < count; i++)
+  {
+    cl_ctr_store_int(&script.pages[0].counters[0], cl_test_ldb_frames[i].id);
+    cl_ctr_store_int(&script.pages[0].counters[1], cl_test_ldb_frames[i].condition);
+    cl_script_update();
+    if (cl_test_leaderboard_posts - base != cl_test_ldb_frames[i].posts)
+    {
+      printf("Leaderboard frame %u failed: %u posts, last \"%s\"\n", i,
+             cl_test_leaderboard_posts - base, cl_test_leaderboard_data);
+      return CL_ERR_CLIENT_RUNTIME;
+    }
+  }
+  if (strncmp(cl_test_leaderboard_data, expected, strlen(expected)))
+  {
+    printf("Leaderboard posted the wrong data: \"%s\"\n", cl_test_leaderboard_data);
+    return CL_ERR_CLIENT_RUNTIME;
+  }
+
+  return CL_OK;
+}
+
 static cl_error cl_test_console_free(void)
 {
   unsigned i;
@@ -799,6 +874,13 @@ cl_error cl_test(void)
   if (error != CL_OK)
     return error;
   printf("Dynamic achievement ID tests passed!\n");
+
+  printf("============================================================\n");
+  printf("Performing leaderboard tests...\n");
+  error = cl_test_leaderboard();
+  if (error != CL_OK)
+    return error;
+  printf("Leaderboard tests passed!\n");
 
   printf("============================================================\n");
   printf("Freeing test session...\n");
